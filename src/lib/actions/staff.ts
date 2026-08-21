@@ -106,6 +106,14 @@ export async function processPayrollRecord(formData: FormData): Promise<void> {
     return;
   }
 
+  if (advance_deduction > 0) {
+    await supabase
+      .from("salary_advances")
+      .update({ status: "recovered" })
+      .eq("staff_id", staff_id)
+      .eq("status", "active");
+  }
+
   if (cash_account_id && net_salary > 0) {
     await supabase.from("cash_transactions").insert({
       cash_account_id,
@@ -118,6 +126,7 @@ export async function processPayrollRecord(formData: FormData): Promise<void> {
   revalidatePath("/staff");
   revalidatePath(`/staff/${staff_id}`);
   revalidatePath("/cash-book");
+  revalidatePath("/reports");
 }
 
 export async function deleteStaffMember(id: string): Promise<void> {

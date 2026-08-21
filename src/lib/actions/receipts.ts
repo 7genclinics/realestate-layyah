@@ -160,12 +160,25 @@ export async function receivePayment(input: unknown) {
     }
   }
 
+  // Update sale remaining balance and completion status
+  const newSaleRemaining = roundMoney(Math.max(0, Number(sale.remaining_amount) - amount));
+  const newSaleStatus = newSaleRemaining <= 0 ? "fully_paid" : sale.status;
+  await supabase
+    .from("sales")
+    .update({
+      remaining_amount: newSaleRemaining,
+      status: newSaleStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sale.id);
+
   revalidatePath("/receipts");
   revalidatePath(`/receipts/${receipt.id}`);
   revalidatePath("/installments");
   revalidatePath("/customers");
   revalidatePath(`/customers/${sale.customer_id}`);
   revalidatePath("/dashboard");
+  revalidatePath("/reports");
   revalidatePath("/cash-book");
 
   return { error: null, id: receipt.id };

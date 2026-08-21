@@ -89,6 +89,10 @@ export async function recordAgentPayout(formData: FormData): Promise<void> {
     return;
   }
 
+  if (commission_id) {
+    await supabase.from("agent_commissions").update({ status: "paid" }).eq("id", commission_id);
+  }
+
   await supabase.from("cash_transactions").insert({
     cash_account_id,
     transaction_type: "expense",
@@ -98,6 +102,8 @@ export async function recordAgentPayout(formData: FormData): Promise<void> {
 
   revalidatePath("/agents");
   revalidatePath(`/agents/${agent_id}`);
+  revalidatePath("/cash-book");
+  revalidatePath("/reports");
   revalidatePath("/cash-book");
 }
 

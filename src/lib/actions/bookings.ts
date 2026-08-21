@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import { requireProfile } from "@/lib/auth";
+import { amountToWords } from "@/lib/amount-to-words";
 import { buildInstallmentPlan, roundMoney } from "@/lib/installments";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -91,6 +92,29 @@ export async function createBooking(input: unknown) {
     return { error: saleError?.message ?? "Could not create booking." };
   }
 
+  // Update property status to hold or booked
+  const targetPropertyStatus = saleStatus === "hold" ? "hold" : "booked";
+  await supabase
+    .from("properties")
+    .update({ status: targetPropertyStatus, updated_at: new Date().toISOString() })
+    .eq("id", property.id);
+
+  // Record property status transition
+  await supabase.from("property_status_history").insert({
+    property_id: property.id,
+    from_status: property.status,
+    to_status: targetPropertyStatus,
+    changed_by: profile.id,
+    reason: `Plot booked via sales booking (Sale ID: ${sale.id})`,
+  });
+
+  // Promote customer stage
+  const customerTargetStage = values.payment_type === "emi" ? "active_emi" : "booked";
+  await supabase
+    .from("customers")
+    .update({ stage: customerTargetStage, updated_at: new Date().toISOString() })
+    .eq("id", values.customer_id);
+
   let customMonths: number[] | undefined = undefined;
   if (values.custom_balloon_months) {
     customMonths = values.custom_balloon_months
@@ -113,18 +137,52 @@ export async function createBooking(input: unknown) {
   });
 
   if (schedule.length) {
-    const { error: installmentError } = await supabase.from("installments").insert(
-      schedule.map((row) => ({
-        sale_id: sale.id,
-        installment_no: row.installment_no,
-        period_label: row.period_label,
-        due_date: row.due_date,
-        scheduled_amount: row.scheduled_amount,
-      })),
-    );
+    const { data: insertedInstallments, error: installmentError } = await supabase
+      .from("installments")
+      .insert(
+        schedule.map((row) => ({
+          sale_id: sale.id,
+          installment_no: row.installment_no,
+          period_label: row.period_label,
+          due_date: row.due_date,
+          scheduled_amount: row.scheduled_amount,
+          received_amount: row.installment_no === 0 ? tokenAmount : 0,
+          received_date: row.installment_no === 0 && tokenAmount > 0 ? bookingDate : null,
+        })),
+      )
+      .select("id, installment_no");
 
     if (installmentError) {
       return { error: installmentError.message };
+    }
+
+    // If downpayment token was received, create the receipt and allocation record
+    if (tokenAmount > 0) {
+      const { data: tokenReceipt } = await supabase
+        .from("receipts")
+        .insert({
+          sale_id: sale.id,
+          customer_id: values.customer_id,
+          payment_date: bookingDate,
+          amount: tokenAmount,
+          amount_in_words: amountToWords(tokenAmount),
+          payment_mode: "cash",
+          notes: "Initial downpayment / token receipt",
+          received_by: profile.id,
+        })
+        .select("id")
+        .single();
+
+      if (tokenReceipt && insertedInstallments) {
+        const tokenInst = insertedInstallments.find((inst) => inst.installment_no === 0);
+        if (tokenInst) {
+          await supabase.from("receipt_allocations").insert({
+            receipt_id: tokenReceipt.id,
+            installment_id: tokenInst.id,
+            allocated_amount: tokenAmount,
+          });
+        }
+      }
     }
   }
 
@@ -133,6 +191,8 @@ export async function createBooking(input: unknown) {
   revalidatePath("/inventory");
   revalidatePath(`/inventory/${property.id}`);
   revalidatePath("/installments");
+  revalidatePath("/receipts");
+  revalidatePath("/reports");
   revalidatePath("/dashboard");
   return { error: null, id: sale.id, customerId: values.customer_id };
 }

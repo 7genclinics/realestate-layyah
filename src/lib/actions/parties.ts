@@ -191,6 +191,28 @@ export async function createPartyPayment(input: unknown) {
     return { error: error?.message ?? "Could not post payment." };
   }
 
+  // Update contract paid and remaining balances
+  const { data: currentContract } = await supabase
+    .from("contracts")
+    .select("paid_amount, remaining_amount, contract_value")
+    .eq("id", contract.id)
+    .single();
+
+  const currentPaid = Number(currentContract?.paid_amount ?? 0);
+  const newPaid = roundMoney(currentPaid + amount);
+  const newRemaining = roundMoney(Math.max(0, Number(contract.remaining_amount) - amount));
+  const newStatus = newRemaining <= 0 ? "completed" : "active";
+
+  await supabase
+    .from("contracts")
+    .update({
+      paid_amount: newPaid,
+      remaining_amount: newRemaining,
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", contract.id);
+
   revalidateParty(contract.party_id);
   return { error: null, id: data.id, partyId: contract.party_id };
 }

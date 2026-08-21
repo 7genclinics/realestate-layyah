@@ -193,6 +193,22 @@ export async function createLandPayment(input: unknown) {
     return { error: error?.message ?? "Could not post payment." };
   }
 
+  // Update land parcel paid and remaining balances
+  const currentPaid = Number((parcel as any).paid_amount ?? 0);
+  const newPaid = roundMoney(currentPaid + amount);
+  const newRemaining = roundMoney(Math.max(0, Number(parcel.remaining_amount) - amount));
+  const newStatus = newRemaining <= 0 ? "fully_paid" : "partially_paid";
+
+  await supabase
+    .from("land_parcels")
+    .update({
+      paid_amount: newPaid,
+      remaining_amount: newRemaining,
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", parcel.id);
+
   revalidateLand(parcel.id);
   return { error: null, id: data.id, landId: parcel.id };
 }
