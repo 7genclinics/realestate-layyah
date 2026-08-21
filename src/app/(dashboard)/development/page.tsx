@@ -1,0 +1,242 @@
+import Link from "next/link";
+import { Plus, Building, DollarSign, PieChart, Hammer, Receipt } from "lucide-react";
+import { getDevelopmentProjects, getDevelopmentExpenses } from "@/lib/development";
+import { formatPkr, formatDate } from "@/lib/format";
+import { DEVELOPMENT_CATEGORY_LABELS, DEVELOPMENT_STATUS_LABELS } from "@/lib/constants";
+import {
+  deleteDevelopmentProject,
+  deleteDevelopmentExpense,
+} from "@/lib/actions/development";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { RowActions } from "@/components/features/row-actions";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+const PAGE_SIZE = 20;
+
+export default async function DevelopmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; epage?: string }>;
+}) {
+  const { page: pageStr, epage: epageStr } = await searchParams;
+  const page = Math.max(1, parseInt(pageStr ?? "1", 10));
+  const epage = Math.max(1, parseInt(epageStr ?? "1", 10));
+
+  const [{ data: projects, total: projTotal }, { data: expenses, total: expTotal }] =
+    await Promise.all([
+      getDevelopmentProjects({ page, pageSize: PAGE_SIZE }),
+      getDevelopmentExpenses({ page: epage, pageSize: PAGE_SIZE }),
+    ]);
+
+  const totalBudget = projects.reduce((s: number, p: any) => s + Number(p.budget || 0), 0);
+  const totalSpent = projects.reduce((s: number, p: any) => s + Number(p.total_spent || 0), 0);
+  const remaining = totalBudget - totalSpent;
+  const percentRemaining = totalBudget > 0 ? ((remaining / totalBudget) * 100).toFixed(1) : "100";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">
+            Development &amp; Site Works
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Track infrastructure projects, roads, boundary walls, electricity/WAPDA, horticulture &amp; site expense vouchers.
+          </p>
+        </div>
+        <Button render={<Link href="/development/new" />}>
+          <Plus className="size-4" />
+          Add Project / Expense
+        </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          title="Total Development Budget"
+          value={formatPkr(totalBudget)}
+          hint={`${projTotal} configured infrastructure projects`}
+          icon={Building}
+          variant="primary"
+        />
+        <StatCard
+          title="Total Development Spend"
+          value={formatPkr(totalSpent)}
+          hint="Logged and synced with Cash Book"
+          icon={DollarSign}
+          variant="warning"
+          href="/cash-book"
+        />
+        <StatCard
+          title="Remaining Budget"
+          value={formatPkr(remaining)}
+          hint={`${percentRemaining}% budget available`}
+          icon={PieChart}
+          variant={remaining >= 0 ? "success" : "danger"}
+        />
+      </div>
+
+      {/* Projects Table */}
+      <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
+        <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
+          <div className="flex items-center gap-2">
+            <Hammer className="size-4 text-muted-foreground" />
+            <h2 className="font-semibold text-sm">Development Projects &amp; Budgets</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">{projTotal} projects</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Project Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Society</TableHead>
+              <TableHead>Budget</TableHead>
+              <TableHead>Total Spent</TableHead>
+              <TableHead>Remaining</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {projects.length ? (
+              projects.map((proj: any) => {
+                const society = Array.isArray(proj.societies) ? proj.societies[0] : proj.societies;
+                return (
+                  <TableRow key={proj.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium text-foreground">{proj.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="rounded-md font-normal">
+                        {DEVELOPMENT_CATEGORY_LABELS[proj.category as keyof typeof DEVELOPMENT_CATEGORY_LABELS] ?? proj.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {society?.name ? (
+                        <Link href="/societies" className="text-primary hover:underline underline-offset-4">
+                          {society.name}
+                        </Link>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="font-semibold">{formatPkr(proj.budget)}</TableCell>
+                    <TableCell className="font-medium text-amber-600 dark:text-amber-400">
+                      {formatPkr(proj.total_spent)}
+                    </TableCell>
+                    <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
+                      {formatPkr(proj.remaining_budget)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="rounded-md">
+                        {DEVELOPMENT_STATUS_LABELS[proj.status as keyof typeof DEVELOPMENT_STATUS_LABELS] ?? proj.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <RowActions
+                        id={proj.id}
+                        editHref="/development/new"
+                        deleteAction={deleteDevelopmentProject}
+                        confirmMessage={`Delete project "${proj.name}"? All associated expenses will also be removed.`}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                  No development projects yet. Click &quot;Add Project / Expense&quot; to configure.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination page={page} total={projTotal} pageSize={PAGE_SIZE} params={{ page: pageStr }} />
+      </div>
+
+      {/* Expenses Table */}
+      <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
+        <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
+          <div className="flex items-center gap-2">
+            <Receipt className="size-4 text-muted-foreground" />
+            <h2 className="font-semibold text-sm">Recent Expense Vouchers</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">{expTotal} expense vouchers</span>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Project</TableHead>
+              <TableHead>Vendor / Party</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Cash/Bank Account</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {expenses.length ? (
+              expenses.map((exp: any) => {
+                const project = Array.isArray(exp.development_projects) ? exp.development_projects[0] : exp.development_projects;
+                const party = Array.isArray(exp.parties) ? exp.parties[0] : exp.parties;
+                const account = Array.isArray(exp.cash_accounts) ? exp.cash_accounts[0] : exp.cash_accounts;
+                return (
+                  <TableRow key={exp.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(exp.expense_date)}</TableCell>
+                    <TableCell className="font-medium">{project?.name ?? "—"}</TableCell>
+                    <TableCell>
+                      {party?.id ? (
+                        <Link href={`/parties/${party.id}`} className="text-primary hover:underline underline-offset-4">
+                          {party.name}
+                        </Link>
+                      ) : (
+                        party?.name ?? "Direct spend"
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">{exp.description}</TableCell>
+                    <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
+                      {formatPkr(exp.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <Link href="/cash-book" className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
+                        {account?.name ?? "Cash Box"}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <RowActions
+                        id={exp.id}
+                        deleteAction={deleteDevelopmentExpense}
+                        confirmMessage="Delete this expense voucher? It will remove the record."
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  No expense vouchers logged yet.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          page={epage}
+          total={expTotal}
+          pageSize={PAGE_SIZE}
+          params={{ epage: epageStr }}
+        />
+      </div>
+    </div>
+  );
+}
