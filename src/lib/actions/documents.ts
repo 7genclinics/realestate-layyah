@@ -10,6 +10,7 @@ import {
   canApproveDocuments,
   canManageDocuments,
 } from "@/lib/permissions";
+import { createNotification } from "@/lib/notifications";
 import { createClient } from "@/lib/server";
 import { documentMetaSchema } from "@/lib/validations/document";
 
