@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  PaymentSlipField,
+  slipRequiredForMode,
+  uploadSlipFile,
+} from "@/components/features/payment-slip-field";
 
 const selectClassName =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
@@ -45,6 +51,7 @@ export function PartyPaymentForm({
   defaultContractId?: string;
 }) {
   const router = useRouter();
+  const [slipFile, setSlipFile] = useState<File | null>(null);
   const {
     register,
     handleSubmit,
@@ -65,9 +72,19 @@ export function PartyPaymentForm({
 
   const contractId = watch("contract_id");
   const contract = contracts.find((row) => row.id === contractId);
+  const paymentMode = watch("payment_mode");
 
   async function onSubmit(values: PartyPaymentFormValues) {
-    const result = await createPartyPayment(values);
+    const upload = slipRequiredForMode(values.payment_mode)
+      ? await uploadSlipFile("party", slipFile)
+      : {};
+
+    if (upload.error) {
+      toast.error(upload.error);
+      return;
+    }
+
+    const result = await createPartyPayment({ ...values, slip_path: upload.path });
 
     if (result.error || !result.partyId) {
       toast.error(result.error ?? "Could not post payment");
@@ -140,6 +157,10 @@ export function PartyPaymentForm({
           <Label htmlFor="reference_no">Reference no.</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
+        <PaymentSlipField
+          paymentMode={paymentMode}
+          onFileChange={setSlipFile}
+        />
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="notes">Notes</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />

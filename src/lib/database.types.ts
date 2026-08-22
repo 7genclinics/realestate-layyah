@@ -959,6 +959,7 @@ export type Database = {
           payment_date: string
           payment_mode: Database["public"]["Enums"]["payment_mode"]
           reference_no: string | null
+          slip_path: string | null
         }
         Insert: {
           amount: number
@@ -973,6 +974,7 @@ export type Database = {
           payment_date?: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"]
           reference_no?: string | null
+          slip_path?: string | null
         }
         Update: {
           amount?: number
@@ -987,6 +989,7 @@ export type Database = {
           payment_date?: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"]
           reference_no?: string | null
+          slip_path?: string | null
         }
         Relationships: [
           {
@@ -1649,6 +1652,7 @@ export type Database = {
           payment_date: string
           payment_mode: Database["public"]["Enums"]["payment_mode"]
           reference_no: string | null
+          slip_path: string | null
         }
         Insert: {
           amount: number
@@ -1663,6 +1667,7 @@ export type Database = {
           payment_date?: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"]
           reference_no?: string | null
+          slip_path?: string | null
         }
         Update: {
           amount?: number
@@ -1677,6 +1682,7 @@ export type Database = {
           payment_date?: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"]
           reference_no?: string | null
+          slip_path?: string | null
         }
         Relationships: [
           {
@@ -2089,6 +2095,7 @@ export type Database = {
           received_by: string | null
           reference_no: string | null
           sale_id: string
+          slip_path: string | null
         }
         Insert: {
           amount: number
@@ -2104,6 +2111,7 @@ export type Database = {
           received_by?: string | null
           reference_no?: string | null
           sale_id: string
+          slip_path?: string | null
         }
         Update: {
           amount?: number
@@ -2119,6 +2127,7 @@ export type Database = {
           received_by?: string | null
           reference_no?: string | null
           sale_id?: string
+          slip_path?: string | null
         }
         Relationships: [
           {

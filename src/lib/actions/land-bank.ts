@@ -11,6 +11,7 @@ import {
   canManageLandBank,
 } from "@/lib/permissions";
 import { createNotification } from "@/lib/notifications";
+import { removePaymentSlip } from "@/lib/actions/payment-slips";
 import { createClient } from "@/lib/server";
 import {
   landExchangeSchema,
@@ -272,11 +273,23 @@ export async function createLandPayment(input: unknown) {
       reference_no: values.reference_no ?? null,
       notes: values.notes ?? null,
       entered_by: profile.id,
+      // Only send slip_path when a slip is attached, so cash payments keep
+      // working before the payment-slips migration is run.
+      ...(values.slip_path ? { slip_path: values.slip_path } : {}),
     })
     .select("id")
     .single();
 
   if (error || !data) {
+    if (values.slip_path) {
+      await removePaymentSlip(values.slip_path);
+      if (/slip_path|column|schema cache/i.test(error?.message ?? "")) {
+        return {
+          error:
+            "Slip uploads need a one-time database update. Please run migration 20260823000001_payment_slips.sql in Supabase, then try again.",
+        };
+      }
+    }
     return { error: error?.message ?? "Could not post payment." };
   }
 

@@ -51,6 +51,8 @@ export const landPaymentSchema = z.object({
   payment_mode: z.enum(["cash", "bank_transfer", "cheque", "other"]),
   reference_no: optionalText,
   notes: optionalText,
+  // Storage path of an uploaded bank-transfer / cheque slip, if any.
+  slip_path: optionalText,
 });
 
 export const landExchangeSchema = z

@@ -1,10 +1,14 @@
 import Link from "next/link";
 import {
+  differenceInCalendarDays,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   format,
+  isAfter,
+  startOfDay,
   startOfMonth,
-  subMonths,
+  subDays,
 } from "date-fns";
 import {
   AlertTriangle,
@@ -39,7 +43,7 @@ import {
   type CashflowPoint,
   type InventorySlice,
 } from "@/components/features/dashboard-charts";
-import { DashboardMonthFilter } from "@/components/features/dashboard-month-filter";
+import { DashboardRangeFilter } from "@/components/features/dashboard-range-filter";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -73,13 +77,16 @@ const INVENTORY_TILE: Record<PropertyStatus, string> = {
 };
 
 /**
- * Month-over-month delta badge for a flow metric. `lowerIsBetter` flips the
- * colour (used for expenses, where an increase is bad). Returns undefined when
- * there is nothing meaningful to compare.
+ * Period-over-period delta badge for a flow metric, comparing the selected
+ * range to the equal-length window immediately before it. `suffix` labels the
+ * comparison (e.g. "MoM", "vs prev 7d"). `lowerIsBetter` flips the colour (used
+ * for expenses, where an increase is bad). Returns undefined when there is
+ * nothing meaningful to compare.
  */
-function monthTrend(
+function flowTrend(
   current: number,
   previous: number,
+  suffix: string,
   opts?: { lowerIsBetter?: boolean },
 ): StatCardProps["trend"] {
   if (previous <= 0) {
@@ -90,45 +97,113 @@ function monthTrend(
   if (pct === 0) return { value: "— flat", isPositive: true };
   const up = pct > 0;
   return {
-    value: `${up ? "▲" : "▼"} ${Math.abs(pct)}% MoM`,
+    value: `${up ? "▲" : "▼"} ${Math.abs(pct)}% ${suffix}`,
     isPositive: opts?.lowerIsBetter ? !up : up,
   };
+}
+
+/** ISO `yyyy-MM-dd` → Date at local midnight, or null if malformed. */
+function parseISODate(value?: string): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
   const supabase = await createClient();
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
 
-  // Month picker: last 12 months, newest first. The selected value is bounded to
-  // these options, so a hand-typed / stale `?month=` falls back to this month.
-  const monthOptions = Array.from({ length: 12 }, (_, index) => {
-    const date = subMonths(startOfMonth(now), index);
-    return { value: format(date, "yyyy-MM"), label: format(date, "MMMM yyyy") };
-  });
-  const currentKey = monthOptions[0].value;
-  const requested = (await searchParams).month;
-  const selectedKey = monthOptions.some((option) => option.value === requested)
-    ? (requested as string)
-    : currentKey;
-  const isCurrentMonth = selectedKey === currentKey;
+  // Resolve the flow-metric window from `?range=`. Presets are relative to now;
+  // "custom" reads explicit from/to. Bad input falls back to the current month.
+  const params = await searchParams;
+  let rangeStart: Date;
+  let rangeEnd: Date;
+  let resolvedKey: "today" | "7d" | "14d" | "month" | "custom";
+  let customFrom: string | undefined;
+  let customTo: string | undefined;
 
-  const selectedStart = startOfMonth(new Date(`${selectedKey}-01T00:00:00`));
-  const selectedEnd = endOfMonth(selectedStart);
-  const prevStart = startOfMonth(subMonths(selectedStart, 1));
-  const prevKey = format(prevStart, "yyyy-MM");
-  const selectedLabel = format(selectedStart, "MMMM yyyy");
+  switch (params.range) {
+    case "today":
+      rangeStart = startOfDay(now);
+      rangeEnd = endOfDay(now);
+      resolvedKey = "today";
+      break;
+    case "7d":
+      rangeStart = startOfDay(subDays(now, 6));
+      rangeEnd = endOfDay(now);
+      resolvedKey = "7d";
+      break;
+    case "14d":
+      rangeStart = startOfDay(subDays(now, 13));
+      rangeEnd = endOfDay(now);
+      resolvedKey = "14d";
+      break;
+    case "custom": {
+      const parsedFrom = parseISODate(params.from);
+      const parsedTo = parseISODate(params.to);
+      if (parsedFrom && parsedTo) {
+        const [lo, hi] =
+          parsedFrom <= parsedTo ? [parsedFrom, parsedTo] : [parsedTo, parsedFrom];
+        rangeStart = startOfDay(lo);
+        rangeEnd = endOfDay(hi);
+        resolvedKey = "custom";
+        customFrom = format(rangeStart, "yyyy-MM-dd");
+        customTo = format(rangeEnd, "yyyy-MM-dd");
+        break;
+      }
+      rangeStart = startOfMonth(now);
+      rangeEnd = endOfMonth(now);
+      resolvedKey = "month";
+      break;
+    }
+    default:
+      rangeStart = startOfMonth(now);
+      rangeEnd = endOfMonth(now);
+      resolvedKey = "month";
+      break;
+  }
 
-  const monthStart = format(selectedStart, "yyyy-MM-dd");
-  const monthEnd = format(selectedEnd, "yyyy-MM-dd");
-  const prevMonthStart = format(prevStart, "yyyy-MM-dd");
-  const prevMonthEnd = format(endOfMonth(prevStart), "yyyy-MM-dd");
-  // The daily chart runs to today for the live month, else the full month.
-  const chartEnd = isCurrentMonth ? now : selectedEnd;
+  // Comparison window: the equal-length period immediately before the range.
+  const durationDays = differenceInCalendarDays(rangeEnd, rangeStart) + 1;
+  const prevEnd = endOfDay(subDays(rangeStart, 1));
+  const prevStart = startOfDay(subDays(prevEnd, durationDays - 1));
+
+  const fromStr = format(rangeStart, "yyyy-MM-dd");
+  const toStr = format(rangeEnd, "yyyy-MM-dd");
+  const prevFromStr = format(prevStart, "yyyy-MM-dd");
+  const prevToStr = format(prevEnd, "yyyy-MM-dd");
+
+  const isMonthToDate = resolvedKey === "month";
+  const rangeIncludesToday = today >= fromStr && today <= toStr;
+  // The daily chart never runs past today (future days carry no data).
+  const chartEnd = isAfter(rangeEnd, now) ? now : rangeEnd;
+
+  const rangeLabel =
+    resolvedKey === "today"
+      ? "Today"
+      : resolvedKey === "7d"
+        ? "Last 7 days"
+        : resolvedKey === "14d"
+          ? "Last 14 days"
+          : resolvedKey === "month"
+            ? format(now, "MMMM yyyy")
+            : `${format(rangeStart, "d MMM")} – ${format(rangeEnd, "d MMM yyyy")}`;
+
+  const trendSuffix =
+    resolvedKey === "today"
+      ? "vs yesterday"
+      : resolvedKey === "month"
+        ? "MoM"
+        : resolvedKey === "7d"
+          ? "vs prev 7d"
+          : resolvedKey === "14d"
+            ? "vs prev 14d"
+            : "vs prev period";
 
   const [
     { count: societyCount },
@@ -145,12 +220,13 @@ export default async function DashboardPage({
   ] = await Promise.all([
     supabase.from("societies").select("id", { count: "exact", head: true }),
     supabase.from("properties").select("status"),
-    // Selected + previous month, so month totals and the MoM trend come from one query.
+    // Selected range + its comparison window, so both totals and the trend
+    // come from one query.
     supabase
       .from("receipts")
       .select("amount, payment_date")
-      .gte("payment_date", prevMonthStart)
-      .lte("payment_date", monthEnd),
+      .gte("payment_date", prevFromStr)
+      .lte("payment_date", toStr),
     supabase
       .from("installments")
       .select("due_date, scheduled_amount, received_amount"),
@@ -189,29 +265,38 @@ export default async function DashboardPage({
     mappedCash,
   );
 
-  // --- Month-scoped flow metrics (selected vs previous month) ---
-  const receiptsIn = (key: string) =>
-    (receiptRows ?? []).filter((row) => row.payment_date?.slice(0, 7) === key);
-  const monthReceipts = receiptsIn(selectedKey);
-  const monthCollections = monthReceipts.reduce((sum, row) => sum + Number(row.amount), 0);
-  const prevCollections = receiptsIn(prevKey).reduce((sum, row) => sum + Number(row.amount), 0);
-  const todayCollections = monthReceipts
+  // --- Flow metrics for the selected range (vs the comparison window) ---
+  const inRange = (date: string | null | undefined, lo: string, hi: string) =>
+    !!date && date >= lo && date <= hi;
+
+  const rangeReceipts = (receiptRows ?? []).filter((row) =>
+    inRange(row.payment_date, fromStr, toStr),
+  );
+  const rangeCollections = rangeReceipts.reduce((sum, row) => sum + Number(row.amount), 0);
+  const prevCollections = (receiptRows ?? [])
+    .filter((row) => inRange(row.payment_date, prevFromStr, prevToStr))
+    .reduce((sum, row) => sum + Number(row.amount), 0);
+  const todayCollections = rangeReceipts
     .filter((row) => row.payment_date === today)
     .reduce((sum, row) => sum + Number(row.amount), 0);
 
-  const monthExpenses = summarizeRange(monthStart, monthEnd, mappedCash).expense;
-  const prevExpenses = summarizeRange(prevMonthStart, prevMonthEnd, mappedCash).expense;
+  const rangeExpenses = summarizeRange(fromStr, toStr, mappedCash).expense;
+  const prevExpenses = summarizeRange(prevFromStr, prevToStr, mappedCash).expense;
 
-  const monthSales = (salesRows ?? []).filter(
-    (row) => row.created_at?.slice(0, 7) === selectedKey && row.status !== "cancelled",
+  const rangeSales = (salesRows ?? []).filter(
+    (row) =>
+      row.status !== "cancelled" &&
+      inRange(row.created_at?.slice(0, 10), fromStr, toStr),
   );
-  const monthSaleValue = monthSales.reduce((sum, row) => sum + Number(row.sale_amount), 0);
+  const rangeSaleValue = rangeSales.reduce((sum, row) => sum + Number(row.sale_amount), 0);
   const prevSales = (salesRows ?? []).filter(
-    (row) => row.created_at?.slice(0, 7) === prevKey && row.status !== "cancelled",
+    (row) =>
+      row.status !== "cancelled" &&
+      inRange(row.created_at?.slice(0, 10), prevFromStr, prevToStr),
   );
   const prevSaleValue = prevSales.reduce((sum, row) => sum + Number(row.sale_amount), 0);
 
-  const monthNet = monthCollections - monthExpenses;
+  const rangeNet = rangeCollections - rangeExpenses;
   const prevNet = prevCollections - prevExpenses;
 
   let overdueCount = 0;
@@ -251,7 +336,7 @@ export default async function DashboardPage({
   }
 
   const cashflow: CashflowPoint[] = eachDayOfInterval({
-    start: selectedStart,
+    start: rangeStart,
     end: chartEnd,
   }).map((day) => {
     const date = format(day, "yyyy-MM-dd");
@@ -296,45 +381,45 @@ export default async function DashboardPage({
     .filter((row) => row.payment_status === "pending")
     .reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
 
-  // Flow metrics for the selected month (filterable; carry a MoM trend badge).
-  const monthlyTiles: StatCardProps[] = [
+  // Flow metrics for the selected range (filterable; carry a period trend badge).
+  const flowTiles: StatCardProps[] = [
     {
       title: "Collections",
-      value: formatPkr(monthCollections),
-      hint: isCurrentMonth
-        ? `${monthReceipts.length} receipts · ${formatPkr(todayCollections)} today`
-        : `${monthReceipts.length} receipts`,
+      value: formatPkr(rangeCollections),
+      hint: rangeIncludesToday
+        ? `${rangeReceipts.length} receipts · ${formatPkr(todayCollections)} today`
+        : `${rangeReceipts.length} receipts`,
       href: "/receipts",
       icon: TrendingUp,
       variant: "success",
-      trend: monthTrend(monthCollections, prevCollections),
+      trend: flowTrend(rangeCollections, prevCollections, trendSuffix),
     },
     {
       title: "Expenses",
-      value: formatPkr(monthExpenses),
+      value: formatPkr(rangeExpenses),
       hint: "Posted cash-book expenses",
       href: "/cash-book",
       icon: TrendingDown,
       variant: "danger",
-      trend: monthTrend(monthExpenses, prevExpenses, { lowerIsBetter: true }),
+      trend: flowTrend(rangeExpenses, prevExpenses, trendSuffix, { lowerIsBetter: true }),
     },
     {
       title: "New Sales",
-      value: formatPkr(monthSaleValue),
-      hint: `${monthSales.length} sale${monthSales.length === 1 ? "" : "s"} booked`,
+      value: formatPkr(rangeSaleValue),
+      hint: `${rangeSales.length} sale${rangeSales.length === 1 ? "" : "s"} booked`,
       href: "/reports/sales",
       icon: Handshake,
       variant: "primary",
-      trend: monthTrend(monthSaleValue, prevSaleValue),
+      trend: flowTrend(rangeSaleValue, prevSaleValue, trendSuffix),
     },
     {
       title: "Net Cash Flow",
-      value: formatPkr(monthNet),
+      value: formatPkr(rangeNet),
       hint: "Collections − expenses",
       href: "/reports/cash-book",
       icon: ArrowLeftRight,
-      variant: monthNet >= 0 ? "success" : "danger",
-      trend: monthTrend(monthNet, prevNet),
+      variant: rangeNet >= 0 ? "success" : "danger",
+      trend: flowTrend(rangeNet, prevNet, trendSuffix),
     },
   ];
 
@@ -427,17 +512,21 @@ export default async function DashboardPage({
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {selectedLabel} performance
-            {isCurrentMonth ? (
+            {rangeLabel} performance
+            {isMonthToDate ? (
               <span className="ml-2 font-normal normal-case text-muted-foreground/70">
                 month to date
               </span>
             ) : null}
           </h2>
-          <DashboardMonthFilter options={monthOptions} selected={selectedKey} />
+          <DashboardRangeFilter
+            selected={resolvedKey}
+            from={customFrom}
+            to={customTo}
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {monthlyTiles.map((tile) => (
+          {flowTiles.map((tile) => (
             <StatCard key={tile.title} {...tile} />
           ))}
         </div>
@@ -468,7 +557,7 @@ export default async function DashboardPage({
       <DashboardCharts
         cashflow={cashflow}
         inventory={inventory}
-        cashflowLabel={isCurrentMonth ? `${selectedLabel} · to date` : selectedLabel}
+        cashflowLabel={isMonthToDate ? `${rangeLabel} · to date` : rangeLabel}
       />
 
       <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-slate-50 via-white to-sky-50/40">

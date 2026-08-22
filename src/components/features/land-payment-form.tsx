@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  PaymentSlipField,
+  slipRequiredForMode,
+  uploadSlipFile,
+} from "@/components/features/payment-slip-field";
 
 const selectClassName =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
@@ -36,9 +42,11 @@ export function LandPaymentForm({
   }[];
 }) {
   const router = useRouter();
+  const [slipFile, setSlipFile] = useState<File | null>(null);
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LandPaymentFormValues>({
     resolver: zodResolver(landPaymentSchema),
@@ -54,7 +62,16 @@ export function LandPaymentForm({
   });
 
   async function onSubmit(values: LandPaymentFormValues) {
-    const result = await createLandPayment(values);
+    const upload = slipRequiredForMode(values.payment_mode)
+      ? await uploadSlipFile("land", slipFile)
+      : {};
+
+    if (upload.error) {
+      toast.error(upload.error);
+      return;
+    }
+
+    const result = await createLandPayment({ ...values, slip_path: upload.path });
 
     if (result.error || !result.landId) {
       toast.error(result.error ?? "Could not post payment");
@@ -65,6 +82,8 @@ export function LandPaymentForm({
     router.push(`/land-bank/${result.landId}`);
     router.refresh();
   }
+
+  const paymentMode = watch("payment_mode");
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -112,6 +131,10 @@ export function LandPaymentForm({
           <Label htmlFor="reference_no">Reference no.</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
+        <PaymentSlipField
+          paymentMode={paymentMode}
+          onFileChange={setSlipFile}
+        />
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="notes">Notes</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
