@@ -1,128 +1,285 @@
 import Link from "next/link";
-import { Plus, Eye } from "lucide-react";
+import {
+  Building2,
+  CalendarClock,
+  DollarSign,
+  Eye,
+  Plus,
+  Receipt,
+  Search,
+  Wallet,
+} from "lucide-react";
 import { getBookingsList } from "@/lib/bookings";
 import { formatPkr, formatDate } from "@/lib/format";
 import { SALE_STATUS_LABELS } from "@/lib/constants";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { StatCard } from "@/components/ui/stat-card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-export default async function BookingsPage() {
-  const bookings = await getBookingsList();
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
+  const { q, status } = await searchParams;
+  const allBookings = await getBookingsList();
 
-  const totalSalesValue = bookings.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0);
-  const totalCollected = bookings.reduce((sum: number, b: any) => sum + Number(b.total_received_amount || 0), 0);
-  const activeBookingsCount = bookings.filter((b: any) => b.status === "active_emi" || b.status === "booked").length;
+  const totalSalesValue = allBookings.reduce(
+    (sum: number, b: any) => sum + Number(b.total_amount || 0),
+    0,
+  );
+  const totalCollected = allBookings.reduce(
+    (sum: number, b: any) => sum + Number(b.total_received_amount || 0),
+    0,
+  );
+  const totalOutstanding = totalSalesValue - totalCollected;
+  const activeBookingsCount = allBookings.filter(
+    (b: any) => b.status === "active_emi" || b.status === "booked",
+  ).length;
+  const collectionPercent =
+    totalSalesValue > 0
+      ? ((totalCollected / totalSalesValue) * 100).toFixed(1)
+      : "0";
+
+  // Filter bookings based on search & status params
+  const bookings = allBookings.filter((b: any) => {
+    if (status && b.status !== status) {
+      return false;
+    }
+    if (q?.trim()) {
+      const term = q.trim().toLowerCase();
+      const customerName = (b.customers?.full_name || "").toLowerCase();
+      const customerPhone = (b.customers?.phone || "").toLowerCase();
+      const plotNo = String(b.plot_no || b.properties?.plot_no || "").toLowerCase();
+      const code = (b.code || "").toLowerCase();
+      const society = (b.properties?.societies?.name || b.external_location || "").toLowerCase();
+
+      return (
+        customerName.includes(term) ||
+        customerPhone.includes(term) ||
+        plotNo.includes(term) ||
+        code.includes(term) ||
+        society.includes(term)
+      );
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Property Bookings & Sales Overview
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">
+            Bookings &amp; Sales
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Centralized record of all plot bookings, installment sales, and customer purchases.
           </p>
         </div>
-        <Link href="/bookings/new">
-          <Button className="bg-sky-600 hover:bg-sky-700">
-            <Plus className="mr-2 size-4" />
-            New Booking
+        <Button render={<Link href="/bookings/new" />}>
+          <Plus className="size-4" />
+          New Booking
+        </Button>
+      </div>
+
+      {/* KPI Stat Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Sales Value"
+          value={formatPkr(totalSalesValue)}
+          hint={`${allBookings.length} total deals booked`}
+          icon={DollarSign}
+          variant="indigo"
+        />
+        <StatCard
+          title="Total Collections"
+          value={formatPkr(totalCollected)}
+          hint={`${collectionPercent}% recovered revenue`}
+          icon={Receipt}
+          variant="success"
+        />
+        <StatCard
+          title="Outstanding Balance"
+          value={formatPkr(totalOutstanding)}
+          hint="Pending installment balances"
+          icon={Wallet}
+          variant="warning"
+        />
+        <StatCard
+          title="Active EMI Sales"
+          value={activeBookingsCount}
+          hint="Under active payment plans"
+          icon={CalendarClock}
+          variant="sky"
+          href="/installments"
+        />
+      </div>
+
+      {/* Search & Filter Bar */}
+      <form className="flex flex-wrap gap-2">
+        <Input
+          name="q"
+          defaultValue={q}
+          placeholder="Search customer, plot #, code..."
+          className="h-9 max-w-sm"
+        />
+        <select
+          name="status"
+          defaultValue={status ?? ""}
+          className="h-9 rounded-[8px] border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="">All Statuses</option>
+          {Object.entries(SALE_STATUS_LABELS).map(([val, label]) => (
+            <option key={val} value={val}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <Button type="submit" variant="outline" size="sm" className="h-9">
+          <Search className="size-3.5 mr-1" />
+          Filter
+        </Button>
+        {(q || status) && (
+          <Button
+            render={<Link href="/bookings" />}
+            variant="ghost"
+            size="sm"
+            className="h-9 text-muted-foreground"
+          >
+            Reset
           </Button>
-        </Link>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Sales Volume</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{formatPkr(totalSalesValue)}</p>
-          <p className="mt-1 text-xs text-slate-500">{bookings.length} Total Bookings</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Collections</p>
-          <p className="mt-2 text-2xl font-bold text-emerald-600">{formatPkr(totalCollected)}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            {totalSalesValue > 0 ? ((totalCollected / totalSalesValue) * 100).toFixed(1) : 0}% Collected
-          </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Active EMI Sales</p>
-          <p className="mt-2 text-2xl font-bold text-sky-600">{activeBookingsCount}</p>
-          <p className="mt-1 text-xs text-slate-500">Active customer payment plans</p>
-        </div>
-      </div>
+        )}
+      </form>
 
       {/* Bookings Table */}
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <div className="border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-800">All Bookings & Sales</h2>
+      <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
+        <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
+          <div className="flex items-center gap-2">
+            <Building2 className="size-4 text-muted-foreground" />
+            <h2 className="font-semibold text-sm">All Bookings &amp; Sales</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {bookings.length} of {allBookings.length} bookings
+          </span>
         </div>
 
         {bookings.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">
-            <p className="text-base font-medium">No sales or bookings found.</p>
-            <p className="text-sm text-slate-400 mt-1">Create your first property booking to get started.</p>
-            <Link href="/bookings/new" className="mt-4 inline-block">
-              <Button size="sm" className="bg-sky-600 hover:bg-sky-700">
-                <Plus className="mr-2 size-4" /> Create Booking
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <p className="text-base font-medium text-foreground">No bookings found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {q || status
+                ? "Try adjusting your search or status filter."
+                : "Create your first property booking to get started."}
+            </p>
+            {!q && !status && (
+              <Button
+                render={<Link href="/bookings/new" />}
+                size="sm"
+                className="mt-4"
+              >
+                <Plus className="size-4 mr-1.5" />
+                Create Booking
               </Button>
-            </Link>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs uppercase font-medium text-slate-500 border-b">
-                <tr>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Property / Plot</th>
-                  <th className="px-6 py-3">Sale Date</th>
-                  <th className="px-6 py-3">Sale Amount</th>
-                  <th className="px-6 py-3">Collected</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {bookings.map((booking: any) => (
-                  <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Property / Plot</TableHead>
+                <TableHead>Sale Date</TableHead>
+                <TableHead>Sale Amount</TableHead>
+                <TableHead>Collected</TableHead>
+                <TableHead>Remaining</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bookings.map((booking: any) => {
+                const isCancelled = booking.status === "cancelled";
+                const isCompleted =
+                  booking.status === "fully_paid" || booking.status === "closed";
+
+                return (
+                  <TableRow key={booking.id}>
+                    <TableCell className="font-medium">
                       <div>{booking.customers?.full_name || "N/A"}</div>
-                      <div className="text-xs text-slate-400">{booking.customers?.phone}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>Plot #{booking.properties?.plot_no || "N/A"}</div>
-                      <div className="text-xs text-slate-400">
-                        {booking.properties?.societies?.name || "Society"}
+                      <div className="text-xs text-muted-foreground">
+                        {booking.customers?.phone || booking.code}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">{formatDate(booking.booking_date)}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-900">
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">
+                          Plot #{booking.plot_no || booking.properties?.plot_no || "—"}
+                        </span>
+                        {booking.is_external ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            External
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {booking.is_external
+                          ? booking.external_location || booking.seller_name || "Off-society"
+                          : booking.properties?.societies?.name || "Society Plot"}
+                      </div>
+                    </TableCell>
+                    <TableCell>{formatDate(booking.booking_date)}</TableCell>
+                    <TableCell className="font-semibold font-heading">
                       {formatPkr(booking.total_amount)}
-                    </td>
-                    <td className="px-6 py-4 text-emerald-600 font-medium">
+                    </TableCell>
+                    <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       {formatPkr(booking.total_received_amount)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">
-                        {SALE_STATUS_LABELS[booking.status as keyof typeof SALE_STATUS_LABELS] || booking.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatPkr(booking.remaining_balance)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          isCancelled
+                            ? "destructive"
+                            : isCompleted
+                              ? "default"
+                              : "secondary"
+                        }
+                      >
+                        {SALE_STATUS_LABELS[booking.status as keyof typeof SALE_STATUS_LABELS] ||
+                          booking.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
                       {booking.customers?.id ? (
-                        <Link href={`/customers/${booking.customers.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-1 size-3.5" /> View Ledger
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          render={
+                            <Link href={`/customers/${booking.customers.id}`} />
+                          }
+                        >
+                          <Eye className="size-3.5 mr-1" />
+                          Ledger
+                        </Button>
                       ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>
