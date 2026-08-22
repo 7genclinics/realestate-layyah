@@ -37,16 +37,27 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
       const { error } = await supabase.auth.signInWithPassword(values);
 
       if (error) {
-        setFormError(error.message);
+        // Map known auth errors to friendly messages
+        if (
+          error.message.includes("Invalid login credentials") ||
+          error.message.includes("invalid_credentials")
+        ) {
+          setFormError("Incorrect email or password. Please try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          setFormError("Please verify your email address before signing in.");
+        } else if (error.message.includes("Too many requests")) {
+          setFormError("Too many attempts. Please wait a moment and try again.");
+        } else {
+          setFormError("Sign in failed. Please check your credentials and try again.");
+        }
         setLoading(false);
         return;
       }
 
       window.location.href = nextPath;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to sign in. Please try again.";
-      setFormError(message);
+    } catch {
+      // Never expose raw SDK or network errors to the user
+      setFormError("Unable to connect. Please check your internet and try again.");
       setLoading(false);
     }
   }
