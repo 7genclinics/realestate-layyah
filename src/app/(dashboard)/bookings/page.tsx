@@ -88,11 +88,11 @@ export default async function BookingsPage() {
                 {bookings.map((booking: any) => (
                   <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">
-                      <div>{booking.customers?.name || "N/A"}</div>
-                      <div className="text-xs text-slate-400">{booking.customers?.contact}</div>
+                      <div>{booking.customers?.full_name || "N/A"}</div>
+                      <div className="text-xs text-slate-400">{booking.customers?.phone}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div>Plot #{booking.properties?.plot_number || "N/A"}</div>
+                      <div>Plot #{booking.properties?.plot_no || "N/A"}</div>
                       <div className="text-xs text-slate-400">
                         {booking.properties?.societies?.name || "Society"}
                       </div>

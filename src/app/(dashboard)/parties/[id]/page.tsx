@@ -290,9 +290,21 @@ export default async function PartyDetailPage({
 
                 return (
                   <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-mono text-xs font-semibold text-primary">{row.code}</TableCell>
+                    <TableCell className="font-mono text-xs font-semibold text-primary">
+                      <Link
+                        href={`/parties/${party.id}/contracts/${row.id}`}
+                        className="hover:underline underline-offset-4"
+                      >
+                        {row.code}
+                      </Link>
+                    </TableCell>
                     <TableCell>
-                      <div className="font-medium text-foreground">{row.title}</div>
+                      <Link
+                        href={`/parties/${party.id}/contracts/${row.id}`}
+                        className="font-medium text-foreground hover:underline underline-offset-4"
+                      >
+                        {row.title}
+                      </Link>
                       {society?.name ? (
                         <span className="text-xs text-muted-foreground">
                           {society.name}

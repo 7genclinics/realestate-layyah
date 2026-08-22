@@ -1,9 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireProfile } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import { canManageStaff } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 
 export async function createStaffMember(formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageStaff(profile.role)) return;
+
   const supabase = await createClient();
 
   const full_name = formData.get("full_name") as string;
@@ -17,7 +23,7 @@ export async function createStaffMember(formData: FormData): Promise<void> {
     return;
   }
 
-  await supabase
+  const { data } = await supabase
     .from("staff_members")
     .insert({
       full_name,
@@ -27,12 +33,68 @@ export async function createStaffMember(formData: FormData): Promise<void> {
       department,
       basic_salary,
       status: "active",
-    });
+    })
+    .select("id")
+    .single();
+
+  await logAudit({
+    action: "create",
+    entityType: "staff_member",
+    entityId: data?.id ?? null,
+    summary: `Staff member "${full_name}" added`,
+    actorId: profile.id,
+  });
 
   revalidatePath("/staff");
 }
 
+export async function updateStaffMember(id: string, formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageStaff(profile.role)) return;
+
+  const supabase = await createClient();
+
+  const full_name = formData.get("full_name") as string;
+  const phone = formData.get("phone") as string;
+  const cnic = formData.get("cnic") as string;
+  const designation = formData.get("designation") as string;
+  const department = (formData.get("department") as string) || "operations";
+  const basic_salary = parseFloat(formData.get("basic_salary") as string || "0");
+  const status = (formData.get("status") as string) || "active";
+
+  if (!full_name || !phone || !designation) {
+    return;
+  }
+
+  await supabase
+    .from("staff_members")
+    .update({
+      full_name,
+      phone,
+      cnic: cnic || null,
+      designation,
+      department,
+      basic_salary,
+      status,
+    })
+    .eq("id", id);
+
+  await logAudit({
+    action: "update",
+    entityType: "staff_member",
+    entityId: id,
+    summary: `Staff member "${full_name}" updated`,
+    actorId: profile.id,
+  });
+
+  revalidatePath("/staff");
+  revalidatePath(`/staff/${id}`);
+}
+
 export async function recordSalaryAdvance(formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageStaff(profile.role)) return;
+
   const supabase = await createClient();
 
   const staff_id = formData.get("staff_id") as string;
@@ -63,6 +125,16 @@ export async function recordSalaryAdvance(formData: FormData): Promise<void> {
     transaction_type: "expense",
     amount,
     description: `Staff Salary Advance Payment`,
+    entered_by: profile.id,
+    status: "posted",
+  });
+
+  await logAudit({
+    action: "payment",
+    entityType: "salary_advance",
+    entityId: staff_id,
+    summary: `Salary advance of ${amount} paid`,
+    actorId: profile.id,
   });
 
   revalidatePath("/staff");
@@ -71,6 +143,9 @@ export async function recordSalaryAdvance(formData: FormData): Promise<void> {
 }
 
 export async function processPayrollRecord(formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageStaff(profile.role)) return;
+
   const supabase = await createClient();
 
   const staff_id = formData.get("staff_id") as string;
@@ -120,8 +195,18 @@ export async function processPayrollRecord(formData: FormData): Promise<void> {
       transaction_type: "expense",
       amount: net_salary,
       description: `Staff Monthly Salary Disbursement (${period_month})`,
+      entered_by: profile.id,
+      status: "posted",
     });
   }
+
+  await logAudit({
+    action: "payment",
+    entityType: "payroll_record",
+    entityId: staff_id,
+    summary: `Payroll of ${net_salary} paid for ${period_month}`,
+    actorId: profile.id,
+  });
 
   revalidatePath("/staff");
   revalidatePath(`/staff/${staff_id}`);
@@ -129,8 +214,13 @@ export async function processPayrollRecord(formData: FormData): Promise<void> {
   revalidatePath("/reports");
 }
 
-export async function deleteStaffMember(id: string): Promise<void> {
+export async function deleteStaffMember(id: string): Promise<void | { error?: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canManageStaff(profile.role)) {
+    return { error: "You do not have permission to delete staff." };
+  }
   const supabase = await createClient();
   await supabase.from("staff_members").delete().eq("id", id);
   revalidatePath("/staff");
+  return { error: null };
 }

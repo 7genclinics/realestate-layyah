@@ -42,14 +42,23 @@ type InstallmentOption = {
   received_amount: number;
 };
 
+type AccountOption = {
+  id: string;
+  code: string;
+  name: string;
+  account_type: string;
+};
+
 export function ReceivePaymentForm({
   sales,
   installments,
+  accounts,
   defaultSaleId,
   defaultInstallmentId,
 }: {
   sales: SaleOption[];
   installments: InstallmentOption[];
+  accounts: AccountOption[];
   defaultSaleId?: string;
   defaultInstallmentId?: string;
 }) {
@@ -65,6 +74,7 @@ export function ReceivePaymentForm({
     defaultValues: {
       sale_id: defaultSaleId ?? sales[0]?.id ?? "",
       installment_id: defaultInstallmentId ?? "",
+      cash_account_id: accounts[0]?.id ?? "",
       amount: undefined,
       payment_date: format(new Date(), "yyyy-MM-dd"),
       payment_mode: "cash",
@@ -191,6 +201,29 @@ export function ReceivePaymentForm({
           </select>
         </div>
         <div className="space-y-2">
+          <Label htmlFor="cash_account_id">Deposit to account</Label>
+          <select
+            id="cash_account_id"
+            className={selectClassName}
+            {...register("cash_account_id")}
+          >
+            {accounts.length ? (
+              accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.code} · {account.name}
+                </option>
+              ))
+            ) : (
+              <option value="">No cash accounts — create one first</option>
+            )}
+          </select>
+          {errors.cash_account_id ? (
+            <p className="text-xs text-destructive">
+              {String(errors.cash_account_id.message)}
+            </p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="reference_no">Reference / cheque no.</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
@@ -203,7 +236,7 @@ export function ReceivePaymentForm({
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || !sales.length}>
+        <Button type="submit" disabled={isSubmitting || !sales.length || !accounts.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
           Post payment & print receipt
         </Button>

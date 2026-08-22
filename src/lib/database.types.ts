@@ -23,6 +23,8 @@ export type Database = {
           notes: string | null
           sale_id: string
           status: string
+          approved_by: string | null
+          approved_at: string | null
         }
         Insert: {
           agent_id: string
@@ -32,6 +34,8 @@ export type Database = {
           notes?: string | null
           sale_id: string
           status?: string
+          approved_by?: string | null
+          approved_at?: string | null
         }
         Update: {
           agent_id?: string
@@ -41,6 +45,317 @@ export type Database = {
           notes?: string | null
           sale_id?: string
           status?: string
+          approved_by?: string | null
+          approved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_commissions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_commissions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activities: {
+        Row: {
+          activity_type: string
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          subject: string | null
+        }
+        Insert: {
+          activity_type: string
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: string
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          summary: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          summary?: string
+        }
+        Relationships: []
+      }
+      contractor_bills: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          code: string | null
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          deductions: number
+          gross_amount: number
+          id: string
+          net_amount: number
+          notes: string | null
+          party_id: string | null
+          retention: number
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date?: string
+          code?: string | null
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          party_id?: string | null
+          retention?: number
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date?: string
+          code?: string | null
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          party_id?: string | null
+          retention?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          agent_id: string | null
+          assigned_to: string | null
+          budget: number | null
+          code: string | null
+          converted_customer_id: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          interest: string | null
+          notes: string | null
+          phone: string | null
+          society_id: string | null
+          source: Database["public"]["Enums"]["customer_source"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          assigned_to?: string | null
+          budget?: number | null
+          code?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          interest?: string | null
+          notes?: string | null
+          phone?: string | null
+          society_id?: string | null
+          source?: Database["public"]["Enums"]["customer_source"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          assigned_to?: string | null
+          budget?: number | null
+          code?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          interest?: string | null
+          notes?: string | null
+          phone?: string | null
+          society_id?: string | null
+          source?: Database["public"]["Enums"]["customer_source"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      material_items: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          quantity_ordered: number
+          quantity_received: number
+          rate: number
+          unit: string | null
+        }
+        Insert: {
+          amount?: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          quantity_ordered?: number
+          quantity_received?: number
+          rate?: number
+          unit?: string | null
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          quantity_ordered?: number
+          quantity_received?: number
+          rate?: number
+          unit?: string | null
+        }
+        Relationships: []
+      }
+      measurement_entries: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          description: string
+          entry_date: string
+          id: string
+          quantity: number
+          rate: number
+          recorded_by: string | null
+          unit: Database["public"]["Enums"]["contract_unit"]
+        }
+        Insert: {
+          amount?: number
+          contract_id: string
+          created_at?: string
+          description: string
+          entry_date?: string
+          id?: string
+          quantity?: number
+          rate?: number
+          recorded_by?: string | null
+          unit?: Database["public"]["Enums"]["contract_unit"]
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          description?: string
+          entry_date?: string
+          id?: string
+          quantity?: number
+          rate?: number
+          recorded_by?: string | null
+          unit?: Database["public"]["Enums"]["contract_unit"]
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_read: boolean
+          role_target: Database["public"]["Enums"]["app_role"] | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          role_target?: Database["public"]["Enums"]["app_role"] | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          role_target?: Database["public"]["Enums"]["app_role"] | null
+          title?: string
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -134,6 +449,9 @@ export type Database = {
           party_id: string | null
           project_id: string
           receipt_proof: string | null
+          status: string
+          approved_by: string | null
+          approved_at: string | null
         }
         Insert: {
           amount: number
@@ -146,6 +464,9 @@ export type Database = {
           party_id?: string | null
           project_id: string
           receipt_proof?: string | null
+          status?: string
+          approved_by?: string | null
+          approved_at?: string | null
         }
         Update: {
           amount?: number
@@ -158,8 +479,40 @@ export type Database = {
           party_id?: string | null
           project_id?: string
           receipt_proof?: string | null
+          status?: string
+          approved_by?: string | null
+          approved_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "development_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "development_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "development_expenses_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "development_expenses_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "development_expenses_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       development_projects: {
         Row: {
@@ -444,6 +797,8 @@ export type Database = {
           transfer_side:
             | Database["public"]["Enums"]["cash_transfer_side"]
             | null
+          approved_by: string | null
+          approved_at: string | null
           updated_at: string
         }
         Insert: {
@@ -474,6 +829,8 @@ export type Database = {
           transfer_side?:
             | Database["public"]["Enums"]["cash_transfer_side"]
             | null
+          approved_by?: string | null
+          approved_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -504,6 +861,8 @@ export type Database = {
           transfer_side?:
             | Database["public"]["Enums"]["cash_transfer_side"]
             | null
+          approved_by?: string | null
+          approved_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -938,6 +1297,9 @@ export type Database = {
           received_date: string | null
           sale_id: string
           scheduled_amount: number
+          status_override: string | null
+          waived_reason: string | null
+          reschedule_note: string | null
           updated_at: string
         }
         Insert: {
@@ -951,6 +1313,9 @@ export type Database = {
           received_date?: string | null
           sale_id: string
           scheduled_amount: number
+          status_override?: string | null
+          waived_reason?: string | null
+          reschedule_note?: string | null
           updated_at?: string
         }
         Update: {
@@ -964,6 +1329,9 @@ export type Database = {
           received_date?: string | null
           sale_id?: string
           scheduled_amount?: number
+          status_override?: string | null
+          waived_reason?: string | null
+          reschedule_note?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1437,6 +1805,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           full_name: string
           id: string
@@ -1446,6 +1815,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string
           id: string
@@ -1455,6 +1825,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -1707,6 +2078,7 @@ export type Database = {
         Row: {
           amount: number
           amount_in_words: string
+          cash_account_id: string | null
           code: string
           created_at: string
           customer_id: string
@@ -1721,6 +2093,7 @@ export type Database = {
         Insert: {
           amount: number
           amount_in_words?: string
+          cash_account_id?: string | null
           code?: string
           created_at?: string
           customer_id: string
@@ -1735,6 +2108,7 @@ export type Database = {
         Update: {
           amount?: number
           amount_in_words?: string
+          cash_account_id?: string | null
           code?: string
           created_at?: string
           customer_id?: string
@@ -1747,6 +2121,13 @@ export type Database = {
           sale_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "receipts_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receipts_customer_id_fkey"
             columns: ["customer_id"]
@@ -2199,3 +2580,30 @@ export type LandExchange = Tables<"land_exchanges">
 export type LandStatus = Database["public"]["Enums"]["land_status"]
 export type LandAcquisitionType = Database["public"]["Enums"]["land_acquisition_type"]
 export type LandExchangeStatus = Database["public"]["Enums"]["land_exchange_status"]
+
+// Agents & sales-team
+export type Agent = Tables<"agents">
+export type AgentCommission = Tables<"agent_commissions">
+export type AgentPayout = Tables<"agent_payouts">
+
+// Staff & payroll
+export type StaffMember = Tables<"staff_members">
+export type PayrollRecord = Tables<"payroll_records">
+export type SalaryAdvance = Tables<"salary_advances">
+
+// Development / construction
+export type DevelopmentProject = Tables<"development_projects">
+export type DevelopmentExpense = Tables<"development_expenses">
+
+// Settings
+export type SystemSetting = Tables<"system_settings">
+export type CustomerSource = Database["public"]["Enums"]["customer_source"]
+
+// Net-new modules
+export type AuditLog = Tables<"audit_log">
+export type Activity = Tables<"activities">
+export type Lead = Tables<"leads">
+export type MeasurementEntry = Tables<"measurement_entries">
+export type MaterialItem = Tables<"material_items">
+export type ContractorBill = Tables<"contractor_bills">
+export type Notification = Tables<"notifications">

@@ -29,14 +29,15 @@ export default async function SocietiesPage({
   const supabase = await createClient();
 
   const [{ count }, { data: societies, error }, { data: allSocieties }, { count: totalPlots }] = await Promise.all([
-    supabase.from("societies").select("id", { count: "exact", head: true }),
+    supabase.from("societies").select("id", { count: "exact", head: true }).is("deleted_at", null),
     supabase
       .from("societies")
       .select("id, code, name, location, status, currency, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
-    supabase.from("societies").select("status"),
-    supabase.from("properties").select("id", { count: "exact", head: true }),
+    supabase.from("societies").select("status").is("deleted_at", null),
+    supabase.from("properties").select("id", { count: "exact", head: true }).is("deleted_at", null),
   ]);
 
   const totalCount = count ?? 0;

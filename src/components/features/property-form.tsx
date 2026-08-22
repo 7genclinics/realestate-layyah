@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createProperty } from "@/lib/actions/properties";
+import { createProperty, updateProperty } from "@/lib/actions/properties";
 import {
   AREA_UNIT_LABELS,
   OWNERSHIP_SOURCE_LABELS,
@@ -29,12 +29,17 @@ export function PropertyForm({
   societies,
   blocks,
   role,
+  propertyId,
+  defaultValues,
 }: {
   societies: Pick<Society, "id" | "code" | "name">[];
   blocks: Pick<SocietyBlock, "id" | "name" | "society_id">[];
   role: AppRole;
+  propertyId?: string;
+  defaultValues?: Partial<PropertyFormValues>;
 }) {
   const router = useRouter();
+  const isEdit = Boolean(propertyId);
   const showCosts = canViewPropertyCosts(role);
   const {
     register,
@@ -53,6 +58,7 @@ export function PropertyForm({
       area_unit: "marla",
       ownership_source: "society_owned",
       agent_visible: false,
+      ...defaultValues,
     },
   });
 
@@ -60,14 +66,16 @@ export function PropertyForm({
   const societyBlocks = blocks.filter((block) => block.society_id === societyId);
 
   async function onSubmit(values: PropertyFormValues) {
-    const result = await createProperty(values);
+    const result = isEdit
+      ? await updateProperty(propertyId!, values)
+      : await createProperty(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not create property");
+      toast.error(result.error ?? "Could not save property");
       return;
     }
 
-    toast.success("Property added to inventory");
+    toast.success(isEdit ? "Property updated" : "Property added to inventory");
     router.push(`/inventory/${result.id}`);
     router.refresh();
   }
@@ -245,7 +253,7 @@ export function PropertyForm({
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save property
+          {isEdit ? "Update property" : "Save property"}
         </Button>
       </div>
     </form>

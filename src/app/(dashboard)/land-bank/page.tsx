@@ -202,7 +202,7 @@ export default async function LandBankPage({
                       <RowActions
                         id={row.id}
                         viewHref={`/land-bank/${row.id}`}
-                        editHref={`/land-bank/${row.id}`}
+                        editHref={`/land-bank/${row.id}/edit`}
                         deleteAction={deleteLandParcel}
                         confirmMessage={`Delete land parcel "${row.title}"? This cannot be undone.`}
                       />

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+import { postLandPaymentToCashBook } from "@/lib/cash-posting";
 import { roundMoney } from "@/lib/installments";
 import {
   canApproveLand,
@@ -89,6 +90,82 @@ export async function createLandParcel(input: unknown) {
   return { error: null, id: data.id };
 }
 
+export async function updateLandParcel(id: string, input: unknown) {
+  const parsed = landParcelSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid land details" };
+  }
+
+  const { profile } = await requireProfile();
+
+  if (!canManageLandBank(profile.role)) {
+    return { error: "You do not have permission to edit land records." };
+  }
+
+  const supabase = await createClient();
+
+  // Only pre-approval parcels can be edited freely — once acquired, the
+  // purchase value drives outstanding-balance maths and must not shift.
+  const { data: current, error: loadError } = await supabase
+    .from("land_parcels")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !current) {
+    return { error: loadError?.message ?? "Land record not found." };
+  }
+
+  if (current.status !== "proposed" && current.status !== "under_negotiation") {
+    return {
+      error: "Only proposed or under-negotiation records can be edited.",
+    };
+  }
+
+  const values = parsed.data;
+  const purchaseValue = roundMoney(
+    values.purchase_value > 0
+      ? values.purchase_value
+      : values.area * values.rate_per_unit,
+  );
+
+  if (purchaseValue <= 0 && values.acquisition_type === "purchase") {
+    return { error: "Enter a purchase value or rate for this acquisition." };
+  }
+
+  const { error } = await supabase
+    .from("land_parcels")
+    .update({
+      society_id: values.society_id,
+      party_id: values.party_id ?? null,
+      acquisition_type: values.acquisition_type,
+      title: values.title.trim(),
+      location: values.location ?? null,
+      description: values.description ?? null,
+      khasra: values.khasra ?? null,
+      khewat: values.khewat ?? null,
+      khata: values.khata ?? null,
+      mouza: values.mouza ?? null,
+      area: values.area,
+      area_unit: values.area_unit,
+      rate_per_unit: roundMoney(values.rate_per_unit),
+      purchase_value: purchaseValue,
+      token_amount: roundMoney(values.token_amount ?? 0),
+      status: values.status,
+      agreement_terms: values.agreement_terms ?? null,
+      notes: values.notes ?? null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidateLand(id);
+  return { error: null, id };
+}
+
 export async function approveLandParcel(id: string) {
   const { profile } = await requireProfile();
 
@@ -149,7 +226,7 @@ export async function createLandPayment(input: unknown) {
 
   const { data: parcel, error: parcelError } = await supabase
     .from("land_parcels")
-    .select("id, party_id, remaining_amount, status")
+    .select("id, party_id, society_id, title, paid_amount, remaining_amount, status")
     .eq("id", values.land_parcel_id)
     .maybeSingle();
 
@@ -194,7 +271,7 @@ export async function createLandPayment(input: unknown) {
   }
 
   // Update land parcel paid and remaining balances
-  const currentPaid = Number((parcel as any).paid_amount ?? 0);
+  const currentPaid = Number(parcel.paid_amount ?? 0);
   const newPaid = roundMoney(currentPaid + amount);
   const newRemaining = roundMoney(Math.max(0, Number(parcel.remaining_amount) - amount));
   const newStatus = newRemaining <= 0 ? "fully_paid" : "partially_paid";
@@ -208,6 +285,21 @@ export async function createLandPayment(input: unknown) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", parcel.id);
+
+  // Post the land payment to the cash book as an expense (idempotent, non-fatal).
+  await postLandPaymentToCashBook(supabase, {
+    landPaymentId: data.id,
+    landParcelId: parcel.id,
+    partyId: parcel.party_id,
+    cashAccountId: values.cash_account_id,
+    societyId: parcel.society_id ?? null,
+    amount,
+    date: values.payment_date,
+    paymentMode: values.payment_mode,
+    referenceNo: values.reference_no ?? null,
+    description: `Land payment · ${parcel.title ?? ""}`.trim(),
+    enteredBy: profile.id,
+  });
 
   revalidateLand(parcel.id);
   return { error: null, id: data.id, landId: parcel.id };
@@ -273,8 +365,10 @@ export async function addLandToInventory(id: string) {
 
   const { error: costError } = await supabase
     .from("property_costs")
-    .update({ acquisition_cost: parcel.purchase_value })
-    .eq("property_id", property.id);
+    .upsert(
+      { property_id: property.id, acquisition_cost: parcel.purchase_value },
+      { onConflict: "property_id" },
+    );
 
   if (costError) {
     return { error: costError.message };

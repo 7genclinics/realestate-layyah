@@ -197,11 +197,11 @@ export function AllInOneReports({
   const totalCollections = filteredReceipts.reduce((s, row) => s + Number(row.amount || 0), 0);
 
   const totalInflows = filteredTransactions
-    .filter((t) => t.transfer_side === "in" || t.transaction_type === "receipt")
+    .filter((t) => t.transaction_type === "income" || t.transfer_side === "in")
     .reduce((s, t) => s + Number(t.amount || 0), 0);
 
   const totalOutflows = filteredTransactions
-    .filter((t) => t.transfer_side === "out" || t.transaction_type === "payment" || t.transaction_type === "expense")
+    .filter((t) => t.transaction_type === "expense" || t.transfer_side === "out")
     .reduce((s, t) => s + Number(t.amount || 0), 0);
 
   const netCashFlow = totalInflows - totalOutflows;
@@ -212,7 +212,9 @@ export function AllInOneReports({
 
   const overdueInstallments = installments.map((i) => ({
     ...i,
-    status: deriveInstallmentStatus(i.due_date, Number(i.scheduled_amount), Number(i.received_amount)),
+    status: deriveInstallmentStatus(i.due_date, Number(i.scheduled_amount), Number(i.received_amount), {
+      statusOverride: (i as { status_override?: string | null }).status_override ?? null,
+    }),
   })).filter((i) => i.status === "overdue");
 
   const totalOverdueAmount = overdueInstallments.reduce(
@@ -241,16 +243,16 @@ export function AllInOneReports({
   }, [societies, sales, properties]);
 
   const paymentModeData = useMemo(() => {
-    const modes: Record<string, number> = { cash: 0, bank: 0, cheque: 0, online: 0 };
+    const modes: Record<string, number> = { cash: 0, bank_transfer: 0, cheque: 0, other: 0 };
     filteredReceipts.forEach((r) => {
       const m = r.payment_mode || "cash";
       modes[m] = (modes[m] || 0) + Number(r.amount || 0);
     });
     return [
       { name: "Cash Drawer", value: modes.cash || 0, color: "#10b981" },
-      { name: "Bank Transfer", value: modes.bank || 0, color: "#0ea5e9" },
+      { name: "Bank Transfer", value: modes.bank_transfer || 0, color: "#0ea5e9" },
       { name: "Cheque Clearance", value: modes.cheque || 0, color: "#f59e0b" },
-      { name: "Online / Other", value: modes.online || 0, color: "#8b5cf6" },
+      { name: "Online / Other", value: modes.other || 0, color: "#8b5cf6" },
     ].filter((item) => item.value > 0);
   }, [filteredReceipts]);
 
@@ -313,8 +315,8 @@ export function AllInOneReports({
         t.transaction_type,
         t.cash_categories?.name || "General",
         t.societies?.name || "—",
-        t.transfer_side === "in" ? t.amount : 0,
-        t.transfer_side === "out" ? t.amount : 0,
+        t.transaction_type === "income" || t.transfer_side === "in" ? t.amount : 0,
+        t.transaction_type === "expense" || t.transfer_side === "out" ? t.amount : 0,
         t.description,
       ]);
       exportToCsv("cash_book_statement.csv", headers, rows);
@@ -858,7 +860,8 @@ export function AllInOneReports({
             </TableHeader>
             <TableBody>
               {filteredTransactions.map((t) => {
-                const isInflow = t.transfer_side === "in" || t.transaction_type === "receipt";
+                const isInflow = t.transaction_type === "income" || t.transfer_side === "in";
+                const isOutflow = t.transaction_type === "expense" || t.transfer_side === "out";
                 return (
                   <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="text-xs text-muted-foreground">{formatDate(t.transaction_date)}</TableCell>
@@ -872,7 +875,7 @@ export function AllInOneReports({
                       {isInflow ? formatPkr(t.amount) : "—"}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-amber-600 dark:text-amber-400">
-                      {!isInflow ? formatPkr(t.amount) : "—"}
+                      {isOutflow ? formatPkr(t.amount) : "—"}
                     </TableCell>
                   </TableRow>
                 );

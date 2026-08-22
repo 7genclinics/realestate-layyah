@@ -3,19 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/server";
 import { requireProfile } from "@/lib/auth";
+import { canManageSettings, canManageUsers } from "@/lib/permissions";
 import type { AppRole } from "@/lib/database.types";
 
 export async function updateSystemSetting(key: string, value: any): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageSettings(profile.role)) return;
+
   const supabase = await createClient();
 
   await supabase
     .from("system_settings")
-    .upsert({ key, value, updated_at: new Date().toISOString() });
+    .upsert(
+      { key, value, updated_at: new Date().toISOString() },
+      { onConflict: "key" },
+    );
 
   revalidatePath("/settings");
 }
 
 export async function updateUserRole(userId: string, role: AppRole): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageUsers(profile.role)) return;
+  // Guard against self-lockout: an admin cannot change their own role.
+  if (userId === profile.id) return;
+
   const supabase = await createClient();
 
   await supabase
@@ -27,6 +39,11 @@ export async function updateUserRole(userId: string, role: AppRole): Promise<voi
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageUsers(profile.role)) return;
+  // Guard against self-lockout: an admin cannot deactivate their own account.
+  if (userId === profile.id) return;
+
   const supabase = await createClient();
 
   await supabase
@@ -42,7 +59,11 @@ export async function updateMyProfile(formData: FormData): Promise<{ error?: str
     const { profile } = await requireProfile();
     const fullName = formData.get("full_name") as string;
     const phone = formData.get("phone") as string;
-    let avatarUrl = (formData.get("avatar_url") as string) || "";
+    // Only ever accept an already-persisted http(s) URL (name unchanged / preserve)
+    // or an empty string (avatar removed). A base64 `data:` preview URL is ignored —
+    // new images are handled through the file upload below.
+    const rawAvatarUrl = (formData.get("avatar_url") as string) || "";
+    let avatarUrl = /^https?:\/\//i.test(rawAvatarUrl) ? rawAvatarUrl : "";
     const avatarFile = formData.get("avatar_file");
 
     if (!fullName || fullName.trim().length < 2) {
@@ -51,56 +72,46 @@ export async function updateMyProfile(formData: FormData): Promise<{ error?: str
 
     const supabase = await createClient();
 
-    // If a physical image file was uploaded, store in Supabase Storage
+    // Upload a newly selected image to the public "avatars" bucket.
     if (avatarFile instanceof File && avatarFile.size > 0) {
-      const ext = avatarFile.name.split(".").pop() || "jpg";
-      const filePath = `${profile.id}/${Date.now()}.${ext}`;
-      const buffer = Buffer.from(await avatarFile.arrayBuffer());
-
-      // Auto-create avatars bucket if not already created
-      try {
-        await supabase.storage.createBucket("avatars", { public: true });
-      } catch {
-        // Bucket already exists
+      if (avatarFile.size > 5 * 1024 * 1024) {
+        return { error: "Image file size must be less than 5MB." };
       }
 
-      // Upload to dedicated avatars bucket
+      const ext = (avatarFile.name.split(".").pop() || "jpg").toLowerCase();
+      const filePath = `${profile.id}/avatar-${Date.now()}.${ext}`;
+      const buffer = Buffer.from(await avatarFile.arrayBuffer());
+
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, buffer, {
-          contentType: avatarFile.type,
+          contentType: avatarFile.type || "image/jpeg",
           upsert: true,
         });
 
-      if (!uploadError) {
-        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-        if (publicData?.publicUrl) {
-          avatarUrl = publicData.publicUrl;
-        }
-      } else {
-        // Fallback to documents bucket
-        const docPath = `avatars/${profile.id}/${Date.now()}.${ext}`;
-        const { error: docError } = await supabase.storage
-          .from("documents")
-          .upload(docPath, buffer, {
-            contentType: avatarFile.type,
-            upsert: true,
-          });
+      if (uploadError) {
+        return {
+          error:
+            `Avatar upload failed: ${uploadError.message}. Run supabase/migrations/20260821000000_avatar_storage.sql ` +
+            `in the Supabase SQL editor to create the "avatars" bucket and its policies.`,
+        };
+      }
 
-        if (!docError) {
-          const { data: docData } = supabase.storage.from("documents").getPublicUrl(docPath);
-          if (docData?.publicUrl) {
-            avatarUrl = docData.publicUrl;
-          }
-        }
+      const { data: publicData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+      if (publicData?.publicUrl) {
+        avatarUrl = publicData.publicUrl;
       }
     }
 
+    // profiles is the source of truth for the avatar (queryable across the app).
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
         full_name: fullName.trim(),
         phone: phone ? phone.trim() : null,
+        avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", profile.id);
@@ -109,13 +120,17 @@ export async function updateMyProfile(formData: FormData): Promise<{ error?: str
       return { error: profileError.message };
     }
 
-    // Sync avatar & display name to Auth User Metadata
-    await supabase.auth.updateUser({
+    // Keep Auth user_metadata in sync (used by some Supabase-native surfaces).
+    // Non-fatal: the profiles row already holds the canonical value.
+    const { error: authError } = await supabase.auth.updateUser({
       data: {
         avatar_url: avatarUrl,
         full_name: fullName.trim(),
       },
     });
+    if (authError) {
+      console.error("Avatar metadata sync failed:", authError.message);
+    }
 
     revalidatePath("/", "layout");
     revalidatePath("/settings");
@@ -156,6 +171,11 @@ export async function updateMyPassword(formData: FormData): Promise<{ error?: st
 
 export async function updateSystemPreferences(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   try {
+    const { profile } = await requireProfile();
+    if (!canManageSettings(profile.role)) {
+      return { error: "Only administrators can change system preferences." };
+    }
+
     const societyName = (formData.get("society_name") as string) || "Mohkam Real Estate";
     const defaultCurrency = (formData.get("default_currency") as string) || "PKR";
     const defaultAreaUnit = (formData.get("default_area_unit") as string) || "marla";
@@ -165,15 +185,18 @@ export async function updateSystemPreferences(formData: FormData): Promise<{ err
     const gracePeriodDays = parseInt((formData.get("grace_period_days") as string) || "10", 10);
 
     const supabase = await createClient();
-    await supabase.from("system_settings").upsert([
-      { key: "society_name", value: societyName, updated_at: new Date().toISOString() },
-      { key: "default_currency", value: defaultCurrency, updated_at: new Date().toISOString() },
-      { key: "default_area_unit", value: defaultAreaUnit, updated_at: new Date().toISOString() },
-      { key: "marla_size_sqft", value: marlaSizeSqft, updated_at: new Date().toISOString() },
-      { key: "receipt_prefix", value: receiptPrefix, updated_at: new Date().toISOString() },
-      { key: "booking_prefix", value: bookingPrefix, updated_at: new Date().toISOString() },
-      { key: "grace_period_days", value: gracePeriodDays, updated_at: new Date().toISOString() },
-    ]);
+    await supabase.from("system_settings").upsert(
+      [
+        { key: "society_name", value: societyName, updated_at: new Date().toISOString() },
+        { key: "default_currency", value: defaultCurrency, updated_at: new Date().toISOString() },
+        { key: "default_area_unit", value: defaultAreaUnit, updated_at: new Date().toISOString() },
+        { key: "marla_size_sqft", value: marlaSizeSqft, updated_at: new Date().toISOString() },
+        { key: "receipt_prefix", value: receiptPrefix, updated_at: new Date().toISOString() },
+        { key: "booking_prefix", value: bookingPrefix, updated_at: new Date().toISOString() },
+        { key: "grace_period_days", value: gracePeriodDays, updated_at: new Date().toISOString() },
+      ],
+      { onConflict: "key" },
+    );
 
     revalidatePath("/settings");
     return { success: true };

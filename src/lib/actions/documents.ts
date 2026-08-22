@@ -10,6 +10,7 @@ import {
   canApproveDocuments,
   canManageDocuments,
 } from "@/lib/permissions";
+import { createNotification } from "@/lib/notifications";
 import { createClient } from "@/lib/server";
 import { documentMetaSchema } from "@/lib/validations/document";
 
@@ -154,6 +155,18 @@ export async function uploadDocument(formData: FormData) {
       .eq("id", values.replaces_id);
   }
 
+  // Ping the approver roles so the review lands in their notification bell.
+  for (const role of ["super_admin", "manager", "accounts"] as const) {
+    await createNotification({
+      type: "approval_pending",
+      title: "Document awaiting review",
+      body: `${values.title.trim()} was submitted for approval.`,
+      roleTarget: role,
+      entityType: "document",
+      entityId: data.id,
+    });
+  }
+
   revalidateDocuments(values.entity_type, values.entity_id);
   revalidatePath(`/documents/${data.id}`);
   return { error: null, id: data.id };
@@ -172,7 +185,7 @@ export async function reviewDocument(
   const supabase = await createClient();
   const { data: current } = await supabase
     .from("documents")
-    .select("id, status, entity_type, entity_id")
+    .select("id, status, entity_type, entity_id, uploaded_by, title")
     .eq("id", id)
     .maybeSingle();
 
@@ -197,22 +210,42 @@ export async function reviewDocument(
     return { error: error.message };
   }
 
+  // Let the uploader know the outcome.
+  if (current.uploaded_by) {
+    await createNotification({
+      type: "approval_result",
+      title: status === "approved" ? "Document approved" : "Document rejected",
+      body: `${current.title} was ${status}.`,
+      userId: current.uploaded_by,
+      entityType: "document",
+      entityId: id,
+    });
+  }
+
   revalidateDocuments(current.entity_type, current.entity_id);
   revalidatePath(`/documents/${id}`);
   return { error: null };
 }
 
 export async function getDocumentSignedUrl(id: string) {
-  await requireProfile();
+  const { profile } = await requireProfile();
   const supabase = await createClient();
   const { data: document } = await supabase
     .from("documents")
-    .select("file_path")
+    .select("file_path, is_confidential")
     .eq("id", id)
     .maybeSingle();
 
   if (!document) {
     return { error: "Document not found.", url: null };
+  }
+
+  // Confidential files are restricted to senior roles (owners, managers, accounts, legal).
+  if (document.is_confidential && !canApproveDocuments(profile.role)) {
+    return {
+      error: "This document is marked confidential. You do not have access.",
+      url: null,
+    };
   }
 
   const { data, error } = await supabase.storage

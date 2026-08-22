@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import { format } from "date-fns";
 import { requireProfile } from "@/lib/auth";
+import { getMyNotifications } from "@/lib/notifications";
 import { ROLE_LABELS } from "@/lib/constants";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { GlobalSearch } from "@/components/layout/global-search";
 import { HeaderUser } from "@/components/layout/header-user";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import {
   SidebarInset,
   SidebarProvider,
@@ -17,6 +20,7 @@ export default async function AppLayout({
   children: ReactNode;
 }) {
   const { profile, email, avatarUrl } = await requireProfile();
+  const { items: notifications, unread } = await getMyNotifications();
 
   return (
     <SidebarProvider>
@@ -31,12 +35,16 @@ export default async function AppLayout({
             </p>
           </div>
 
-          <HeaderUser
-            name={profile.full_name || email || "User"}
-            email={email}
-            roleLabel={ROLE_LABELS[profile.role]}
-            avatarUrl={avatarUrl}
-          />
+          <div className="flex items-center gap-2">
+            <GlobalSearch />
+            <NotificationBell items={notifications} unread={unread} />
+            <HeaderUser
+              name={profile.full_name || email || "User"}
+              email={email}
+              roleLabel={ROLE_LABELS[profile.role]}
+              avatarUrl={avatarUrl}
+            />
+          </div>
         </header>
         <div className="flex-1 overflow-auto bg-background p-6 md:p-8">{children}</div>
       </SidebarInset>

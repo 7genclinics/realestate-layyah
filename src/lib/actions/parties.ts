@@ -217,6 +217,70 @@ export async function createPartyPayment(input: unknown) {
   return { error: null, id: data.id, partyId: contract.party_id };
 }
 
+export async function updateParty(id: string, input: unknown) {
+  const parsed = partySchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid party details" };
+  }
+
+  const { profile } = await requireProfile();
+
+  if (!canManageParties(profile.role)) {
+    return { error: "You do not have permission to edit parties." };
+  }
+
+  const supabase = await createClient();
+  const values = parsed.data;
+
+  const { error } = await supabase
+    .from("parties")
+    .update({
+      name: values.name.trim(),
+      party_type: values.party_type,
+      phone: values.phone.trim(),
+      phone_secondary: values.phone_secondary ?? null,
+      address: values.address ?? null,
+      id_number: values.id_number ?? null,
+      opening_balance: roundMoney(values.opening_balance ?? 0),
+      status: values.status,
+      notes: values.notes ?? null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const hasBank =
+    values.bank_name ||
+    values.account_title ||
+    values.account_no ||
+    values.iban;
+
+  if (hasBank && canManageAccounts(profile.role)) {
+    const { error: bankError } = await supabase
+      .from("party_bank_details")
+      .upsert(
+        {
+          party_id: id,
+          bank_name: values.bank_name ?? null,
+          account_title: values.account_title ?? null,
+          account_no: values.account_no ?? null,
+          iban: values.iban ?? null,
+        },
+        { onConflict: "party_id" },
+      );
+
+    if (bankError) {
+      return { error: bankError.message };
+    }
+  }
+
+  revalidateParty(id);
+  return { error: null, id };
+}
+
 export async function deleteParty(id: string): Promise<void> {
   const { profile } = await requireProfile();
   if (!canManageParties(profile.role)) return;

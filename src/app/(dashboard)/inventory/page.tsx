@@ -247,7 +247,7 @@ export default async function InventoryPage({
                         <RowActions
                           id={property.id}
                           viewHref={`/inventory/${property.id}`}
-                          editHref={`/inventory/${property.id}`}
+                          editHref={`/inventory/${property.id}/edit`}
                           deleteAction={deleteProperty}
                           confirmMessage={`Delete property "${property.plot_no}"? This cannot be undone.`}
                         />

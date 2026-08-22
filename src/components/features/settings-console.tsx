@@ -115,9 +115,14 @@ export function SettingsConsole({
     e.preventDefault();
     setIsSavingProfile(true);
     const formData = new FormData(e.currentTarget);
-    formData.set("avatar_url", avatarPreview);
+    // `avatar_url` carries only a persisted http(s) URL to preserve, or "" to remove.
+    // A freshly picked file is uploaded via `avatar_file`; its data-URL preview is
+    // never persisted to the database.
     if (avatarFile) {
       formData.set("avatar_file", avatarFile);
+      formData.set("avatar_url", "");
+    } else {
+      formData.set("avatar_url", /^https?:\/\//i.test(avatarPreview) ? avatarPreview : "");
     }
     const result = await updateMyProfile(formData);
     setIsSavingProfile(false);
@@ -235,8 +240,6 @@ export function SettingsConsole({
           </div>
 
           <form onSubmit={handleProfileSubmit} className="space-y-6 max-w-xl">
-            <input type="hidden" name="avatar_url" value={avatarPreview} />
-
             {/* Smart Avatar Upload Box with Hover Effect */}
             <div className="flex flex-col sm:flex-row items-center sm:items-center gap-6 p-5 rounded-[10px] border bg-muted/20">
               {/* Interactive Round Avatar */}
@@ -454,8 +457,24 @@ export function SettingsConsole({
                 {allProfiles.map((user) => (
                   <tr key={user.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-foreground">{user.full_name || "Unnamed User"}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">ID: {user.id.slice(0, 8)}...</div>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-9 rounded-full border shrink-0">
+                          {user.avatar_url ? (
+                            <AvatarImage
+                              src={user.avatar_url}
+                              alt={user.full_name || "User"}
+                              className="object-cover size-full rounded-full"
+                            />
+                          ) : null}
+                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary rounded-full">
+                            {initials(user.full_name || "User") || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-semibold text-foreground">{user.full_name || "Unnamed User"}</div>
+                          <div className="font-mono text-[10px] text-muted-foreground">ID: {user.id.slice(0, 8)}...</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-muted-foreground">{user.phone || "—"}</td>
                     <td className="px-5 py-3.5">

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { RowActions } from "@/components/features/row-actions";
+import { CustomerImportDialog } from "@/components/features/customer-import-dialog";
 import {
   Table,
   TableBody,
@@ -78,10 +79,13 @@ export default async function CustomersPage({
           </p>
         </div>
         {canEdit ? (
-          <Button render={<Link href="/customers/new" />}>
-            <Plus className="size-4" />
-            Add Customer
-          </Button>
+          <div className="flex items-center gap-2">
+            <CustomerImportDialog />
+            <Button render={<Link href="/customers/new" />}>
+              <Plus className="size-4" />
+              Add Customer
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -180,7 +184,7 @@ export default async function CustomersPage({
                       <RowActions
                         id={customer.id}
                         viewHref={`/customers/${customer.id}`}
-                        editHref={`/customers/${customer.id}`}
+                        editHref={`/customers/${customer.id}/edit`}
                         deleteAction={deleteCustomer}
                         confirmMessage={`Delete customer "${customer.full_name}"?`}
                       />

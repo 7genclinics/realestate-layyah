@@ -208,7 +208,7 @@ export default async function PartiesPage({
                         <RowActions
                           id={party.id}
                           viewHref={`/parties/${party.id}`}
-                          editHref={`/parties/${party.id}`}
+                          editHref={`/parties/${party.id}/edit`}
                           deleteAction={deleteParty}
                           confirmMessage={`Delete party "${party.name}"?`}
                         />

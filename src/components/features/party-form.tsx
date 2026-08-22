@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createParty } from "@/lib/actions/parties";
+import { createParty, updateParty } from "@/lib/actions/parties";
 import { PARTY_STATUS_LABELS, PARTY_TYPE_LABELS } from "@/lib/constants";
 import { partySchema, type PartyFormValues } from "@/lib/validations/party";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,17 @@ import { Textarea } from "@/components/ui/textarea";
 const selectClassName =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
-export function PartyForm({ canEditBank }: { canEditBank: boolean }) {
+export function PartyForm({
+  canEditBank,
+  partyId,
+  defaultValues,
+}: {
+  canEditBank: boolean;
+  partyId?: string;
+  defaultValues?: Partial<PartyFormValues>;
+}) {
   const router = useRouter();
+  const isEdit = Boolean(partyId);
   const {
     register,
     handleSubmit,
@@ -38,18 +47,21 @@ export function PartyForm({ canEditBank }: { canEditBank: boolean }) {
       account_title: "",
       account_no: "",
       iban: "",
+      ...defaultValues,
     },
   });
 
   async function onSubmit(values: PartyFormValues) {
-    const result = await createParty(values);
+    const result = isEdit
+      ? await updateParty(partyId!, values)
+      : await createParty(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not create party");
+      toast.error(result.error ?? "Could not save party");
       return;
     }
 
-    toast.success("Party created");
+    toast.success(isEdit ? "Party updated" : "Party created");
     router.push(`/parties/${result.id}`);
     router.refresh();
   }
@@ -138,7 +150,7 @@ export function PartyForm({ canEditBank }: { canEditBank: boolean }) {
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save party
+          {isEdit ? "Update party" : "Save party"}
         </Button>
       </div>
     </form>

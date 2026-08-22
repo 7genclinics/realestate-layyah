@@ -127,7 +127,7 @@ export default async function AgentsPage({
                       {AGENT_TYPE_LABELS[agent.agent_type as keyof typeof AGENT_TYPE_LABELS] ?? agent.agent_type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{agent.commission_rate}%</TableCell>
+                  <TableCell className="font-medium">{Number(agent.commission_rate ?? 0)}%</TableCell>
                   <TableCell className="font-semibold">{formatPkr(agent.total_commission)}</TableCell>
                   <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
                     {formatPkr(agent.balance_payable)}
@@ -141,7 +141,7 @@ export default async function AgentsPage({
                     <RowActions
                       id={agent.id}
                       viewHref={`/agents/${agent.id}`}
-                      editHref={`/agents/${agent.id}`}
+                      editHref={`/agents/${agent.id}/edit`}
                       deleteAction={deleteAgent}
                       confirmMessage={`Delete broker "${agent.name}"? All commissions and payouts will also be removed.`}
                     />

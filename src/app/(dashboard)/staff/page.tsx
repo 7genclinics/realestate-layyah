@@ -141,7 +141,7 @@ export default async function StaffPage({
                     <RowActions
                       id={staff.id}
                       viewHref={`/staff/${staff.id}`}
-                      editHref={`/staff/${staff.id}`}
+                      editHref={`/staff/${staff.id}/edit`}
                       deleteAction={deleteStaffMember}
                       confirmMessage={`Delete employee "${staff.full_name}"? All payroll and advance records will also be removed.`}
                     />

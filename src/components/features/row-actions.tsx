@@ -3,12 +3,13 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 interface RowActionsProps {
   editHref?: string;
   viewHref?: string;
-  deleteAction?: (id: string) => Promise<void>;
+  deleteAction?: (id: string) => Promise<void | { error?: string | null }>;
   id: string;
   confirmMessage?: string;
 }
@@ -31,7 +32,12 @@ export function RowActions({
       return;
     if (!deleteAction) return;
     startTransition(async () => {
-      await deleteAction(id);
+      const result = await deleteAction(id);
+      if (result && typeof result === "object" && result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Record deleted.");
+      }
     });
   }
 

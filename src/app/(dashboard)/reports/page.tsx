@@ -1,6 +1,7 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { AllInOneReports } from "@/components/features/all-in-one-reports";
+import { ReportsNav } from "@/components/features/reports-nav";
 
 export default async function ReportsPage() {
   const { profile } = await requireProfile();
@@ -62,17 +63,20 @@ export default async function ReportsPage() {
   ]);
 
   return (
-    <AllInOneReports
-      sales={sales ?? []}
-      receipts={receipts ?? []}
-      transactions={transactions ?? []}
-      installments={installments ?? []}
-      properties={properties ?? []}
-      contracts={contracts ?? []}
-      landParcels={landParcels ?? []}
-      devExpenses={devExpenses ?? []}
-      societies={societies ?? []}
-      customers={customers ?? []}
-    />
+    <div className="space-y-6">
+      <ReportsNav />
+      <AllInOneReports
+        sales={sales ?? []}
+        receipts={receipts ?? []}
+        transactions={transactions ?? []}
+        installments={installments ?? []}
+        properties={properties ?? []}
+        contracts={contracts ?? []}
+        landParcels={landParcels ?? []}
+        devExpenses={devExpenses ?? []}
+        societies={societies ?? []}
+        customers={customers ?? []}
+      />
+    </div>
   );
 }

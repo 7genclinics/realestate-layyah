@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createLandParcel } from "@/lib/actions/land-bank";
+import { createLandParcel, updateLandParcel } from "@/lib/actions/land-bank";
 import {
   AREA_UNIT_LABELS,
   LAND_ACQUISITION_LABELS,
@@ -26,11 +26,16 @@ const selectClassName =
 export function LandParcelForm({
   societies,
   parties,
+  parcelId,
+  defaultValues,
 }: {
   societies: { id: string; code: string; name: string }[];
   parties: { id: string; code: string; name: string }[];
+  parcelId?: string;
+  defaultValues?: Partial<LandParcelFormValues>;
 }) {
   const router = useRouter();
+  const isEdit = Boolean(parcelId);
   const {
     register,
     handleSubmit,
@@ -57,6 +62,7 @@ export function LandParcelForm({
       status: "proposed",
       agreement_terms: "",
       notes: "",
+      ...defaultValues,
     },
   });
 
@@ -65,14 +71,16 @@ export function LandParcelForm({
   const suggested = area * rate;
 
   async function onSubmit(values: LandParcelFormValues) {
-    const result = await createLandParcel(values);
+    const result = isEdit
+      ? await updateLandParcel(parcelId!, values)
+      : await createLandParcel(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not create land record");
+      toast.error(result.error ?? "Could not save land record");
       return;
     }
 
-    toast.success("Land record created");
+    toast.success(isEdit ? "Land record updated" : "Land record created");
     router.push(`/land-bank/${result.id}`);
     router.refresh();
   }
@@ -201,7 +209,7 @@ export function LandParcelForm({
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save land record
+          {isEdit ? "Update land record" : "Save land record"}
         </Button>
       </div>
     </form>

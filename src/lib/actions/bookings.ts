@@ -4,8 +4,13 @@ import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import { requireProfile } from "@/lib/auth";
 import { amountToWords } from "@/lib/amount-to-words";
+import {
+  postReceiptToCashBook,
+  resolveDefaultCashAccount,
+} from "@/lib/cash-posting";
 import { buildInstallmentPlan, roundMoney } from "@/lib/installments";
-import { canManageCrm } from "@/lib/permissions";
+import { createNotification } from "@/lib/notifications";
+import { canApproveLand, canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 import { bookingSchema } from "@/lib/validations/booking";
 
@@ -46,6 +51,26 @@ export async function createBooking(input: unknown) {
 
   if (tokenAmount > saleAmount) {
     return { error: "Token cannot be greater than the sale amount." };
+  }
+
+  // Enforce the minimum approved price. Owners and managers may sell below the
+  // floor (e.g. an approved discount); everyone else is blocked.
+  const { data: cost } = await supabase
+    .from("property_costs")
+    .select("min_approved_price")
+    .eq("property_id", property.id)
+    .maybeSingle();
+
+  const minApproved = Number(cost?.min_approved_price ?? 0);
+  if (
+    minApproved > 0 &&
+    saleAmount < minApproved &&
+    values.lock_type !== "hold" &&
+    !canApproveLand(profile.role)
+  ) {
+    return {
+      error: `Sale price is below the minimum approved price of PKR ${minApproved.toLocaleString()}. A manager must approve a lower price.`,
+    };
   }
 
   const remainingAmount = roundMoney(saleAmount - tokenAmount);
@@ -146,8 +171,11 @@ export async function createBooking(input: unknown) {
           period_label: row.period_label,
           due_date: row.due_date,
           scheduled_amount: row.scheduled_amount,
-          received_amount: row.installment_no === 0 ? tokenAmount : 0,
-          received_date: row.installment_no === 0 && tokenAmount > 0 ? bookingDate : null,
+          // buildInstallmentPlan numbers the token/down-payment row as
+          // installment_no 1 (it is always the first row when a token exists).
+          received_amount: tokenAmount > 0 && row.installment_no === 1 ? tokenAmount : 0,
+          received_date:
+            tokenAmount > 0 && row.installment_no === 1 ? bookingDate : null,
         })),
       )
       .select("id, installment_no");
@@ -158,11 +186,13 @@ export async function createBooking(input: unknown) {
 
     // If downpayment token was received, create the receipt and allocation record
     if (tokenAmount > 0) {
+      const tokenAccountId = await resolveDefaultCashAccount(supabase, "cash");
       const { data: tokenReceipt } = await supabase
         .from("receipts")
         .insert({
           sale_id: sale.id,
           customer_id: values.customer_id,
+          cash_account_id: tokenAccountId,
           payment_date: bookingDate,
           amount: tokenAmount,
           amount_in_words: amountToWords(tokenAmount),
@@ -174,7 +204,7 @@ export async function createBooking(input: unknown) {
         .single();
 
       if (tokenReceipt && insertedInstallments) {
-        const tokenInst = insertedInstallments.find((inst) => inst.installment_no === 0);
+        const tokenInst = insertedInstallments.find((inst) => inst.installment_no === 1);
         if (tokenInst) {
           await supabase.from("receipt_allocations").insert({
             receipt_id: tokenReceipt.id,
@@ -182,6 +212,20 @@ export async function createBooking(input: unknown) {
             allocated_amount: tokenAmount,
           });
         }
+      }
+
+      // Post the token collection to the cash book (idempotent, non-fatal).
+      if (tokenReceipt && tokenAccountId) {
+        await postReceiptToCashBook(supabase, {
+          receiptId: tokenReceipt.id,
+          cashAccountId: tokenAccountId,
+          societyId: property.society_id,
+          amount: tokenAmount,
+          date: bookingDate,
+          paymentMode: "cash",
+          description: `Token / downpayment · Plot ${property.plot_no}`,
+          enteredBy: profile.id,
+        });
       }
     }
   }
@@ -192,7 +236,19 @@ export async function createBooking(input: unknown) {
   revalidatePath(`/inventory/${property.id}`);
   revalidatePath("/installments");
   revalidatePath("/receipts");
+  revalidatePath("/cash-book");
   revalidatePath("/reports");
   revalidatePath("/dashboard");
+
+  // Surface the new sale to the accounts desk for collection follow-up.
+  await createNotification({
+    type: "new_sale",
+    title: "New booking created",
+    body: `Plot ${property.plot_no} booked for PKR ${saleAmount.toLocaleString()}.`,
+    roleTarget: "accounts",
+    entityType: "sale",
+    entityId: sale.id,
+  });
+
   return { error: null, id: sale.id, customerId: values.customer_id };
 }

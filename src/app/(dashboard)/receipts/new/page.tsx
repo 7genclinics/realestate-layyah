@@ -35,22 +35,29 @@ export default async function NewReceiptPage({
   }
 
   const supabase = await createClient();
-  const [{ data: sales }, { data: installments }] = await Promise.all([
-    supabase
-      .from("sales")
-      .select(
-        "id, code, plot_no, remaining_amount, customer_id, customers(full_name, code)",
-      )
-      .neq("status", "cancelled")
-      .gt("remaining_amount", 0)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("installments")
-      .select(
-        "id, sale_id, installment_no, period_label, scheduled_amount, received_amount",
-      )
-      .order("installment_no"),
-  ]);
+  const [{ data: sales }, { data: installments }, { data: accounts }] =
+    await Promise.all([
+      supabase
+        .from("sales")
+        .select(
+          "id, code, plot_no, remaining_amount, customer_id, customers(full_name, code)",
+        )
+        .neq("status", "cancelled")
+        .gt("remaining_amount", 0)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("installments")
+        .select(
+          "id, sale_id, installment_no, period_label, scheduled_amount, received_amount",
+        )
+        .order("installment_no"),
+      supabase
+        .from("cash_accounts")
+        .select("id, code, name, account_type")
+        .eq("is_active", true)
+        .order("account_type")
+        .order("name"),
+    ]);
 
   if (!sales?.length) {
     return (
@@ -83,6 +90,7 @@ export default async function NewReceiptPage({
           <ReceivePaymentForm
             sales={sales}
             installments={installments ?? []}
+            accounts={accounts ?? []}
             defaultSaleId={params.sale}
             defaultInstallmentId={params.installment}
           />

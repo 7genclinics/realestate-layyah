@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/server";
+import { deriveInstallmentStatus } from "@/lib/permissions";
 
 export async function getBookingsList() {
   const supabase = await createClient();
@@ -6,9 +7,9 @@ export async function getBookingsList() {
     .from("sales")
     .select(`
       *,
-      customers (id, name, contact, cnic),
-      properties (id, plot_number, property_type, total_area, area_unit, societies (id, name)),
-      installments (id, status, scheduled_amount, received_amount)
+      customers (id, full_name, phone, cnic),
+      properties (id, plot_no, property_type, area, area_unit, societies (id, name)),
+      installments (id, due_date, scheduled_amount, received_amount, status_override)
     `)
     .order("created_at", { ascending: false });
 
@@ -18,22 +19,32 @@ export async function getBookingsList() {
   }
 
   return (data || []).map((sale: any) => {
-    const totalInst = (sale.installments || []).length;
-    const paidInst = (sale.installments || []).filter(
-      (inst: { status: string }) => inst.status === "paid"
+    const installments = sale.installments || [];
+    const totalInst = installments.length;
+    // Installment status is derived at read time — there is no stored column.
+    const paidInst = installments.filter(
+      (inst: any) =>
+        deriveInstallmentStatus(
+          inst.due_date,
+          Number(inst.scheduled_amount),
+          Number(inst.received_amount),
+          { statusOverride: inst.status_override },
+        ) === "paid",
     ).length;
-    const totalReceived = (sale.installments || []).reduce(
+    const totalReceived = installments.reduce(
       (sum: number, inst: { received_amount: number }) =>
         sum + Number(inst.received_amount || 0),
-      0
+      0,
     );
+    const totalAmount = Number(sale.sale_amount || 0);
 
     return {
       ...sale,
+      total_amount: totalAmount,
       total_installments_count: totalInst,
       paid_installments_count: paidInst,
       total_received_amount: totalReceived,
-      remaining_balance: Number(sale.total_amount) - totalReceived,
+      remaining_balance: totalAmount - totalReceived,
     };
   });
 }

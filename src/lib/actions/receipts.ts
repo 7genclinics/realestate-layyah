@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { amountToWords } from "@/lib/amount-to-words";
+import { postReceiptToCashBook } from "@/lib/cash-posting";
 import { roundMoney } from "@/lib/installments";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -40,7 +41,9 @@ export async function receivePayment(input: unknown) {
 
   const { data: sale, error: saleError } = await supabase
     .from("sales")
-    .select("id, customer_id, sale_amount, remaining_amount, status")
+    .select(
+      "id, customer_id, society_id, plot_no, sale_amount, remaining_amount, status, customers(full_name)",
+    )
     .eq("id", values.sale_id)
     .maybeSingle();
 
@@ -105,6 +108,7 @@ export async function receivePayment(input: unknown) {
     .insert({
       sale_id: sale.id,
       customer_id: sale.customer_id,
+      cash_account_id: values.cash_account_id,
       payment_date: values.payment_date,
       amount,
       amount_in_words: amountToWords(amount),
@@ -171,6 +175,24 @@ export async function receivePayment(input: unknown) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", sale.id);
+
+  // Post the collection to the cash book (idempotent — a DB trigger or a retry
+  // will not double-count). Non-fatal: the receipt is the source of truth.
+  const saleCustomer = Array.isArray(sale.customers)
+    ? sale.customers[0]
+    : sale.customers;
+  await postReceiptToCashBook(supabase, {
+    receiptId: receipt.id,
+    cashAccountId: values.cash_account_id,
+    societyId: sale.society_id ?? null,
+    amount,
+    date: values.payment_date,
+    paymentMode: values.payment_mode,
+    referenceNo: values.reference_no ?? null,
+    description: `Collection · Plot ${sale.plot_no ?? ""} · ${saleCustomer?.full_name ?? "Customer"}`.trim(),
+    counterpartyName: saleCustomer?.full_name ?? null,
+    enteredBy: profile.id,
+  });
 
   revalidatePath("/receipts");
   revalidatePath(`/receipts/${receipt.id}`);

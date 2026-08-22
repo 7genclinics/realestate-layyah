@@ -1,9 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireProfile } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import { canApproveExpenses, canManageDevelopment } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 
 export async function createDevelopmentProject(formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageDevelopment(profile.role)) return;
+
   const supabase = await createClient();
 
   const society_id = formData.get("society_id") as string;
@@ -27,10 +33,20 @@ export async function createDevelopmentProject(formData: FormData): Promise<void
       status: "active",
     });
 
+  await logAudit({
+    action: "create",
+    entityType: "development_project",
+    summary: `Development project "${name}" created`,
+    actorId: profile.id,
+  });
+
   revalidatePath("/development");
 }
 
 export async function addDevelopmentExpense(formData: FormData): Promise<void> {
+  const { profile } = await requireProfile();
+  if (!canManageDevelopment(profile.role)) return;
+
   const supabase = await createClient();
 
   const project_id = formData.get("project_id") as string;
@@ -45,7 +61,11 @@ export async function addDevelopmentExpense(formData: FormData): Promise<void> {
     return;
   }
 
-  const { error } = await supabase
+  // Paid immediately (a cash account was chosen) → approved & posted.
+  // Otherwise it is a commitment that needs approval before payment.
+  const status = cash_account_id ? "approved" : "pending";
+
+  const { data: expense, error } = await supabase
     .from("development_expenses")
     .insert({
       project_id,
@@ -55,7 +75,10 @@ export async function addDevelopmentExpense(formData: FormData): Promise<void> {
       expense_date,
       description,
       cash_account_id,
-    });
+      status,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     return;
@@ -67,23 +90,109 @@ export async function addDevelopmentExpense(formData: FormData): Promise<void> {
       transaction_type: "expense",
       amount,
       transaction_date: expense_date,
+      party_id,
       description: `Development Expense: ${description}`,
+      entered_by: profile.id,
+      status: "posted",
     });
   }
 
+  await logAudit({
+    action: "create",
+    entityType: "development_expense",
+    entityId: expense?.id ?? null,
+    summary: `Development expense of ${amount} (${status})`,
+    actorId: profile.id,
+  });
+
   revalidatePath("/development");
   revalidatePath("/cash-book");
+  revalidatePath("/approvals");
   revalidatePath("/dashboard");
 }
 
-export async function deleteDevelopmentProject(id: string): Promise<void> {
+export async function approveExpense(id: string): Promise<{ error: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canApproveExpenses(profile.role)) {
+    return { error: "You do not have permission to approve expenses." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("development_expenses")
+    .update({
+      status: "approved",
+      approved_by: profile.id,
+      approved_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("status", "pending");
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logAudit({
+    action: "approve",
+    entityType: "development_expense",
+    entityId: id,
+    summary: "Development expense approved",
+    actorId: profile.id,
+  });
+
+  revalidatePath("/development");
+  revalidatePath("/approvals");
+  return { error: null };
+}
+
+export async function rejectExpense(id: string): Promise<{ error: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canApproveExpenses(profile.role)) {
+    return { error: "You do not have permission to reject expenses." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("development_expenses")
+    .update({ status: "rejected" })
+    .eq("id", id)
+    .eq("status", "pending");
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logAudit({
+    action: "reject",
+    entityType: "development_expense",
+    entityId: id,
+    summary: "Development expense rejected",
+    actorId: profile.id,
+  });
+
+  revalidatePath("/development");
+  revalidatePath("/approvals");
+  return { error: null };
+}
+
+export async function deleteDevelopmentProject(id: string): Promise<void | { error?: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canManageDevelopment(profile.role)) {
+    return { error: "You do not have permission to delete projects." };
+  }
   const supabase = await createClient();
   await supabase.from("development_projects").delete().eq("id", id);
   revalidatePath("/development");
+  return { error: null };
 }
 
-export async function deleteDevelopmentExpense(id: string): Promise<void> {
+export async function deleteDevelopmentExpense(id: string): Promise<void | { error?: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canManageDevelopment(profile.role)) {
+    return { error: "You do not have permission to delete expenses." };
+  }
   const supabase = await createClient();
   await supabase.from("development_expenses").delete().eq("id", id);
   revalidatePath("/development");
+  return { error: null };
 }

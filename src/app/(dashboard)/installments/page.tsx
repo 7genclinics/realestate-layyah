@@ -2,14 +2,16 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertTriangle, CalendarClock, CheckCircle, Receipt, ArrowRight } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
-import { canManageCrm, deriveInstallmentStatus } from "@/lib/permissions";
+import { canManageAccounts, canManageCrm, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 import { roundMoney } from "@/lib/installments";
+import { getGracePeriodDays } from "@/lib/settings";
 import { INSTALLMENT_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatPkr } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
+import { InstallmentActions } from "@/components/features/installment-actions";
 import {
   Table,
   TableBody,
@@ -31,15 +33,18 @@ export default async function InstallmentsPage({
   const { data: rows, error } = await supabase
     .from("installments")
     .select(
-      "id, installment_no, period_label, due_date, scheduled_amount, received_amount, sales(id, code, plot_no, customer_id, customers(full_name, code))",
+      "id, installment_no, period_label, due_date, scheduled_amount, received_amount, status_override, sales(id, code, plot_no, customer_id, customers(full_name, code))",
     )
     .order("due_date");
+
+  const gracePeriodDays = await getGracePeriodDays();
 
   const items = (rows ?? []).map((row) => {
     const status = deriveInstallmentStatus(
       row.due_date,
       Number(row.scheduled_amount),
       Number(row.received_amount),
+      { gracePeriodDays, statusOverride: row.status_override },
     );
     const sale = Array.isArray(row.sales) ? row.sales[0] : row.sales;
     const customer = Array.isArray(sale?.customers)
@@ -65,6 +70,7 @@ export default async function InstallmentsPage({
         : items.filter((item) => item.status === "due" || item.status === "overdue");
 
   const canEdit = canManageCrm(profile.role);
+  const canWaive = canManageAccounts(profile.role);
 
   return (
     <div className="space-y-6">
@@ -186,23 +192,35 @@ export default async function InstallmentsPage({
                     </TableCell>
                     {canEdit ? (
                       <TableCell className="text-right">
-                        {openAmount > 0 && row.sale ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs rounded-md"
-                            render={
-                              <Link
-                                href={`/receipts/new?sale=${row.sale.id}&installment=${row.id}`}
-                              />
-                            }
-                          >
-                            Receive
-                            <ArrowRight className="size-3 ml-1" />
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Cleared</span>
-                        )}
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          {openAmount > 0 && row.sale ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs rounded-md"
+                              render={
+                                <Link
+                                  href={`/receipts/new?sale=${row.sale.id}&installment=${row.id}`}
+                                />
+                              }
+                            >
+                              Receive
+                              <ArrowRight className="size-3 ml-1" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Cleared</span>
+                          )}
+                          {openAmount > 0 || row.status_override ? (
+                            <InstallmentActions
+                              id={row.id}
+                              periodLabel={row.period_label}
+                              dueDate={row.due_date}
+                              openAmount={openAmount}
+                              statusOverride={row.status_override}
+                              canWaive={canWaive}
+                            />
+                          ) : null}
+                        </div>
                       </TableCell>
                     ) : null}
                   </TableRow>

@@ -314,12 +314,75 @@ export const PAYROLL_STATUS_LABELS = {
   paid: "Paid",
 } as const;
 
+export const LEAD_STATUS_LABELS = {
+  new: "New",
+  contacted: "Contacted",
+  interested: "Interested",
+  negotiation: "Negotiation",
+  won: "Won",
+  lost: "Lost",
+} as const;
+
+export const LEAD_STATUS_TONE = {
+  new: "info",
+  contacted: "info",
+  interested: "warning",
+  negotiation: "warning",
+  won: "success",
+  lost: "danger",
+} as const;
+
+export const ACTIVITY_TYPE_LABELS = {
+  note: "Note",
+  call: "Phone call",
+  visit: "Site visit",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  status_change: "Status change",
+} as const;
+
+export const CONTRACTOR_BILL_STATUS_LABELS = {
+  submitted: "Submitted",
+  approved: "Approved",
+  rejected: "Rejected",
+  paid: "Paid",
+} as const;
+
+export const EXPENSE_APPROVAL_STATUS_LABELS = {
+  pending: "Pending approval",
+  approved: "Approved",
+  rejected: "Rejected",
+  paid: "Paid",
+} as const;
+
+export const NOTIFICATION_TYPE_LABELS = {
+  installment_due: "Installment due",
+  overdue: "Overdue installment",
+  approval_pending: "Awaiting approval",
+  low_cash: "Low cash balance",
+  salary_due: "Salary due",
+  general: "Notice",
+} as const;
+
+export const AUDIT_ACTION_LABELS = {
+  create: "Created",
+  update: "Updated",
+  delete: "Deleted",
+  approve: "Approved",
+  reject: "Rejected",
+  status_change: "Status changed",
+  payment: "Payment",
+  login: "Signed in",
+} as const;
+
 export const NAV_ITEMS = [
   { title: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
   { title: "Societies", href: "/societies", icon: "building-2" },
   { title: "Land Bank", href: "/land-bank", icon: "land-plot" },
   { title: "Inventory", href: "/inventory", icon: "map" },
+  { title: "Leads", href: "/leads", icon: "target" },
   { title: "Customers", href: "/customers", icon: "users" },
+  { title: "Bookings", href: "/bookings", icon: "file-signature" },
   { title: "Installments", href: "/installments", icon: "calendar-clock" },
   { title: "Receipts", href: "/receipts", icon: "receipt" },
   { title: "Cash Book", href: "/cash-book", icon: "book-open" },
@@ -327,7 +390,9 @@ export const NAV_ITEMS = [
   { title: "Development", href: "/development", icon: "hammer" },
   { title: "Agents", href: "/agents", icon: "briefcase" },
   { title: "Staff", href: "/staff", icon: "id-card" },
+  { title: "Approvals", href: "/approvals", icon: "clipboard-check" },
   { title: "Documents", href: "/documents", icon: "file-stack" },
   { title: "Reports", href: "/reports", icon: "chart-column" },
+  { title: "Audit Log", href: "/audit", icon: "history" },
   { title: "Settings", href: "/settings", icon: "settings" },
 ] as const;

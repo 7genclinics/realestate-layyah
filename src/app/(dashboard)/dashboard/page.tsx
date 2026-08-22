@@ -2,8 +2,12 @@ import Link from "next/link";
 import { eachDayOfInterval, format, startOfMonth, subDays } from "date-fns";
 import {
   AlertTriangle,
+  ArrowLeftRight,
   Banknote,
   CalendarClock,
+  Coins,
+  Handshake,
+  HardHat,
   Plus,
   Receipt,
   TrendingDown,
@@ -17,6 +21,7 @@ import { summarizeDay, sumBalancesByAccountType } from "@/lib/cash-book";
 import { PROPERTY_STATUS_LABELS } from "@/lib/constants";
 import type { PropertyStatus } from "@/lib/database.types";
 import { formatPkr } from "@/lib/format";
+import { getGracePeriodDays } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { StatCard, type StatCardProps } from "@/components/ui/stat-card";
 import {
@@ -70,6 +75,10 @@ export default async function DashboardPage() {
     { data: cashAccounts },
     { data: cashTransactions },
     { data: salesRows },
+    { data: contractRows },
+    { data: commissionRows },
+    { data: payrollRows },
+    gracePeriodDays,
   ] = await Promise.all([
     supabase.from("societies").select("id", { count: "exact", head: true }),
     supabase.from("properties").select("status"),
@@ -95,6 +104,10 @@ export default async function DashboardPage() {
       .from("sales")
       .select("sale_amount, remaining_amount, status, created_at")
       .is("deleted_at", null),
+    supabase.from("contracts").select("remaining_amount, status"),
+    supabase.from("agent_commissions").select("commission_amount, status"),
+    supabase.from("payroll_records").select("net_salary, payment_status"),
+    getGracePeriodDays(),
   ]);
 
   const todayCollections = (receiptRows ?? [])
@@ -125,7 +138,9 @@ export default async function DashboardPage() {
   for (const row of installmentRows ?? []) {
     const scheduled = Number(row.scheduled_amount);
     const received = Number(row.received_amount);
-    const status = deriveInstallmentStatus(row.due_date, scheduled, received);
+    const status = deriveInstallmentStatus(row.due_date, scheduled, received, {
+      gracePeriodDays,
+    });
 
     if (status === "overdue") {
       overdueCount += 1;
@@ -188,6 +203,27 @@ export default async function DashboardPage() {
 
   const unitCount = properties?.length ?? 0;
 
+  // Contractor / party payables — outstanding balance on active work orders.
+  const partyPayable = (contractRows ?? [])
+    .filter((row) => row.status === "active")
+    .reduce((sum, row) => sum + Number(row.remaining_amount ?? 0), 0);
+
+  // Agent commissions owed but not yet disbursed (earned or approved, unpaid).
+  const commissionPayable = (commissionRows ?? [])
+    .filter((row) => row.status === "pending" || row.status === "approved")
+    .reduce((sum, row) => sum + Number(row.commission_amount ?? 0), 0);
+
+  // Salaries generated on payroll but still awaiting disbursement.
+  const salariesDue = (payrollRows ?? [])
+    .filter((row) => row.payment_status === "pending")
+    .reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
+
+  // Net cash movement across the trailing 14-day window (collections − expenses).
+  const netCashFlow = cashflow.reduce(
+    (sum, point) => sum + point.collections - point.expenses,
+    0,
+  );
+
   const kpis: StatCardProps[] = [
     {
       title: "Today Collections",
@@ -239,6 +275,41 @@ export default async function DashboardPage() {
     },
   ];
 
+  const financials: StatCardProps[] = [
+    {
+      title: "Party Payable",
+      value: formatPkr(partyPayable),
+      hint: "Outstanding on active contracts",
+      href: "/reports/parties",
+      icon: HardHat,
+      variant: "warning",
+    },
+    {
+      title: "Commission Payable",
+      value: formatPkr(commissionPayable),
+      hint: "Agent commissions unpaid",
+      href: "/agents",
+      icon: Handshake,
+      variant: "indigo",
+    },
+    {
+      title: "Salaries Due",
+      value: formatPkr(salariesDue),
+      hint: "Payroll awaiting disbursement",
+      href: "/staff",
+      icon: Coins,
+      variant: "danger",
+    },
+    {
+      title: "Net Cash Flow",
+      value: formatPkr(netCashFlow),
+      hint: "Collections − expenses (14d)",
+      href: "/reports/cash-book",
+      icon: ArrowLeftRight,
+      variant: netCashFlow >= 0 ? "success" : "danger",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -266,6 +337,17 @@ export default async function DashboardPage() {
         {kpis.map((kpi) => (
           <StatCard key={kpi.title} {...kpi} />
         ))}
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Payables &amp; cash position
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {financials.map((tile) => (
+            <StatCard key={tile.title} {...tile} />
+          ))}
+        </div>
       </div>
 
       <DashboardCharts cashflow={cashflow} inventory={inventory} />

@@ -30,6 +30,9 @@ export async function requireProfile(): Promise<{
   return {
     profile,
     email: user.email,
-    avatarUrl: user.user_metadata?.avatar_url as string | undefined,
+    // Prefer the persisted profiles.avatar_url; fall back to Auth metadata.
+    avatarUrl:
+      (profile.avatar_url as string | null) ||
+      (user.user_metadata?.avatar_url as string | undefined),
   };
 }

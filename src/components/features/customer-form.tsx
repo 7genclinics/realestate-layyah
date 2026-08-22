@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createCustomer } from "@/lib/actions/customers";
+import { createCustomer, updateCustomer } from "@/lib/actions/customers";
 import {
   CUSTOMER_RELATION_LABELS,
   CUSTOMER_SOURCE_LABELS,
@@ -24,8 +24,15 @@ import { Textarea } from "@/components/ui/textarea";
 const selectClassName =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
-export function CustomerForm() {
+export function CustomerForm({
+  customerId,
+  defaultValues,
+}: {
+  customerId?: string;
+  defaultValues?: Partial<CustomerFormValues>;
+} = {}) {
   const router = useRouter();
+  const isEdit = Boolean(customerId);
   const {
     register,
     handleSubmit,
@@ -45,18 +52,21 @@ export function CustomerForm() {
       source: "walk_in",
       stage: "lead",
       notes: "",
+      ...defaultValues,
     },
   });
 
   async function onSubmit(values: CustomerFormValues) {
-    const result = await createCustomer(values);
+    const result = isEdit
+      ? await updateCustomer(customerId!, values)
+      : await createCustomer(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not create customer");
+      toast.error(result.error ?? "Could not save customer");
       return;
     }
 
-    toast.success("Customer created");
+    toast.success(isEdit ? "Customer updated" : "Customer created");
     router.push(`/customers/${result.id}`);
     router.refresh();
   }
@@ -149,7 +159,7 @@ export function CustomerForm() {
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save customer
+          {isEdit ? "Update customer" : "Save customer"}
         </Button>
       </div>
     </form>

@@ -161,7 +161,7 @@ export default async function ReceiptsPage() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs rounded-md"
-                        render={<Link href={`/receipts/${receipt.id}`} />}
+                        render={<Link href={`/receipts/${receipt.id}/print`} />}
                       >
                         <Printer className="size-3 mr-1" />
                         Print
