@@ -82,8 +82,13 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
             />
             <button
               type="button"
-              onClick={() => setShowPassword((visible) => !visible)}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault();
+                setShowPassword((visible) => !visible);
+              }}
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700 focus:outline-none"
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
             >
