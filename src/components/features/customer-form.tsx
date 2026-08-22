@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,11 @@ import {
   customerSchema,
   type CustomerFormValues,
 } from "@/lib/validations/customer";
+import {
+  FormAttachments,
+  uploadPendingAttachments,
+  type PendingAttachment,
+} from "@/components/features/form-attachments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +39,7 @@ export function CustomerForm({
 } = {}) {
   const router = useRouter();
   const isEdit = Boolean(customerId);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
     handleSubmit,
@@ -66,7 +73,25 @@ export function CustomerForm({
       return;
     }
 
-    toast.success(isEdit ? "Customer updated" : "Customer created");
+    if (attachments.length) {
+      const upload = await uploadPendingAttachments(
+        "customer",
+        result.id,
+        attachments,
+      );
+      if (upload.failed) {
+        toast.warning(
+          `Customer saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+        );
+      } else {
+        toast.success(
+          `${isEdit ? "Customer updated" : "Customer created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+        );
+      }
+    } else {
+      toast.success(isEdit ? "Customer updated" : "Customer created");
+    }
+
     router.push(`/customers/${result.id}`);
     router.refresh();
   }
@@ -153,6 +178,15 @@ export function CustomerForm({
           <Textarea id="notes" rows={3} {...register("notes")} />
         </div>
       </section>
+
+      <FormAttachments
+        value={attachments}
+        onChange={setAttachments}
+        defaultType="identity"
+        disabled={isSubmitting}
+        description="Attach the customer's CNIC, agreement or other files (JPG, PNG, PDF · max 10 MB)."
+      />
+
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

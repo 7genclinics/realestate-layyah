@@ -84,9 +84,11 @@ function MoneyTooltip({
 export function DashboardCharts({
   cashflow,
   inventory,
+  cashflowLabel = "Last 14 days",
 }: {
   cashflow: CashflowPoint[];
   inventory: InventorySlice[];
+  cashflowLabel?: string;
 }) {
   const hasCashflow = cashflow.some(
     (row) => row.collections > 0 || row.expenses > 0,
@@ -100,7 +102,7 @@ export function DashboardCharts({
       <section className="overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white xl:col-span-3">
         <div className="border-b border-sky-100/80 px-5 py-4">
           <h2 className="text-base font-semibold">Collections vs expenses</h2>
-          <p className="text-sm text-muted-foreground">Last 14 days</p>
+          <p className="text-sm text-muted-foreground">{cashflowLabel}</p>
         </div>
         <div className="relative px-2 py-4">
           <ChartContainer

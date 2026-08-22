@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { format } from "date-fns";
+
 import { requireProfile } from "@/lib/auth";
 import { getMyNotifications } from "@/lib/notifications";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -12,7 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+
 
 export default async function AppLayout({
   children,
@@ -29,10 +29,6 @@ export default async function AppLayout({
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-md px-4 sm:px-6 print:hidden">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="size-8 rounded-[8px]" />
-            <Separator orientation="vertical" className="h-4" />
-            <p className="hidden text-xs text-muted-foreground sm:block font-medium">
-              Mohkam Society OS · PKR · {format(new Date(), "EEEE, d MMM yyyy")}
-            </p>
           </div>
 
           <div className="flex items-center gap-2">

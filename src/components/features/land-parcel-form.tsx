@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +16,11 @@ import {
   landParcelSchema,
   type LandParcelFormValues,
 } from "@/lib/validations/land";
+import {
+  FormAttachments,
+  uploadPendingAttachments,
+  type PendingAttachment,
+} from "@/components/features/form-attachments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +42,7 @@ export function LandParcelForm({
 }) {
   const router = useRouter();
   const isEdit = Boolean(parcelId);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
     handleSubmit,
@@ -80,7 +87,25 @@ export function LandParcelForm({
       return;
     }
 
-    toast.success(isEdit ? "Land record updated" : "Land record created");
+    if (attachments.length) {
+      const upload = await uploadPendingAttachments(
+        "land_parcel",
+        result.id,
+        attachments,
+      );
+      if (upload.failed) {
+        toast.warning(
+          `Land record saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+        );
+      } else {
+        toast.success(
+          `${isEdit ? "Land record updated" : "Land record created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+        );
+      }
+    } else {
+      toast.success(isEdit ? "Land record updated" : "Land record created");
+    }
+
     router.push(`/land-bank/${result.id}`);
     router.refresh();
   }
@@ -203,6 +228,15 @@ export function LandParcelForm({
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
+
+      <FormAttachments
+        value={attachments}
+        onChange={setAttachments}
+        defaultType="title"
+        disabled={isSubmitting}
+        description="Attach the title deed, mutation (fard/intiqal) or other files (JPG, PNG, PDF · max 10 MB)."
+      />
+
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

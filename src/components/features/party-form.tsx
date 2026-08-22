@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +9,11 @@ import { toast } from "sonner";
 import { createParty, updateParty } from "@/lib/actions/parties";
 import { PARTY_STATUS_LABELS, PARTY_TYPE_LABELS } from "@/lib/constants";
 import { partySchema, type PartyFormValues } from "@/lib/validations/party";
+import {
+  FormAttachments,
+  uploadPendingAttachments,
+  type PendingAttachment,
+} from "@/components/features/form-attachments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +33,7 @@ export function PartyForm({
 }) {
   const router = useRouter();
   const isEdit = Boolean(partyId);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
     handleSubmit,
@@ -61,7 +68,25 @@ export function PartyForm({
       return;
     }
 
-    toast.success(isEdit ? "Party updated" : "Party created");
+    if (attachments.length) {
+      const upload = await uploadPendingAttachments(
+        "party",
+        result.id,
+        attachments,
+      );
+      if (upload.failed) {
+        toast.warning(
+          `Party saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+        );
+      } else {
+        toast.success(
+          `${isEdit ? "Party updated" : "Party created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+        );
+      }
+    } else {
+      toast.success(isEdit ? "Party updated" : "Party created");
+    }
+
     router.push(`/parties/${result.id}`);
     router.refresh();
   }
@@ -144,6 +169,15 @@ export function PartyForm({
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
+
+      <FormAttachments
+        value={attachments}
+        onChange={setAttachments}
+        defaultType="identity"
+        disabled={isSubmitting}
+        description="Attach the party's CNIC/NTN, agreement or other files (JPG, PNG, PDF · max 10 MB)."
+      />
+
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

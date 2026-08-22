@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { CsvDownloadButton } from "@/components/features/csv-download-button";
 import { PrintButton } from "@/components/features/print-button";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,20 @@ export function ReportHeader({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between print:block">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start gap-3">
+          <Button
+            render={<Link href="/reports" />}
+            variant="outline"
+            size="icon"
+            className="mt-0.5 shrink-0 print:hidden"
+            aria-label="Back to reports"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <CsvDownloadButton filename={filename} headers={headers} rows={rows} />
@@ -38,6 +50,7 @@ export function ReportHeader({
     </div>
   );
 }
+
 
 export function ReportTotals({
   items,

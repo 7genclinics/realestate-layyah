@@ -19,10 +19,19 @@ import {
 import { cn } from "@/lib/utils";
 
 function entityHref(entityType: string | null, entityId: string | null): string | null {
+  // Entities that have a list route but no per-id detail page fall back to the list.
+  const listRoute: Record<string, string> = {
+    installment: "/installments",
+    cash_transaction: "/cash-book",
+    cash: "/cash-book",
+    society: "/societies",
+    contract: "/development",
+  };
+
   if (!entityId) {
-    if (entityType === "installment") return "/installments";
-    return null;
+    return entityType ? (listRoute[entityType] ?? null) : null;
   }
+
   switch (entityType) {
     case "customer":
       return `/customers/${entityId}`;
@@ -37,6 +46,21 @@ function entityHref(entityType: string | null, entityId: string | null): string 
       return `/bookings/${entityId}`;
     case "party":
       return `/parties/${entityId}`;
+    case "receipt":
+      return `/receipts/${entityId}`;
+    case "land_parcel":
+      return `/land-bank/${entityId}`;
+    case "land_exchange":
+      return `/land-bank/exchanges/${entityId}`;
+    case "cash_transaction":
+    case "cash":
+      return `/cash-book/${entityId}`;
+    case "staff":
+      return `/staff/${entityId}`;
+    case "agent":
+      return `/agents/${entityId}`;
+    case "society":
+      return `/societies`;
     case "contract":
       return `/development`;
     case "installment":

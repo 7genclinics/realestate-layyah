@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { eachDayOfInterval, format, startOfMonth, subDays } from "date-fns";
+import {
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -17,7 +23,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/server";
 import { deriveInstallmentStatus } from "@/lib/permissions";
-import { summarizeDay, sumBalancesByAccountType } from "@/lib/cash-book";
+import {
+  summarizeDay,
+  summarizeRange,
+  sumBalancesByAccountType,
+} from "@/lib/cash-book";
 import { PROPERTY_STATUS_LABELS } from "@/lib/constants";
 import type { PropertyStatus } from "@/lib/database.types";
 import { formatPkr } from "@/lib/format";
@@ -29,6 +39,7 @@ import {
   type CashflowPoint,
   type InventorySlice,
 } from "@/components/features/dashboard-charts";
+import { DashboardMonthFilter } from "@/components/features/dashboard-month-filter";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -61,11 +72,63 @@ const INVENTORY_TILE: Record<PropertyStatus, string> = {
   blocked: "border-rose-500/20 bg-gradient-to-br from-rose-500/5 to-card hover:border-rose-500/40",
 };
 
-export default async function DashboardPage() {
+/**
+ * Month-over-month delta badge for a flow metric. `lowerIsBetter` flips the
+ * colour (used for expenses, where an increase is bad). Returns undefined when
+ * there is nothing meaningful to compare.
+ */
+function monthTrend(
+  current: number,
+  previous: number,
+  opts?: { lowerIsBetter?: boolean },
+): StatCardProps["trend"] {
+  if (previous <= 0) {
+    if (current <= 0) return undefined;
+    return { value: "▲ new", isPositive: !opts?.lowerIsBetter };
+  }
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return { value: "— flat", isPositive: true };
+  const up = pct > 0;
+  return {
+    value: `${up ? "▲" : "▼"} ${Math.abs(pct)}% MoM`,
+    isPositive: opts?.lowerIsBetter ? !up : up,
+  };
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const supabase = await createClient();
-  const today = format(new Date(), "yyyy-MM-dd");
-  const rangeStart = format(subDays(new Date(), 13), "yyyy-MM-dd");
-  const monthStart = startOfMonth(new Date()).toISOString();
+  const now = new Date();
+  const today = format(now, "yyyy-MM-dd");
+
+  // Month picker: last 12 months, newest first. The selected value is bounded to
+  // these options, so a hand-typed / stale `?month=` falls back to this month.
+  const monthOptions = Array.from({ length: 12 }, (_, index) => {
+    const date = subMonths(startOfMonth(now), index);
+    return { value: format(date, "yyyy-MM"), label: format(date, "MMMM yyyy") };
+  });
+  const currentKey = monthOptions[0].value;
+  const requested = (await searchParams).month;
+  const selectedKey = monthOptions.some((option) => option.value === requested)
+    ? (requested as string)
+    : currentKey;
+  const isCurrentMonth = selectedKey === currentKey;
+
+  const selectedStart = startOfMonth(new Date(`${selectedKey}-01T00:00:00`));
+  const selectedEnd = endOfMonth(selectedStart);
+  const prevStart = startOfMonth(subMonths(selectedStart, 1));
+  const prevKey = format(prevStart, "yyyy-MM");
+  const selectedLabel = format(selectedStart, "MMMM yyyy");
+
+  const monthStart = format(selectedStart, "yyyy-MM-dd");
+  const monthEnd = format(selectedEnd, "yyyy-MM-dd");
+  const prevMonthStart = format(prevStart, "yyyy-MM-dd");
+  const prevMonthEnd = format(endOfMonth(prevStart), "yyyy-MM-dd");
+  // The daily chart runs to today for the live month, else the full month.
+  const chartEnd = isCurrentMonth ? now : selectedEnd;
 
   const [
     { count: societyCount },
@@ -82,11 +145,12 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase.from("societies").select("id", { count: "exact", head: true }),
     supabase.from("properties").select("status"),
+    // Selected + previous month, so month totals and the MoM trend come from one query.
     supabase
       .from("receipts")
       .select("amount, payment_date")
-      .gte("payment_date", rangeStart)
-      .lte("payment_date", today),
+      .gte("payment_date", prevMonthStart)
+      .lte("payment_date", monthEnd),
     supabase
       .from("installments")
       .select("due_date, scheduled_amount, received_amount"),
@@ -110,10 +174,6 @@ export default async function DashboardPage() {
     getGracePeriodDays(),
   ]);
 
-  const todayCollections = (receiptRows ?? [])
-    .filter((row) => row.payment_date === today)
-    .reduce((sum, row) => sum + Number(row.amount), 0);
-
   const mappedCash = (cashTransactions ?? []).map((row) => ({
     cash_account_id: row.cash_account_id,
     transaction_date: row.transaction_date,
@@ -123,11 +183,36 @@ export default async function DashboardPage() {
     status: row.status,
   }));
 
-  const todayCashSummary = summarizeDay(today, mappedCash);
+  // Live balances use every posted transaction — never month-scoped.
   const { cashTotal, bankTotal } = sumBalancesByAccountType(
     cashAccounts ?? [],
     mappedCash,
   );
+
+  // --- Month-scoped flow metrics (selected vs previous month) ---
+  const receiptsIn = (key: string) =>
+    (receiptRows ?? []).filter((row) => row.payment_date?.slice(0, 7) === key);
+  const monthReceipts = receiptsIn(selectedKey);
+  const monthCollections = monthReceipts.reduce((sum, row) => sum + Number(row.amount), 0);
+  const prevCollections = receiptsIn(prevKey).reduce((sum, row) => sum + Number(row.amount), 0);
+  const todayCollections = monthReceipts
+    .filter((row) => row.payment_date === today)
+    .reduce((sum, row) => sum + Number(row.amount), 0);
+
+  const monthExpenses = summarizeRange(monthStart, monthEnd, mappedCash).expense;
+  const prevExpenses = summarizeRange(prevMonthStart, prevMonthEnd, mappedCash).expense;
+
+  const monthSales = (salesRows ?? []).filter(
+    (row) => row.created_at?.slice(0, 7) === selectedKey && row.status !== "cancelled",
+  );
+  const monthSaleValue = monthSales.reduce((sum, row) => sum + Number(row.sale_amount), 0);
+  const prevSales = (salesRows ?? []).filter(
+    (row) => row.created_at?.slice(0, 7) === prevKey && row.status !== "cancelled",
+  );
+  const prevSaleValue = prevSales.reduce((sum, row) => sum + Number(row.sale_amount), 0);
+
+  const monthNet = monthCollections - monthExpenses;
+  const prevNet = prevCollections - prevExpenses;
 
   let overdueCount = 0;
   let overdueAmount = 0;
@@ -166,8 +251,8 @@ export default async function DashboardPage() {
   }
 
   const cashflow: CashflowPoint[] = eachDayOfInterval({
-    start: subDays(new Date(), 13),
-    end: new Date(),
+    start: selectedStart,
+    end: chartEnd,
   }).map((day) => {
     const date = format(day, "yyyy-MM-dd");
     const collections = (receiptRows ?? [])
@@ -190,13 +275,6 @@ export default async function DashboardPage() {
     fill: INVENTORY_COLORS[status],
   }));
 
-  const monthSales = (salesRows ?? []).filter(
-    (row) => row.created_at >= monthStart && row.status !== "cancelled",
-  );
-  const monthSaleValue = monthSales.reduce(
-    (sum, row) => sum + Number(row.sale_amount),
-    0,
-  );
   const receivable = (salesRows ?? [])
     .filter((row) => row.status !== "cancelled" && row.status !== "closed")
     .reduce((sum, row) => sum + Number(row.remaining_amount), 0);
@@ -218,29 +296,50 @@ export default async function DashboardPage() {
     .filter((row) => row.payment_status === "pending")
     .reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
 
-  // Net cash movement across the trailing 14-day window (collections − expenses).
-  const netCashFlow = cashflow.reduce(
-    (sum, point) => sum + point.collections - point.expenses,
-    0,
-  );
-
-  const kpis: StatCardProps[] = [
+  // Flow metrics for the selected month (filterable; carry a MoM trend badge).
+  const monthlyTiles: StatCardProps[] = [
     {
-      title: "Today Collections",
-      value: formatPkr(todayCollections),
-      hint: "Receipts posted today",
+      title: "Collections",
+      value: formatPkr(monthCollections),
+      hint: isCurrentMonth
+        ? `${monthReceipts.length} receipts · ${formatPkr(todayCollections)} today`
+        : `${monthReceipts.length} receipts`,
       href: "/receipts",
       icon: TrendingUp,
       variant: "success",
+      trend: monthTrend(monthCollections, prevCollections),
     },
     {
-      title: "Today Expenses",
-      value: formatPkr(todayCashSummary.expense),
+      title: "Expenses",
+      value: formatPkr(monthExpenses),
       hint: "Posted cash-book expenses",
       href: "/cash-book",
       icon: TrendingDown,
       variant: "danger",
+      trend: monthTrend(monthExpenses, prevExpenses, { lowerIsBetter: true }),
     },
+    {
+      title: "New Sales",
+      value: formatPkr(monthSaleValue),
+      hint: `${monthSales.length} sale${monthSales.length === 1 ? "" : "s"} booked`,
+      href: "/reports/sales",
+      icon: Handshake,
+      variant: "primary",
+      trend: monthTrend(monthSaleValue, prevSaleValue),
+    },
+    {
+      title: "Net Cash Flow",
+      value: formatPkr(monthNet),
+      hint: "Collections − expenses",
+      href: "/reports/cash-book",
+      icon: ArrowLeftRight,
+      variant: monthNet >= 0 ? "success" : "danger",
+      trend: monthTrend(monthNet, prevNet),
+    },
+  ];
+
+  // Live position — point-in-time snapshots that ignore the month filter.
+  const liveTiles: StatCardProps[] = [
     {
       title: "Cash in Hand",
       value: formatPkr(cashTotal),
@@ -300,21 +399,13 @@ export default async function DashboardPage() {
       icon: Coins,
       variant: "danger",
     },
-    {
-      title: "Net Cash Flow",
-      value: formatPkr(netCashFlow),
-      hint: "Collections − expenses (14d)",
-      href: "/reports/cash-book",
-      icon: ArrowLeftRight,
-      variant: netCashFlow >= 0 ? "success" : "danger",
-    },
   ];
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
-        description={`${format(new Date(), "EEEE, d MMMM yyyy")} · ${societyCount ?? 0} societ${(societyCount ?? 0) === 1 ? "y" : "ies"} · ${unitCount} units · Receivable ${formatPkr(receivable)} · This month ${monthSales.length} sales (${formatPkr(monthSaleValue)})`}
+        description={`${format(now, "EEEE, d MMMM yyyy")} · ${societyCount ?? 0} societ${(societyCount ?? 0) === 1 ? "y" : "ies"} · ${unitCount} units · Receivable ${formatPkr(receivable)}`}
         actions={
           <>
             <Button variant="outline" size="sm" render={<Link href="/customers/new" />}>
@@ -333,15 +424,39 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {kpis.map((kpi) => (
-          <StatCard key={kpi.title} {...kpi} />
-        ))}
+      <div>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {selectedLabel} performance
+            {isCurrentMonth ? (
+              <span className="ml-2 font-normal normal-case text-muted-foreground/70">
+                month to date
+              </span>
+            ) : null}
+          </h2>
+          <DashboardMonthFilter options={monthOptions} selected={selectedKey} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {monthlyTiles.map((tile) => (
+            <StatCard key={tile.title} {...tile} />
+          ))}
+        </div>
       </div>
 
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Payables &amp; cash position
+          Live position
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {liveTiles.map((tile) => (
+            <StatCard key={tile.title} {...tile} />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Payables
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {financials.map((tile) => (
@@ -350,7 +465,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <DashboardCharts cashflow={cashflow} inventory={inventory} />
+      <DashboardCharts
+        cashflow={cashflow}
+        inventory={inventory}
+        cashflowLabel={isCurrentMonth ? `${selectedLabel} · to date` : selectedLabel}
+      />
 
       <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-slate-50 via-white to-sky-50/40">
         <div className="flex items-center justify-between gap-3 border-b border-sky-100/80 px-5 py-4">

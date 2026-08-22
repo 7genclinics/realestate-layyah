@@ -7,6 +7,7 @@ import { postReceiptToCashBook } from "@/lib/cash-posting";
 import { roundMoney } from "@/lib/installments";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
+import { createNotification } from "@/lib/notifications";
 import { receivePaymentSchema } from "@/lib/validations/receipt";
 
 type InstallmentRow = {
@@ -202,6 +203,19 @@ export async function receivePayment(input: unknown) {
   revalidatePath("/dashboard");
   revalidatePath("/reports");
   revalidatePath("/cash-book");
+
+  // Surface the collection to management/ownership (and flag a full settlement).
+  const fullyPaid = newSaleRemaining <= 0;
+  for (const role of ["manager", "super_admin"] as const) {
+    await createNotification({
+      type: "payment_received",
+      title: fullyPaid ? "Sale fully paid" : "Payment received",
+      body: `PKR ${amount.toLocaleString()} received from ${saleCustomer?.full_name ?? "customer"} · Plot ${sale.plot_no ?? "—"}${fullyPaid ? " — balance cleared." : "."}`,
+      roleTarget: role,
+      entityType: "receipt",
+      entityId: receipt.id,
+    });
+  }
 
   return { error: null, id: receipt.id };
 }

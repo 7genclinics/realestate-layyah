@@ -99,3 +99,35 @@ export function summarizeDay(
 
   return { income, expense, net: roundMoney(income - expense) };
 }
+
+/**
+ * Income / expense / net across an inclusive [from, to] date window.
+ * Dates are compared as ISO `yyyy-MM-dd` strings (lexicographically ordered).
+ */
+export function summarizeRange(
+  from: string,
+  to: string,
+  transactions: (TransactionLike & { transaction_date: string })[],
+) {
+  const rows = transactions.filter(
+    (row) =>
+      row.transaction_date >= from &&
+      row.transaction_date <= to &&
+      row.status !== "reversed",
+  );
+
+  let income = 0;
+  let expense = 0;
+
+  for (const row of rows) {
+    const signed = transactionSignedAmount(row);
+
+    if (signed > 0) {
+      income = roundMoney(income + signed);
+    } else if (signed < 0) {
+      expense = roundMoney(expense + Math.abs(signed));
+    }
+  }
+
+  return { income, expense, net: roundMoney(income - expense) };
+}

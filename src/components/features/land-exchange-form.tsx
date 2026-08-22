@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,11 @@ import {
   landExchangeSchema,
   type LandExchangeFormValues,
 } from "@/lib/validations/land";
+import {
+  FormAttachments,
+  uploadPendingAttachments,
+  type PendingAttachment,
+} from "@/components/features/form-attachments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +38,7 @@ export function LandExchangeForm({
   parcels: { id: string; code: string; title: string }[];
 }) {
   const router = useRouter();
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
     handleSubmit,
@@ -73,7 +80,25 @@ export function LandExchangeForm({
       return;
     }
 
-    toast.success("Exchange deal created");
+    if (attachments.length) {
+      const upload = await uploadPendingAttachments(
+        "land_exchange",
+        result.id,
+        attachments,
+      );
+      if (upload.failed) {
+        toast.warning(
+          `Exchange saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+        );
+      } else {
+        toast.success(
+          `Exchange deal created · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+        );
+      }
+    } else {
+      toast.success("Exchange deal created");
+    }
+
     router.push(`/land-bank/exchanges/${result.id}`);
     router.refresh();
   }
@@ -206,6 +231,15 @@ export function LandExchangeForm({
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
+
+      <FormAttachments
+        value={attachments}
+        onChange={setAttachments}
+        defaultType="title"
+        disabled={isSubmitting}
+        description="Attach the exchange agreement, incoming land title or other files (JPG, PNG, PDF · max 10 MB)."
+      />
+
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

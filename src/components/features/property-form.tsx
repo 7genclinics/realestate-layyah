@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,11 @@ import {
   propertySchema,
   type PropertyFormValues,
 } from "@/lib/validations/property";
+import {
+  FormAttachments,
+  uploadPendingAttachments,
+  type PendingAttachment,
+} from "@/components/features/form-attachments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +47,7 @@ export function PropertyForm({
   const router = useRouter();
   const isEdit = Boolean(propertyId);
   const showCosts = canViewPropertyCosts(role);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
     handleSubmit,
@@ -75,7 +82,25 @@ export function PropertyForm({
       return;
     }
 
-    toast.success(isEdit ? "Property updated" : "Property added to inventory");
+    if (attachments.length) {
+      const upload = await uploadPendingAttachments(
+        "property",
+        result.id,
+        attachments,
+      );
+      if (upload.failed) {
+        toast.warning(
+          `Property saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+        );
+      } else {
+        toast.success(
+          `${isEdit ? "Property updated" : "Property added to inventory"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+        );
+      }
+    } else {
+      toast.success(isEdit ? "Property updated" : "Property added to inventory");
+    }
+
     router.push(`/inventory/${result.id}`);
     router.refresh();
   }
@@ -246,6 +271,14 @@ export function PropertyForm({
           <Textarea id="agent_notes" rows={3} {...register("agent_notes")} />
         </div>
       </section>
+
+      <FormAttachments
+        value={attachments}
+        onChange={setAttachments}
+        defaultType="title"
+        disabled={isSubmitting}
+        description="Attach the title deed, site plan or other files (JPG, PNG, PDF · max 10 MB)."
+      />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>

@@ -21,7 +21,7 @@ export function AuthBackdrop({ children }: { children: ReactNode }) {
       </div>
       {children}
       <p className="pointer-events-none absolute bottom-5 left-5 hidden rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium tracking-wide text-white/90 backdrop-blur-md sm:block">
-        Islamabad, Pakistan
+        Layyah, Pakistan
       </p>
     </main>
   );

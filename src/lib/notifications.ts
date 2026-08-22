@@ -64,7 +64,16 @@ export async function getMyNotifications(limit = 30): Promise<{
     if (error) throw error;
 
     const items = (data ?? []) as Notification[];
-    const unread = items.filter((n) => !n.is_read).length;
+
+    // Accurate unread total — a HEAD count so the badge is not capped at the
+    // fetched page (the list above is limited to `limit` rows for display).
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .or(orFilter)
+      .eq("is_read", false);
+
+    const unread = count ?? items.filter((n) => !n.is_read).length;
     return { items, unread };
   } catch (err) {
     console.error("getMyNotifications failed:", err);

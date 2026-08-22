@@ -10,6 +10,7 @@ import {
   canManageInventory,
   canManageLandBank,
 } from "@/lib/permissions";
+import { createNotification } from "@/lib/notifications";
 import { createClient } from "@/lib/server";
 import {
   landExchangeSchema,
@@ -176,7 +177,7 @@ export async function approveLandParcel(id: string) {
   const supabase = await createClient();
   const { data: parcel, error: loadError } = await supabase
     .from("land_parcels")
-    .select("id, status")
+    .select("id, status, title")
     .eq("id", id)
     .maybeSingle();
 
@@ -200,6 +201,15 @@ export async function approveLandParcel(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await createNotification({
+    type: "approval_result",
+    title: "Land acquisition approved",
+    body: `${parcel.title ?? "Land record"} is approved and ready for payment.`,
+    roleTarget: "accounts",
+    entityType: "land_parcel",
+    entityId: id,
+  });
 
   revalidateLand(id);
   return { error: null };
@@ -474,6 +484,15 @@ export async function approveLandExchange(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await createNotification({
+    type: "approval_result",
+    title: "Land exchange approved",
+    body: "A land exchange deal was approved and is ready for processing.",
+    roleTarget: "accounts",
+    entityType: "land_exchange",
+    entityId: id,
+  });
 
   revalidateLand(undefined, id);
   return { error: null };
