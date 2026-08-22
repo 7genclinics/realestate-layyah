@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { DocumentActions } from "@/components/features/document-actions";
+import { DocumentPreview } from "@/components/features/document-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +82,12 @@ export default async function DocumentDetailPage({
           </Button>
         </div>
       </div>
+
+      <DocumentPreview
+        id={document.id}
+        mimeType={document.mime_type}
+        fileName={document.file_name}
+      />
 
       <Card>
         <CardHeader>

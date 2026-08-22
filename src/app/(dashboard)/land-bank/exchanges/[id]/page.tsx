@@ -72,7 +72,7 @@ export default async function LandExchangeDetailPage({
         : Promise.resolve({ data: null }),
       supabase
         .from("documents")
-        .select("id, code, title, document_type, status, document_date, version")
+        .select("id, code, title, document_type, status, document_date, version, mime_type")
         .eq("entity_type", "land_exchange")
         .eq("entity_id", id)
         .neq("status", "replaced")

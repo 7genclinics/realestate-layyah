@@ -83,7 +83,7 @@ export default async function LandParcelDetailPage({
       .order("payment_date", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, code, title, document_type, status, document_date, version")
+      .select("id, code, title, document_type, status, document_date, version, mime_type")
       .eq("entity_type", "land_parcel")
       .eq("entity_id", id)
       .neq("status", "replaced")

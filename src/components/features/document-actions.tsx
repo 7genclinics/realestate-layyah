@@ -59,26 +59,7 @@ export function DocumentActions({
         {busy === "download" ? <Loader2 className="animate-spin" /> : null}
         Open / download
       </Button>
-      {showReview ? (
-        <>
-          <Button
-            variant="outline"
-            onClick={() => void review("approved")}
-            disabled={busy !== null}
-          >
-            {busy === "approved" ? <Loader2 className="animate-spin" /> : null}
-            Approve
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => void review("rejected")}
-            disabled={busy !== null}
-          >
-            {busy === "rejected" ? <Loader2 className="animate-spin" /> : null}
-            Reject
-          </Button>
-        </>
-      ) : null}
     </div>
   );
 }
+

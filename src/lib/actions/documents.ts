@@ -10,9 +10,9 @@ import {
   canApproveDocuments,
   canManageDocuments,
 } from "@/lib/permissions";
-import { createNotification } from "@/lib/notifications";
 import { createClient } from "@/lib/server";
 import { documentMetaSchema } from "@/lib/validations/document";
+
 
 function revalidateDocuments(entityType?: string, entityId?: string) {
   revalidatePath("/documents");
@@ -137,8 +137,10 @@ export async function uploadDocument(formData: FormData) {
       file_name: fileName,
       mime_type: file.type,
       file_size: file.size,
-      status: "submitted",
+      status: "approved",
       uploaded_by: profile.id,
+      approved_by: profile.id,
+      approved_at: new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -155,22 +157,11 @@ export async function uploadDocument(formData: FormData) {
       .eq("id", values.replaces_id);
   }
 
-  // Ping the approver roles so the review lands in their notification bell.
-  for (const role of ["super_admin", "manager", "accounts"] as const) {
-    await createNotification({
-      type: "approval_pending",
-      title: "Document awaiting review",
-      body: `${values.title.trim()} was submitted for approval.`,
-      roleTarget: role,
-      entityType: "document",
-      entityId: data.id,
-    });
-  }
-
   revalidateDocuments(values.entity_type, values.entity_id);
   revalidatePath(`/documents/${data.id}`);
   return { error: null, id: data.id };
 }
+
 
 export async function reviewDocument(
   id: string,
