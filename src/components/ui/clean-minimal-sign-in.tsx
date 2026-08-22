@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Lock, LogIn, Mail } from "lucide-react";
@@ -14,9 +13,10 @@ type SignIn2Props = {
 };
 
 const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
-  const router = useRouter();
   const [formError, setFormError] = useState(errorMessage);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -26,18 +26,29 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
     defaultValues: { email: "", password: "" },
   });
 
+  const isPending = loading || isSubmitting;
+
   async function onSubmit(values: LoginFormValues) {
     setFormError(undefined);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword(values);
+    setLoading(true);
 
-    if (error) {
-      setFormError(error.message);
-      return;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword(values);
+
+      if (error) {
+        setFormError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = nextPath;
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to sign in. Please try again.";
+      setFormError(message);
+      setLoading(false);
     }
-
-    router.replace(nextPath);
-    router.refresh();
   }
 
   const displayError =
@@ -65,7 +76,8 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
               type="email"
               autoComplete="email"
               placeholder="Email"
-              className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-3 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none"
+              disabled={isPending}
+              className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-3 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:opacity-60"
               {...register("email")}
             />
           </div>
@@ -77,18 +89,20 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               placeholder="Password"
-              className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-10 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none"
+              disabled={isPending}
+              className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-10 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:opacity-60"
               {...register("password")}
             />
             <button
               type="button"
               tabIndex={-1}
+              disabled={isPending}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => {
                 e.preventDefault();
                 setShowPassword((visible) => !visible);
               }}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700 focus:outline-none"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700 focus:outline-none disabled:opacity-50"
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
             >
@@ -116,13 +130,13 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className="mt-2 mb-4 w-full cursor-pointer rounded-lg bg-primary py-2.5 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isSubmitting ? (
+          {isPending ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Signing in
+              Signing in...
             </span>
           ) : (
             "Get Started"
