@@ -54,21 +54,9 @@ export default async function NewBookingPage({
       <div className="space-y-3">
         <h1 className="text-2xl font-semibold">New booking</h1>
         <p className="text-sm text-muted-foreground">
-          Create a customer first, then assign an available plot.
+          Create a customer first, then record a society or external sale.
         </p>
         <Button render={<Link href="/customers/new" />}>Add customer</Button>
-      </div>
-    );
-  }
-
-  if (!properties?.length) {
-    return (
-      <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New booking</h1>
-        <p className="text-sm text-muted-foreground">
-          No available or held plots to book. Add inventory first.
-        </p>
-        <Button render={<Link href="/inventory/new" />}>Add property</Button>
       </div>
     );
   }
@@ -78,8 +66,8 @@ export default async function NewBookingPage({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New booking</h1>
         <p className="text-sm text-muted-foreground">
-          Locks the plot, stores a price snapshot and generates the EMI
-          schedule.
+          Book a society unit, or record an external (off-society) sale. Either
+          way it stores a price snapshot and generates the EMI schedule.
         </p>
       </div>
       <Card>
@@ -94,7 +82,7 @@ export default async function NewBookingPage({
             customerId={params.customer}
             defaultPropertyId={params.property}
             customers={customers}
-            properties={properties}
+            properties={properties ?? []}
           />
         </CardContent>
       </Card>

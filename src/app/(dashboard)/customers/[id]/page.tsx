@@ -299,9 +299,22 @@ export default async function CustomerDetailPage({
                       {sale.code}
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{society?.name ?? "—"}</span>
-                      {block?.name && (
-                        <span className="text-xs text-muted-foreground ml-1">· Block {block.name}</span>
+                      {sale.is_external ? (
+                        <>
+                          <span className="font-medium">External</span>
+                          {sale.external_location && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              · {sale.external_location}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium">{society?.name ?? "—"}</span>
+                          {block?.name && (
+                            <span className="text-xs text-muted-foreground ml-1">· Block {block.name}</span>
+                          )}
+                        </>
                       )}
                     </TableCell>
                     <TableCell className="font-semibold">

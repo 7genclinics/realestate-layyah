@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Coins,
   DollarSign,
+  Globe2,
   Layers,
   Loader2,
   Percent,
@@ -66,12 +67,22 @@ export function BookingForm({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
+      deal_type: "society",
       customer_id: customerId ?? customers[0]?.id ?? "",
       property_id: defaultPropertyId ?? properties[0]?.id ?? "",
+      ext_property_type: "residential_plot",
+      ext_plot_no: "",
+      ext_area: undefined,
+      ext_area_unit: "marla",
+      ext_location: "",
+      ext_seller_name: "",
+      ext_registry_no: "",
+      ext_khata_no: "",
       lock_type: "booked",
       rate_per_unit: undefined,
       token_amount: 0,
@@ -88,6 +99,7 @@ export function BookingForm({
     },
   });
 
+  const dealType = watch("deal_type");
   const propertyId = watch("property_id");
   const rate = Number(watch("rate_per_unit") || 0);
   const token = Number(watch("token_amount") || 0);
@@ -99,7 +111,10 @@ export function BookingForm({
   const possessionAmount = Number(watch("possession_amount") || 0);
 
   const property = properties.find((item) => item.id === propertyId);
-  const saleAmount = property ? roundMoney(rate * Number(property.area)) : 0;
+  const extArea = Number(watch("ext_area") || 0);
+  const areaForCalc =
+    dealType === "external" ? extArea : property ? Number(property.area) : 0;
+  const saleAmount = roundMoney(rate * areaForCalc);
   const remaining = roundMoney(Math.max(0, saleAmount - token));
 
   const parsedCustomMonths = useMemo(() => {
@@ -157,6 +172,37 @@ export function BookingForm({
           <h2 className="font-semibold text-base">Booking &amp; Unit Allocation</h2>
         </div>
 
+        <div className="space-y-2">
+          <Label>Deal Type</Label>
+          <div className="inline-flex rounded-[8px] border p-1 bg-muted/30">
+            {(
+              [
+                { value: "society", label: "Society inventory unit", Icon: Building2 },
+                { value: "external", label: "External / open-market", Icon: Globe2 },
+              ] as const
+            ).map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setValue("deal_type", value)}
+                className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dealType === value
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {dealType === "external"
+              ? "Selling a plot, shop or unit that is not part of your society inventory (resale / open-market). No inventory unit is consumed."
+              : "Booking an available unit from your society inventory."}
+          </p>
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="customer_id">Select Customer Buyer *</Label>
@@ -173,39 +219,158 @@ export function BookingForm({
             </select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="property_id">Select Property Unit *</Label>
-            <select
-              id="property_id"
-              className={selectClassName}
-              {...register("property_id")}
-            >
-              {properties.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.code} · Plot #{item.plot_no} ({item.status})
-                </option>
-              ))}
-            </select>
-            {errors.property_id ? (
-              <p className="text-xs text-destructive">{errors.property_id.message}</p>
-            ) : null}
-          </div>
+          {dealType === "society" ? (
+            <>
+              {properties.length ? (
+                <div className="space-y-2">
+                  <Label htmlFor="property_id">Select Property Unit *</Label>
+                  <select
+                    id="property_id"
+                    className={selectClassName}
+                    {...register("property_id")}
+                  >
+                    {properties.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} · Plot #{item.plot_no} ({item.status})
+                      </option>
+                    ))}
+                  </select>
+                  {errors.property_id ? (
+                    <p className="text-xs text-destructive">{errors.property_id.message}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Property Unit</Label>
+                  <p className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                    No available inventory units. Add a property, or switch to an{" "}
+                    <span className="font-medium text-foreground">External / open-market</span>{" "}
+                    deal above.
+                  </p>
+                </div>
+              )}
 
-          {property ? (
-            <div className="rounded-md bg-muted/40 p-3 sm:col-span-2 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <span className="font-medium text-foreground">
-                {PROPERTY_TYPE_LABELS[property.property_type]} · Plot #{property.plot_no}
-              </span>
-              <span className="text-muted-foreground">
-                Size: {formatNumber(property.area)} {AREA_UNIT_LABELS[property.area_unit]}
-              </span>
-              {property.asking_price ? (
-                <span className="font-semibold text-primary">
-                  Catalog Asking: {formatPkr(property.asking_price)}
-                </span>
+              {property ? (
+                <div className="rounded-md bg-muted/40 p-3 sm:col-span-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-foreground">
+                    {PROPERTY_TYPE_LABELS[property.property_type]} · Plot #{property.plot_no}
+                  </span>
+                  <span className="text-muted-foreground">
+                    Size: {formatNumber(property.area)} {AREA_UNIT_LABELS[property.area_unit]}
+                  </span>
+                  {property.asking_price ? (
+                    <span className="font-semibold text-primary">
+                      Catalog Asking: {formatPkr(property.asking_price)}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="ext_property_type">Unit Type *</Label>
+                <select
+                  id="ext_property_type"
+                  className={selectClassName}
+                  {...register("ext_property_type")}
+                >
+                  {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_plot_no">Plot / Unit No *</Label>
+                <Input
+                  id="ext_plot_no"
+                  placeholder="e.g. Shop 12, Plot 45-C, Khasra 210"
+                  className="rounded-[8px]"
+                  {...register("ext_plot_no")}
+                />
+                {errors.ext_plot_no ? (
+                  <p className="text-xs text-destructive">
+                    {String(errors.ext_plot_no.message)}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_area">Area / Size *</Label>
+                <Input
+                  id="ext_area"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 5"
+                  className="rounded-[8px]"
+                  {...register("ext_area")}
+                />
+                {errors.ext_area ? (
+                  <p className="text-xs text-destructive">
+                    {String(errors.ext_area.message)}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_area_unit">Area Unit *</Label>
+                <select
+                  id="ext_area_unit"
+                  className={selectClassName}
+                  {...register("ext_area_unit")}
+                >
+                  {Object.entries(AREA_UNIT_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="ext_location">Location / Address</Label>
+                <Input
+                  id="ext_location"
+                  placeholder="Mouza / block / area, city"
+                  className="rounded-[8px]"
+                  {...register("ext_location")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_seller_name">Seller / Current Owner</Label>
+                <Input
+                  id="ext_seller_name"
+                  placeholder="Name of the person you are buying from"
+                  className="rounded-[8px]"
+                  {...register("ext_seller_name")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_registry_no">Registry No</Label>
+                <Input
+                  id="ext_registry_no"
+                  placeholder="Registry / mutation reference"
+                  className="rounded-[8px]"
+                  {...register("ext_registry_no")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_khata_no">Khata / Khasra No</Label>
+                <Input
+                  id="ext_khata_no"
+                  placeholder="Khata / khasra reference"
+                  className="rounded-[8px]"
+                  {...register("ext_khata_no")}
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="lock_type">Unit Lock Type</Label>
@@ -454,7 +619,10 @@ export function BookingForm({
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || !properties.length}>
+        <Button
+          type="submit"
+          disabled={isSubmitting || (dealType === "society" && !properties.length)}
+        >
           {isSubmitting ? <Loader2 className="animate-spin size-4 mr-2" /> : <CheckCircle className="size-4 mr-2" />}
           Confirm Booking &amp; Save Schedule
         </Button>

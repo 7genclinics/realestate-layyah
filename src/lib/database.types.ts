@@ -2162,13 +2162,15 @@ export type Database = {
           created_by: string | null
           customer_id: string
           deleted_at: string | null
+          external_location: string | null
           id: string
+          is_external: boolean
           khata_no: string | null
           length_ft: number | null
           notes: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
           plot_no: string
-          property_id: string
+          property_id: string | null
           property_type: Database["public"]["Enums"]["property_type"]
           purchaser_name: string | null
           rate_per_unit: number
@@ -2176,7 +2178,7 @@ export type Database = {
           remaining_amount: number
           sale_amount: number
           seller_name: string | null
-          society_id: string
+          society_id: string | null
           status: Database["public"]["Enums"]["sale_status"]
           term_months: number
           token_amount: number
@@ -2193,13 +2195,15 @@ export type Database = {
           created_by?: string | null
           customer_id: string
           deleted_at?: string | null
+          external_location?: string | null
           id?: string
+          is_external?: boolean
           khata_no?: string | null
           length_ft?: number | null
           notes?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           plot_no: string
-          property_id: string
+          property_id?: string | null
           property_type: Database["public"]["Enums"]["property_type"]
           purchaser_name?: string | null
           rate_per_unit: number
@@ -2207,7 +2211,7 @@ export type Database = {
           remaining_amount: number
           sale_amount: number
           seller_name?: string | null
-          society_id: string
+          society_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"]
           term_months?: number
           token_amount?: number
