@@ -10,6 +10,7 @@ import {
 } from "@/lib/constants";
 import type { DocumentStatus, DocumentType } from "@/lib/database.types";
 import { formatDate } from "@/lib/format";
+import { DocumentPreviewDialog } from "@/components/features/document-preview-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +34,7 @@ export default async function DocumentsPage({
   let query = supabase
     .from("documents")
     .select(
-      "id, code, title, document_type, status, document_date, entity_type, entity_id, version, is_confidential",
+      "id, code, title, document_type, status, document_date, entity_type, entity_id, version, is_confidential, mime_type",
     )
     .order("document_date", { ascending: false })
     .order("created_at", { ascending: false })
@@ -117,6 +118,7 @@ export default async function DocumentsPage({
               <TableHead>Linked to</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -169,12 +171,21 @@ export default async function DocumentsPage({
                       {DOCUMENT_STATUS_LABELS[row.status]}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <DocumentPreviewDialog
+                      id={row.id}
+                      title={row.title}
+                      code={row.code}
+                      mimeType={row.mime_type}
+                      documentType={row.document_type}
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No documents uploaded yet.

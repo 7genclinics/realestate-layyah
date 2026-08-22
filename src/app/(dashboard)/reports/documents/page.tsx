@@ -8,6 +8,7 @@ import {
   DOCUMENT_TYPE_LABELS,
 } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
+import { DocumentPreviewDialog } from "@/components/features/document-preview-dialog";
 import { ReportHeader, ReportTotals } from "@/components/features/report-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export default async function DocumentsReportPage() {
   const { data: documents } = await supabase
     .from("documents")
     .select(
-      "id, code, title, document_type, status, entity_type, document_date, version",
+      "id, code, title, document_type, status, entity_type, document_date, version, mime_type",
     )
     .order("document_date", { ascending: false });
 
@@ -85,6 +86,7 @@ export default async function DocumentsReportPage() {
               <TableHead>Linked to</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -110,12 +112,21 @@ export default async function DocumentsReportPage() {
                       {DOCUMENT_STATUS_LABELS[row.status]}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <DocumentPreviewDialog
+                      id={row.id}
+                      title={row.title}
+                      code={row.code}
+                      mimeType={row.mime_type}
+                      documentType={row.document_type}
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No documents uploaded yet.
