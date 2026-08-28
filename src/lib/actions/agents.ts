@@ -130,6 +130,81 @@ export async function recordAgentCommission(formData: FormData): Promise<void> {
   revalidatePath("/approvals");
 }
 
+export async function updateAgentCommission(formData: FormData): Promise<{ error: string | null }> {
+  const { profile } = await requireProfile();
+  if (!canManageAgents(profile.role)) {
+    return { error: "You do not have permission to edit commissions." };
+  }
+
+  const supabase = await createClient();
+
+  const id = formData.get("id") as string;
+  const commission_amount = parseFloat(formData.get("commission_amount") as string || "0");
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!id || !commission_amount || commission_amount <= 0) {
+    return { error: "A valid commission amount is required." };
+  }
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("agent_commissions")
+    .select("status, agent_id, commission_amount")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { error: fetchError.message };
+  }
+
+  if (!existing) {
+    return { error: "Commission not found." };
+  }
+
+  if (existing.status === "paid" || existing.status === "cancelled") {
+    return { error: `Cannot edit a ${existing.status} commission.` };
+  }
+
+  const updatePayload: {
+    commission_amount: number;
+    notes: string | null;
+    status?: string;
+    approved_by?: null;
+    approved_at?: null;
+  } = {
+    commission_amount,
+    notes,
+  };
+
+  if (existing.status === "approved") {
+    updatePayload.status = "pending";
+    updatePayload.approved_by = null;
+    updatePayload.approved_at = null;
+  }
+
+  const { error } = await supabase
+    .from("agent_commissions")
+    .update(updatePayload)
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logAudit({
+    action: "update",
+    entityType: "agent_commission",
+    entityId: id,
+    summary: `Commission updated from ${existing.commission_amount} to ${commission_amount}`,
+    actorId: profile.id,
+  });
+
+  revalidatePath("/agents");
+  revalidatePath(`/agents/${existing.agent_id}`);
+  revalidatePath("/approvals");
+  revalidatePath("/dashboard");
+  return { error: null };
+}
+
 export async function approveCommission(id: string): Promise<{ error: string | null }> {
   const { profile } = await requireProfile();
   if (!canApproveCommissions(profile.role)) {

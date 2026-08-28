@@ -21,6 +21,7 @@ import { formatPkr, formatDate } from "@/lib/format";
 import { AGENT_TYPE_LABELS, AGENT_STATUS_LABELS, PAYMENT_MODE_LABELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CommissionEditDialog } from "@/components/features/commission-edit-dialog";
 import { StatCard } from "@/components/ui/stat-card";
 import {
   Table,
@@ -258,12 +259,13 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
               <TableHead>Plot / Booking</TableHead>
               <TableHead>Commission Amount</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {agent.commissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No commissions recorded for this broker yet.
                 </TableCell>
               </TableRow>
@@ -291,6 +293,19 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                       <Badge variant="secondary" className="rounded-md">
                         {c.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <CommissionEditDialog
+                        id={c.id}
+                        commissionAmount={Number(c.commission_amount)}
+                        notes={c.notes}
+                        status={c.status}
+                        dealLabel={
+                          sale
+                            ? `${cust?.full_name ?? "Buyer"} — Plot ${sale.plot_no} (${sale.code})`
+                            : "this deal"
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 );
