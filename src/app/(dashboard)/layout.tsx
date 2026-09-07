@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { getMyNotifications } from "@/lib/notifications";
+import { localeDir, type Locale } from "@/i18n/config";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { HeaderUser } from "@/components/layout/header-user";
@@ -24,11 +25,15 @@ export default async function AppLayout({
   const { items: notifications, unread } = await getMyNotifications();
   const tRoles = await getTranslations("labels.roles");
   const tCommon = await getTranslations("common");
+  const locale = (await getLocale()) as Locale;
+  const contentDir = localeDir[locale];
 
   return (
-    <SidebarProvider>
+    // Keep the shell LTR so the fixed left sidebar and its width gap stay aligned.
+    // Page content uses the active locale direction (RTL for Urdu).
+    <SidebarProvider dir="ltr">
       <AppSidebar />
-      <SidebarInset className="bg-background min-h-screen">
+      <SidebarInset dir={contentDir} className="bg-background min-h-screen">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-md px-4 sm:px-6 print:hidden">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="size-8 rounded-[8px]" />

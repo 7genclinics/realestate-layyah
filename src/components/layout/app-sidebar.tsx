@@ -68,7 +68,7 @@ export function AppSidebar() {
   const laterItems = NAV_ITEMS.filter((item) => "disabled" in item && item.disabled);
 
   return (
-    <Sidebar collapsible="icon" className="border-e">
+    <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2.5 px-2 py-1.5">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary/10 text-primary">
