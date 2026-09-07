@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { createLandExchange } from "@/lib/actions/land-bank";
 import { AREA_UNIT_LABELS } from "@/lib/constants";
 import { formatPkr } from "@/lib/format";
@@ -38,6 +39,11 @@ export function LandExchangeForm({
   parcels: { id: string; code: string; title: string }[];
 }) {
   const router = useRouter();
+  const t = useTranslations("land");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tUnit = useTranslations("labels.areaUnit");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
@@ -76,9 +82,11 @@ export function LandExchangeForm({
     const result = await createLandExchange(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not create exchange");
+      toast.error(result.error ?? tToasts("couldNotCreateExchange"));
       return;
     }
+
+    const entityLabel = tToasts("exchangeCreated");
 
     if (attachments.length) {
       const upload = await uploadPendingAttachments(
@@ -88,15 +96,22 @@ export function LandExchangeForm({
       );
       if (upload.failed) {
         toast.warning(
-          `Exchange saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+          tToasts("attachmentsFailed", {
+            entity: entityLabel,
+            count: upload.failed,
+            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+          }),
         );
       } else {
         toast.success(
-          `Exchange deal created · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+          tToasts("attachmentsOk", {
+            entity: entityLabel,
+            count: upload.uploaded,
+          }),
         );
       }
     } else {
-      toast.success("Exchange deal created");
+      toast.success(entityLabel);
     }
 
     router.push(`/land-bank/exchanges/${result.id}`);
@@ -107,7 +122,7 @@ export function LandExchangeForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="society_id">Society</Label>
+          <Label htmlFor="society_id">{t("society")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
             {societies.map((row) => (
               <option key={row.id} value={row.id}>
@@ -117,7 +132,7 @@ export function LandExchangeForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="party_id">Other party</Label>
+          <Label htmlFor="party_id">{t("otherParty")}</Label>
           <select id="party_id" className={selectClassName} {...register("party_id")}>
             {parties.map((row) => (
               <option key={row.id} value={row.id}>
@@ -130,13 +145,13 @@ export function LandExchangeForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="outgoing_property_id">Outgoing inventory unit</Label>
+          <Label htmlFor="outgoing_property_id">{t("outgoingUnit")}</Label>
           <select
             id="outgoing_property_id"
             className={selectClassName}
             {...register("outgoing_property_id")}
           >
-            <option value="">None</option>
+            <option value="">{tCommon("none")}</option>
             {properties.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.plot_no}
@@ -150,13 +165,13 @@ export function LandExchangeForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="outgoing_land_id">Outgoing land parcel</Label>
+          <Label htmlFor="outgoing_land_id">{t("outgoingParcel")}</Label>
           <select
             id="outgoing_land_id"
             className={selectClassName}
             {...register("outgoing_land_id")}
           >
-            <option value="">None</option>
+            <option value="">{tCommon("none")}</option>
             {parcels.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.title}
@@ -165,18 +180,18 @@ export function LandExchangeForm({
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="incoming_title">Incoming land description</Label>
+          <Label htmlFor="incoming_title">{t("incomingDesc")}</Label>
           <Input id="incoming_title" {...register("incoming_title")} />
           {errors.incoming_title ? (
             <p className="text-xs text-destructive">{errors.incoming_title.message}</p>
           ) : null}
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="incoming_location">Incoming location</Label>
+          <Label htmlFor="incoming_location">{t("incomingLocation")}</Label>
           <Input id="incoming_location" {...register("incoming_location")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incoming_area">Incoming area</Label>
+          <Label htmlFor="incoming_area">{t("incomingArea")}</Label>
           <Input
             id="incoming_area"
             type="number"
@@ -185,49 +200,56 @@ export function LandExchangeForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incoming_area_unit">Unit</Label>
+          <Label htmlFor="incoming_area_unit">{tCommon("unit")}</Label>
           <select
             id="incoming_area_unit"
             className={selectClassName}
             {...register("incoming_area_unit")}
           >
-            {Object.entries(AREA_UNIT_LABELS).map(([value, label]) => (
+            {Object.keys(AREA_UNIT_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tUnit(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incoming_khasra">Incoming khasra</Label>
+          <Label htmlFor="incoming_khasra">{t("incomingKhasra")}</Label>
           <Input id="incoming_khasra" {...register("incoming_khasra")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incoming_mouza">Incoming mouza</Label>
+          <Label htmlFor="incoming_mouza">{t("incomingMouza")}</Label>
           <Input id="incoming_mouza" {...register("incoming_mouza")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="outgoing_value">Outgoing valuation (PKR)</Label>
+          <Label htmlFor="outgoing_value">{t("outgoingValue")}</Label>
           <Input id="outgoing_value" type="number" step="1" {...register("outgoing_value")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incoming_value">Incoming valuation (PKR)</Label>
+          <Label htmlFor="incoming_value">{t("incomingValue")}</Label>
           <Input id="incoming_value" type="number" step="1" {...register("incoming_value")} />
           <p className="text-xs text-muted-foreground">
-            Difference {formatPkr(difference)}{" "}
-            {difference > 0 ? "(society pays)" : difference < 0 ? "(society receives)" : ""}
+            {t("difference", {
+              amount: formatPkr(difference),
+              side:
+                difference > 0
+                  ? t("differencePays")
+                  : difference < 0
+                    ? t("differenceReceives")
+                    : "",
+            })}
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="token_amount">Token (PKR)</Label>
+          <Label htmlFor="token_amount">{t("token")}</Label>
           <Input id="token_amount" type="number" step="1" {...register("token_amount")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="agreement_terms">Agreement terms</Label>
+          <Label htmlFor="agreement_terms">{t("agreementTerms")}</Label>
           <Textarea id="agreement_terms" rows={3} {...register("agreement_terms")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
@@ -237,16 +259,16 @@ export function LandExchangeForm({
         onChange={setAttachments}
         defaultType="title"
         disabled={isSubmitting}
-        description="Attach the exchange agreement, incoming land title or other files (JPG, PNG, PDF · max 10 MB)."
+        description={t("exchangeAttach")}
       />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save exchange
+          {tForms("saveExchange")}
         </Button>
       </div>
     </form>
