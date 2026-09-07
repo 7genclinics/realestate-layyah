@@ -261,12 +261,12 @@ export function AllInOneReports({
       modes[m] = (modes[m] || 0) + Number(r.amount || 0);
     });
     return [
-      { name: "Cash Drawer", value: modes.cash || 0, color: "#10b981" },
-      { name: "Bank Transfer", value: modes.bank_transfer || 0, color: "#0ea5e9" },
-      { name: "Cheque Clearance", value: modes.cheque || 0, color: "#f59e0b" },
-      { name: "Online / Other", value: modes.other || 0, color: "#8b5cf6" },
+      { name: t("modeCash"), value: modes.cash || 0, color: "#10b981" },
+      { name: t("modeBank"), value: modes.bank_transfer || 0, color: "#0ea5e9" },
+      { name: t("modeCheque"), value: modes.cheque || 0, color: "#f59e0b" },
+      { name: t("modeOther"), value: modes.other || 0, color: "#8b5cf6" },
     ].filter((item) => item.value > 0);
-  }, [filteredReceipts]);
+  }, [filteredReceipts, t]);
 
   // Aging breakdown
   const agingData = useMemo(() => {
@@ -288,72 +288,107 @@ export function AllInOneReports({
     });
 
     return [
-      { bucket: "1–30 Days", amount: b1_30, color: "#38bdf8" },
-      { bucket: "31–60 Days", amount: b31_60, color: "#fbbf24" },
-      { bucket: "61–90 Days", amount: b61_90, color: "#f97316" },
-      { bucket: "90+ Days", amount: b90_plus, color: "#ef4444" },
+      { bucket: t("aging1"), amount: b1_30, color: "#38bdf8" },
+      { bucket: t("aging31"), amount: b31_60, color: "#fbbf24" },
+      { bucket: t("aging61"), amount: b61_90, color: "#f97316" },
+      { bucket: t("aging90"), amount: b90_plus, color: "#ef4444" },
     ];
-  }, [overdueInstallments]);
+  }, [overdueInstallments, t]);
 
   // CSV Export Handler for Active Tab
   const handleExportCsv = () => {
     if (activeTab === "customers") {
-      const headers = ["Code", "Customer Name", "Phone", "Bookings", "Gross Sales", "Paid Receipts", "Outstanding Balance", "Stage"];
+      const headers = [
+        t("csvCode"),
+        t("csvCustomerName"),
+        t("csvPhone"),
+        t("csvBookings"),
+        t("csvGrossSales"),
+        t("csvPaidReceipts"),
+        t("csvOutstanding"),
+        t("csvStage"),
+      ];
       const rows = customers.map((c) => {
         const cSales = sales.filter((s) => s.customer_id === c.id);
         const saleVal = cSales.reduce((s, row) => s + Number(row.sale_amount || 0), 0);
         const remVal = cSales.reduce((s, row) => s + Number(row.remaining_amount || 0), 0);
         const paidVal = receipts.filter((r) => r.customer_id === c.id).reduce((s, r) => s + Number(r.amount || 0), 0);
-        return [c.code, c.full_name, c.phone, cSales.length, saleVal, paidVal, remVal, c.stage];
+        return [c.code, c.full_name, c.phone, cSales.length, saleVal, paidVal, remVal, tStage(c.stage)];
       });
       exportToCsv("customer_ledger_statement.csv", headers, rows);
     } else if (activeTab === "installments") {
-      const headers = ["Milestone", "Customer", "Plot", "Due Date", "Scheduled Amount", "Received Amount", "Balance Due", "Status"];
+      const headers = [
+        t("csvMilestone"),
+        t("csvCustomer"),
+        t("csvPlot"),
+        t("csvDueDate"),
+        t("csvScheduled"),
+        t("csvReceived"),
+        t("csvBalanceDue"),
+        t("csvStatus"),
+      ];
       const rows = filteredInstallments.map((i) => [
         i.period_label,
-        i.cust?.full_name || "—",
-        i.sale?.plot_no || "—",
+        i.cust?.full_name || tCommon("dash"),
+        i.sale?.plot_no || tCommon("dash"),
         i.due_date,
         i.scheduled_amount,
         i.received_amount,
         Number(i.scheduled_amount) - Number(i.received_amount),
-        i.status,
+        tInst(i.status),
       ]);
       exportToCsv("installments_schedule_report.csv", headers, rows);
     } else if (activeTab === "cashbook") {
-      const headers = ["Date", "Type", "Category", "Society", "Inflow", "Outflow", "Description"];
-      const rows = filteredTransactions.map((t) => [
-        t.transaction_date,
-        t.transaction_type,
-        t.cash_categories?.name || "General",
-        t.societies?.name || "—",
-        t.transaction_type === "income" || t.transfer_side === "in" ? t.amount : 0,
-        t.transaction_type === "expense" || t.transfer_side === "out" ? t.amount : 0,
-        t.description,
+      const headers = [
+        t("csvDate"),
+        t("csvType"),
+        t("csvCategory"),
+        t("csvSociety"),
+        t("csvInflow"),
+        t("csvOutflow"),
+        t("csvDescription"),
+      ];
+      const rows = filteredTransactions.map((txn) => [
+        txn.transaction_date,
+        tTxn(txn.transaction_type),
+        txn.cash_categories?.name || t("general"),
+        txn.societies?.name || tCommon("dash"),
+        txn.transaction_type === "income" || txn.transfer_side === "in" ? txn.amount : 0,
+        txn.transaction_type === "expense" || txn.transfer_side === "out" ? txn.amount : 0,
+        txn.description,
       ]);
       exportToCsv("cash_book_statement.csv", headers, rows);
     } else if (activeTab === "inventory") {
-      const headers = ["Code", "Plot No", "Society", "Block", "Type", "Area", "Asking Price", "Status"];
+      const headers = [
+        t("csvCode"),
+        t("csvPlotNo"),
+        t("csvSociety"),
+        t("csvBlock"),
+        t("csvType"),
+        t("csvArea"),
+        t("csvAsking"),
+        t("csvStatus"),
+      ];
       const rows = properties.map((p) => [
         p.code,
         p.plot_no,
-        p.societies?.name || "—",
-        p.society_blocks?.name || "General",
-        p.property_type,
-        `${p.area} ${p.area_unit}`,
+        p.societies?.name || tCommon("dash"),
+        p.society_blocks?.name || t("general"),
+        tPropType(p.property_type),
+        `${p.area} ${tArea(p.area_unit)}`,
         p.asking_price,
-        p.status,
+        tPropStatus(p.status),
       ]);
       exportToCsv("inventory_status_report.csv", headers, rows);
     } else {
-      const headers = ["Metric", "Amount / Value"];
+      const headers = [t("csvMetric"), t("csvValue")];
       const rows = [
-        ["Total Sales Revenue", totalSalesRevenue],
-        ["Total Collections Cleared", totalCollections],
-        ["Net Cash Flow", netCashFlow],
-        ["Total Outstanding Customer Receivables", totalCustomerReceivables],
-        ["Overdue Installments Amount", totalOverdueAmount],
-        ["Total Inventory Valuation", totalInventoryValue],
+        [t("csvTotalSales"), totalSalesRevenue],
+        [t("csvTotalCollections"), totalCollections],
+        [t("csvNetCash"), netCashFlow],
+        [t("csvReceivables"), totalCustomerReceivables],
+        [t("csvOverdue"), totalOverdueAmount],
+        [t("csvInventoryVal"), totalInventoryValue],
       ];
       exportToCsv("executive_analytics_summary.csv", headers, rows);
     }
@@ -407,15 +442,15 @@ export function AllInOneReports({
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
                   className="h-8 text-xs rounded-md w-36"
-                  placeholder="From Date"
+                  placeholder={tCommon("from")}
                 />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{tCommon("to")}</span>
                 <Input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
                   className="h-8 text-xs rounded-md w-36"
-                  placeholder="To Date"
+                  placeholder={tCommon("to")}
                 />
               </div>
             )}
@@ -648,10 +683,10 @@ export function AllInOneReports({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Receipt #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t("colReceipt")}</TableHead>
+                    <TableHead>{tCommon("customer")}</TableHead>
+                    <TableHead>{tCommon("date")}</TableHead>
+                    <TableHead className="text-right">{tCommon("amount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
