@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { createProperty, updateProperty } from "@/lib/actions/properties";
 import {
   AREA_UNIT_LABELS,
@@ -46,6 +47,13 @@ export function PropertyForm({
 }) {
   const router = useRouter();
   const isEdit = Boolean(propertyId);
+  const t = useTranslations("inventory");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.propertyType");
+  const tUnit = useTranslations("labels.areaUnit");
+  const tOwn = useTranslations("labels.ownershipSource");
   const showCosts = canViewPropertyCosts(role);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
@@ -78,9 +86,11 @@ export function PropertyForm({
       : await createProperty(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not save property");
+      toast.error(result.error ?? tToasts("couldNotSaveProperty"));
       return;
     }
+
+    const entityLabel = isEdit ? tToasts("propertyUpdated") : tToasts("propertyAdded");
 
     if (attachments.length) {
       const upload = await uploadPendingAttachments(
@@ -90,15 +100,22 @@ export function PropertyForm({
       );
       if (upload.failed) {
         toast.warning(
-          `Property saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+          tToasts("attachmentsFailed", {
+            entity: entityLabel,
+            count: upload.failed,
+            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+          }),
         );
       } else {
         toast.success(
-          `${isEdit ? "Property updated" : "Property added to inventory"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+          tToasts("attachmentsOk", {
+            entity: entityLabel,
+            count: upload.uploaded,
+          }),
         );
       }
     } else {
-      toast.success(isEdit ? "Property updated" : "Property added to inventory");
+      toast.success(entityLabel);
     }
 
     router.push(`/inventory/${result.id}`);
@@ -109,9 +126,9 @@ export function PropertyForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="society_id">Society / project</Label>
+          <Label htmlFor="society_id">{t("societyProject")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
-            <option value="">Select society</option>
+            <option value="">{t("selectSociety")}</option>
             {societies.map((society) => (
               <option key={society.id} value={society.id}>
                 {society.code} · {society.name}
@@ -123,9 +140,9 @@ export function PropertyForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="block_id">Block / phase</Label>
+          <Label htmlFor="block_id">{t("blockPhase")}</Label>
           <select id="block_id" className={selectClassName} {...register("block_id")}>
-            <option value="">None</option>
+            <option value="">{tCommon("none")}</option>
             {societyBlocks.map((block) => (
               <option key={block.id} value={block.id}>
                 {block.name}
@@ -134,25 +151,25 @@ export function PropertyForm({
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="new_block_name">Or create a new block</Label>
-          <Input id="new_block_name" placeholder="Block A" {...register("new_block_name")} />
+          <Label htmlFor="new_block_name">{t("newBlock")}</Label>
+          <Input id="new_block_name" placeholder={t("newBlockPlaceholder")} {...register("new_block_name")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="property_type">Property type</Label>
+          <Label htmlFor="property_type">{t("propertyType")}</Label>
           <select
             id="property_type"
             className={selectClassName}
             {...register("property_type")}
           >
-            {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(PROPERTY_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tType(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="plot_no">Plot / shop no.</Label>
+          <Label htmlFor="plot_no">{t("plotShopNo")}</Label>
           <Input id="plot_no" placeholder="A-12" {...register("plot_no")} />
           {errors.plot_no ? (
             <p className="text-xs text-destructive">{errors.plot_no.message}</p>
@@ -162,36 +179,36 @@ export function PropertyForm({
 
       <section className="grid gap-4 sm:grid-cols-4">
         <div className="space-y-2">
-          <Label htmlFor="length_ft">Length (ft)</Label>
+          <Label htmlFor="length_ft">{t("lengthFt")}</Label>
           <Input id="length_ft" type="number" step="0.01" {...register("length_ft")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="width_ft">Width (ft)</Label>
+          <Label htmlFor="width_ft">{t("widthFt")}</Label>
           <Input id="width_ft" type="number" step="0.01" {...register("width_ft")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="area">Total area</Label>
+          <Label htmlFor="area">{t("totalArea")}</Label>
           <Input id="area" type="number" step="0.01" {...register("area")} />
           {errors.area ? (
             <p className="text-xs text-destructive">{String(errors.area.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="area_unit">Area unit</Label>
+          <Label htmlFor="area_unit">{t("areaUnit")}</Label>
           <select id="area_unit" className={selectClassName} {...register("area_unit")}>
-            {Object.entries(AREA_UNIT_LABELS).map(([value, label]) => (
+            {Object.keys(AREA_UNIT_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tUnit(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="facing">Facing / location</Label>
-          <Input id="facing" placeholder="Park facing" {...register("facing")} />
+          <Label htmlFor="facing">{t("facing")}</Label>
+          <Input id="facing" placeholder={t("facingPlaceholder")} {...register("facing")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="street_width_ft">Street width (ft)</Label>
+          <Label htmlFor="street_width_ft">{t("streetWidth")}</Label>
           <Input
             id="street_width_ft"
             type="number"
@@ -200,43 +217,43 @@ export function PropertyForm({
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="attributes">Tags</Label>
+          <Label htmlFor="attributes">{t("tags")}</Label>
           <Input
             id="attributes"
-            placeholder="corner, main road"
+            placeholder={t("tagsPlaceholder")}
             {...register("attributes")}
           />
-          <p className="text-xs text-muted-foreground">Comma-separated attributes</p>
+          <p className="text-xs text-muted-foreground">{t("tagsHint")}</p>
         </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="ownership_source">Ownership source</Label>
+          <Label htmlFor="ownership_source">{t("ownershipSource")}</Label>
           <select
             id="ownership_source"
             className={selectClassName}
             {...register("ownership_source")}
           >
-            {Object.entries(OWNERSHIP_SOURCE_LABELS).map(([value, label]) => (
+            {Object.keys(OWNERSHIP_SOURCE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tOwn(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="asking_price">Asking / sale price (PKR)</Label>
+          <Label htmlFor="asking_price">{t("askingPrice")}</Label>
           <Input id="asking_price" type="number" step="1" {...register("asking_price")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="monthly_rent">Monthly rent (PKR)</Label>
+          <Label htmlFor="monthly_rent">{t("monthlyRent")}</Label>
           <Input id="monthly_rent" type="number" step="1" {...register("monthly_rent")} />
         </div>
         {showCosts ? (
           <>
             <div className="space-y-2">
-              <Label htmlFor="acquisition_cost">Acquisition cost (internal)</Label>
+              <Label htmlFor="acquisition_cost">{t("acquisitionCost")}</Label>
               <Input
                 id="acquisition_cost"
                 type="number"
@@ -245,7 +262,7 @@ export function PropertyForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="min_approved_price">Minimum approved price</Label>
+              <Label htmlFor="min_approved_price">{t("minPrice")}</Label>
               <Input
                 id="min_approved_price"
                 type="number"
@@ -257,17 +274,17 @@ export function PropertyForm({
         ) : null}
         <label className="flex items-center gap-2 text-sm sm:mt-7">
           <input type="checkbox" {...register("agent_visible")} />
-          Visible to agents
+          {t("agentVisible")}
         </label>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="internal_notes">Internal notes</Label>
+          <Label htmlFor="internal_notes">{t("internalNotes")}</Label>
           <Textarea id="internal_notes" rows={3} {...register("internal_notes")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="agent_notes">Agent-visible notes</Label>
+          <Label htmlFor="agent_notes">{t("agentNotes")}</Label>
           <Textarea id="agent_notes" rows={3} {...register("agent_notes")} />
         </div>
       </section>
@@ -277,16 +294,16 @@ export function PropertyForm({
         onChange={setAttachments}
         defaultType="title"
         disabled={isSubmitting}
-        description="Attach the title deed, site plan or other files (JPG, PNG, PDF · max 10 MB)."
+        description={t("attachHint")}
       />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          {isEdit ? "Update property" : "Save property"}
+          {isEdit ? tForms("updateProperty") : tForms("saveProperty")}
         </Button>
       </div>
     </form>

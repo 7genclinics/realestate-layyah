@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { AllInOneReports } from "@/components/features/all-in-one-reports";
@@ -6,6 +7,7 @@ import { ReportsNav } from "@/components/features/reports-nav";
 export default async function ReportsPage() {
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const t = await getTranslations("pages.reports");
 
   const [
     { data: sales },
@@ -64,6 +66,10 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      </div>
       <ReportsNav />
       <AllInOneReports
         sales={sales ?? []}

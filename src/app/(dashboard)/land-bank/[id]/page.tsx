@@ -16,6 +16,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import {
   canApproveLand,
@@ -54,6 +55,13 @@ export default async function LandParcelDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.landBank");
+  const tStatus = await getTranslations("labels.landStatus");
+  const tAcq = await getTranslations("labels.landAcquisition");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tPay = await getTranslations("labels.paymentMode");
+  const tCommon = await getTranslations("common");
 
   const { data: parcel } = await supabase
     .from("land_parcels")
@@ -116,7 +124,7 @@ export default async function LandParcelDetailPage({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Back to Land Bank
+              {t("backToLandBank")}
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="font-mono text-xs font-semibold text-primary">{parcel.code}</span>
@@ -124,32 +132,32 @@ export default async function LandParcelDetailPage({
           <div className="flex items-center gap-3">
             <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">{parcel.title}</h1>
             <Badge variant="secondary" className="rounded-md font-normal">
-              {LAND_ACQUISITION_LABELS[parcel.acquisition_type as keyof typeof LAND_ACQUISITION_LABELS] ?? parcel.acquisition_type}
+              {tAcq(parcel.acquisition_type)}
             </Badge>
             <Badge variant="outline" className="rounded-md">
-              {LAND_STATUS_LABELS[parcel.status as keyof typeof LAND_STATUS_LABELS] ?? parcel.status}
+              {tStatus(parcel.status)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Society: {society?.name ?? "—"} · Location: {parcel.location || "General Mouza"} · Area: {parcel.area} {AREA_UNIT_LABELS[parcel.area_unit as keyof typeof AREA_UNIT_LABELS] ?? parcel.area_unit}
+            {tCommon("society")}: {society?.name ?? tCommon("dash")} · {parcel.location || tCommon("dash")} · {parcel.area} {tUnit(parcel.area_unit)}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {canApprove ? (
-            <LandActionButton action="approve-parcel" id={parcel.id} label="Approve Parcel" />
+            <LandActionButton action="approve-parcel" id={parcel.id} label={t("approveParcel")} />
           ) : null}
           {canPay ? (
             <Button render={<Link href={`/land-bank/${parcel.id}/pay`} />}>
               <CreditCard className="size-4" />
-              Disburse Land Payment
+              {t("payLand")}
             </Button>
           ) : null}
           {canAddInventory ? (
             <LandActionButton
               action="add-inventory"
               id={parcel.id}
-              label="Convert into Plot Inventory"
+              label={t("convertInventory")}
               variant="outline"
             />
           ) : null}
@@ -159,31 +167,31 @@ export default async function LandParcelDetailPage({
       {/* KPI Financial Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Acquisition Value"
-          value={formatPkr(parcel.purchase_value)}
-          hint={`${parcel.area} ${AREA_UNIT_LABELS[parcel.area_unit as keyof typeof AREA_UNIT_LABELS] ?? parcel.area_unit} land parcel`}
+          title={t("acquisitionValue")}
+          value={formatPkr(parcel.purchase_value, locale)}
+          hint={`${parcel.area} ${tUnit(parcel.area_unit)}`}
           icon={LandPlot}
           variant="primary"
         />
         <StatCard
-          title="Total Paid to Landlord"
-          value={formatPkr(parcel.paid_amount)}
-          hint={`${(payments ?? []).length} payment vouchers cleared`}
+          title={t("payTitle")}
+          value={formatPkr(parcel.paid_amount, locale)}
+          hint={`${(payments ?? []).length}`}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
-          title="Balance Payable"
-          value={formatPkr(parcel.remaining_amount)}
-          hint={parcel.token_amount ? `Initial token: ${formatPkr(parcel.token_amount)}` : "Payable on registry handover"}
+          title={t("remainingPayable")}
+          value={formatPkr(parcel.remaining_amount, locale)}
+          hint={parcel.token_amount ? formatPkr(parcel.token_amount, locale) : t("payableHint")}
           icon={Wallet}
           variant={Number(parcel.remaining_amount) > 0 ? "warning" : "default"}
           href="/cash-book"
         />
         <StatCard
-          title="Unit Rate"
-          value={parcel.rate_per_unit ? formatPkr(parcel.rate_per_unit) : "—"}
-          hint={`Per ${AREA_UNIT_LABELS[parcel.area_unit as keyof typeof AREA_UNIT_LABELS] ?? parcel.area_unit} rate`}
+          title={t("area")}
+          value={parcel.rate_per_unit ? formatPkr(parcel.rate_per_unit, locale) : tCommon("dash")}
+          hint={tUnit(parcel.area_unit)}
           icon={FileSpreadsheet}
           variant="sky"
         />

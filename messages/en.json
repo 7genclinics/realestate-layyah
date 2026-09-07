@@ -103,7 +103,8 @@
     "vouchersCount": "{count} vouchers",
     "excelCsv": "Excel / CSV",
     "printPdf": "Print / PDF",
-    "openDownload": "Open / download"
+    "openDownload": "Open / download",
+    "unit": "Unit"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -934,6 +935,8 @@
     "colLandlord": "Landlord Seller",
     "colPurchaseValue": "Purchase Value",
     "csvCode": "Code",
+    "csvPhone": "Phone",
+    "csvStage": "Stage",
     "csvCustomerName": "Customer Name",
     "csvBookings": "Bookings",
     "csvGrossSales": "Gross Sales",
@@ -1252,7 +1255,21 @@
       "detailsHint": "Acquisition cost and minimum price are hidden from sales and agents.",
       "editTitle": "Edit property",
       "editSubtitle": "Update plot details for {plot}.",
-      "editStatusHint": "Update plot {plot}. Use the status control on the detail page to change availability."
+      "editStatusHint": "Update plot {plot}. Use the status control on the detail page to change availability.",
+      "plotTitle": "Plot {plot}",
+      "bookThisPlot": "Book This Plot",
+      "receivePayment": "Receive Payment",
+      "catalogRate": "Catalog valuation rate",
+      "plotDimensions": "Plot Dimensions",
+      "standardDimensions": "Standard dimensions",
+      "heldFor": "Held for: {name}",
+      "allocatedBuyer": "Allocated to buyer",
+      "openForSale": "Open for sale",
+      "buyerStatus": "Buyer Status",
+      "noActiveBuyer": "No Active Buyer",
+      "onFile": "On file",
+      "unitUnassigned": "Unit is unassigned",
+      "buyer": "Buyer"
     },
     "leads": {
       "title": "Leads & Pipeline",
@@ -1477,7 +1494,15 @@
       "addPartyFirst": "Add a party first.",
       "woSubtitle": "Rate × quantity becomes the contract value. Remaining payable starts at that amount.",
       "woDetails": "Work order details",
-      "woHint": "Payments later reduce the remaining balance and post to the cash book."
+      "woHint": "Payments later reduce the remaining balance and post to the cash book.",
+      "payPartyBtn": "Pay party",
+      "totalWoValue": "Total Work Orders Value",
+      "totalPaidSociety": "Total Paid by Society",
+      "netPayable": "Net Outstanding Payable",
+      "landAcquisitions": "Land Acquisitions",
+      "noLandDeals": "No Land Deals",
+      "parcelsRecorded": "{count} parcels recorded",
+      "vendorProfile": "Contractor / Vendor profile"
     },
     "development": {
       "title": "Development & Site Works",
@@ -1720,7 +1745,21 @@
       "needSocietyParty": "Create a society and a party (the other landowner) first.",
       "addParty": "Add party",
       "exchangeDeal": "Exchange deal",
-      "differenceHint": "Difference = incoming value − outgoing value. A positive difference is payable by the society after completion."
+      "differenceHint": "Difference = incoming value − outgoing value. A positive difference is payable by the society after completion.",
+      "completeExchange": "Complete exchange",
+      "societyPays": "Society pays",
+      "societyReceives": "Society receives",
+      "dealDetails": "Deal details",
+      "outgoingProperty": "Outgoing property",
+      "outgoingLand": "Outgoing land",
+      "incomingLandRecord": "Incoming land record",
+      "remainingAmount": "remaining {amount}",
+      "createdOnCompletion": "Created on completion",
+      "agreement": "Agreement",
+      "incomingArea": "Incoming {area} {unit}",
+      "khasraLine": " · khasra {khasra}",
+      "approveParcel": "Approve Parcel",
+      "convertInventory": "Convert into Plot Inventory"
     },
     "audit": {
       "title": "Audit Log",
@@ -1749,6 +1788,18 @@
     "reports": {
       "title": "Reports",
       "subtitle": "Analytics and printable ledgers for the whole operation."
+    },
+    "contracts": {
+      "backToParty": "Back to {name}",
+      "started": "Started {date}",
+      "payContract": "Pay Contract",
+      "agreedValue": "Agreed Value",
+      "woValueHint": "Total work-order value",
+      "paidToDate": "Paid to Date",
+      "disbursedHint": "Disbursed against this contract",
+      "remainingPayable": "Remaining Payable",
+      "outstandingBalance": "Outstanding balance",
+      "fullySettled": "Fully settled"
     }
   },
   "settings": {

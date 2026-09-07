@@ -103,7 +103,8 @@
     "vouchersCount": "{count} واؤچرز",
     "excelCsv": "ایکسل / CSV",
     "printPdf": "پرنٹ / PDF",
-    "openDownload": "کھولیں / ڈاؤن لوڈ"
+    "openDownload": "کھولیں / ڈاؤن لوڈ",
+    "unit": "یونٹ"
   },
   "nav": {
     "dashboard": "ڈیش بورڈ",
@@ -934,6 +935,8 @@
     "colLandlord": "زمیندار فروخت کنندہ",
     "colPurchaseValue": "خریداری ویلیو",
     "csvCode": "کوڈ",
+    "csvPhone": "فون",
+    "csvStage": "مرحلہ",
     "csvCustomerName": "کسٹمر نام",
     "csvBookings": "بکنگز",
     "csvGrossSales": "کل سیلز",
@@ -1229,7 +1232,7 @@
       "holdHint": "عارضی طور پر محفوظ",
       "filterSociety": "سوسائٹی سے فلٹر",
       "allSocieties": "تمام سوسائٹیز",
-      "unitStatus": "یونٹ کی حالت",
+      "unitStatus": "یونٹ کی حیثیت",
       "allStatuses": "تمام حالتیں",
       "propertyType": "پراپرٹی کی قسم",
       "allTypes": "تمام اقسام",
@@ -1252,7 +1255,21 @@
       "detailsHint": "خریداری لاگت اور کم از کم قیمت سیلز اور ایجنٹس سے چھپی رہتی ہے۔",
       "editTitle": "پراپرٹی میں ترمیم",
       "editSubtitle": "{plot} کی پلاٹ تفصیلات اپ ڈیٹ کریں۔",
-      "editStatusHint": "پلاٹ {plot} اپ ڈیٹ کریں۔ دستیابی بدلنے کے لیے تفصیل صفحے کا اسٹیٹس کنٹرول استعمال کریں۔"
+      "editStatusHint": "پلاٹ {plot} اپ ڈیٹ کریں۔ دستیابی بدلنے کے لیے تفصیل صفحے کا اسٹیٹس کنٹرول استعمال کریں۔",
+      "plotTitle": "پلاٹ {plot}",
+      "bookThisPlot": "اس پلاٹ کو بک کریں",
+      "receivePayment": "ادائیگی وصول کریں",
+      "catalogRate": "کیٹلاگ ویلیوایشن ریٹ",
+      "plotDimensions": "پلاٹ کی جہتیں",
+      "standardDimensions": "معیاری جہتیں",
+      "heldFor": "روک: {name}",
+      "allocatedBuyer": "خریدار کو الاٹ",
+      "openForSale": "فروخت کے لیے کھلا",
+      "buyerStatus": "خریدار کی حیثیت",
+      "noActiveBuyer": "کوئی فعال خریدار نہیں",
+      "onFile": "فائل پر",
+      "unitUnassigned": "یونٹ غیر تفویض",
+      "buyer": "خریدار"
     },
     "leads": {
       "title": "لیڈز و پائپ لائن",
@@ -1477,7 +1494,15 @@
       "addPartyFirst": "پہلے پارٹی شامل کریں۔",
       "woSubtitle": "ریٹ × مقدار کنٹریکٹ ویلیو بنتی ہے۔ بقایا واجب الادا اسی رقم سے شروع ہوتا ہے۔",
       "woDetails": "ورک آرڈر کی تفصیلات",
-      "woHint": "بعد کی ادائیگیاں بقایا کم کرتی ہیں اور کیش بک میں پوسٹ ہوتی ہیں۔"
+      "woHint": "بعد کی ادائیگیاں بقایا کم کرتی ہیں اور کیش بک میں پوسٹ ہوتی ہیں۔",
+      "payPartyBtn": "پارٹی کو ادا کریں",
+      "totalWoValue": "کل ورک آرڈرز ویلیو",
+      "totalPaidSociety": "سوسائٹی کی کل ادائیگی",
+      "netPayable": "نٹ بقایا واجب الادا",
+      "landAcquisitions": "زمین کی خریداریاں",
+      "noLandDeals": "کوئی زمین ڈیل نہیں",
+      "parcelsRecorded": "{count} قطعات درج",
+      "vendorProfile": "ٹھیکیدار / وینڈر پروفائل"
     },
     "development": {
       "title": "ڈیولپمنٹ و سائٹ ورکس",
@@ -1720,7 +1745,21 @@
       "needSocietyParty": "پہلے سوسائٹی اور پارٹی (دوسرا زمیندار) بنائیں۔",
       "addParty": "پارٹی شامل کریں",
       "exchangeDeal": "تبادلہ ڈیل",
-      "differenceHint": "فرق = آنے والی ویلیو − جانے والی ویلیو۔ مثبت فرق تکمیل کے بعد سوسائٹی کا واجب الادا ہے۔"
+      "differenceHint": "فرق = آنے والی ویلیو − جانے والی ویلیو۔ مثبت فرق تکمیل کے بعد سوسائٹی کا واجب الادا ہے۔",
+      "completeExchange": "تبادلہ مکمل کریں",
+      "societyPays": "سوسائٹی ادا کرتی ہے",
+      "societyReceives": "سوسائٹی وصول کرتی ہے",
+      "dealDetails": "ڈیل کی تفصیلات",
+      "outgoingProperty": "جانے والی پراپرٹی",
+      "outgoingLand": "جانے والی زمین",
+      "incomingLandRecord": "آنے والی زمین کا ریکارڈ",
+      "remainingAmount": "بقایا {amount}",
+      "createdOnCompletion": "تکمیل پر بنایا گیا",
+      "agreement": "ایگریمنٹ",
+      "incomingArea": "آنے والا {area} {unit}",
+      "khasraLine": " · خسرہ {khasra}",
+      "approveParcel": "قطعے کی منظوری",
+      "convertInventory": "پلاٹ انوینٹری میں تبدیل کریں"
     },
     "audit": {
       "title": "آڈٹ لاگ",
@@ -1749,6 +1788,18 @@
     "reports": {
       "title": "رپورٹس",
       "subtitle": "پورے آپریشن کے لیے تجزیہ اور پرنٹ ایبل لیجرز۔"
+    },
+    "contracts": {
+      "backToParty": "{name} پر واپس",
+      "started": "شروع {date}",
+      "payContract": "کنٹریکٹ ادا کریں",
+      "agreedValue": "متفقہ ویلیو",
+      "woValueHint": "کل ورک آرڈر ویلیو",
+      "paidToDate": "اب تک ادا",
+      "disbursedHint": "اس کنٹریکٹ کے خلاف ادا شدہ",
+      "remainingPayable": "بقایا واجب الادا",
+      "outstandingBalance": "بقایا بیلنس",
+      "fullySettled": "مکمل طور پر ادا"
     }
   },
   "settings": {

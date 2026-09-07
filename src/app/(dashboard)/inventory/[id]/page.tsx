@@ -18,6 +18,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import {
   canManageCrm,
@@ -58,6 +59,15 @@ export default async function PropertyDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.inventory");
+  const tStatus = await getTranslations("labels.propertyStatus");
+  const tType = await getTranslations("labels.propertyType");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tOwn = await getTranslations("labels.ownershipSource");
+  const tPay = await getTranslations("labels.paymentType");
+  const tSale = await getTranslations("labels.saleStatus");
+  const tCommon = await getTranslations("common");
 
   const { data: property } = await supabase
     .from("properties")
@@ -125,19 +135,19 @@ export default async function PropertyDetailPage({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Back to Inventory
+              {t("backToInventory")}
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="font-mono text-xs font-semibold text-primary">{property.code}</span>
           </div>
           <div className="flex items-center gap-3">
             <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-              Plot {property.plot_no}
+              {t("plotTitle", { plot: property.plot_no })}
             </h1>
             <PropertyStatusBadge status={property.status} />
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {society?.name ?? "Society"} {block?.name ? `· Block ${block.name}` : ""} · {PROPERTY_TYPE_LABELS[property.property_type]} · {formatNumber(property.area)} {AREA_UNIT_LABELS[property.area_unit]}
+            {society?.name ?? tCommon("society")} {block?.name ? `· ${block.name}` : ""} · {tType(property.property_type)} · {formatNumber(property.area, locale)} {tUnit(property.area_unit)}
           </p>
         </div>
 
@@ -146,12 +156,12 @@ export default async function PropertyDetailPage({
           (property.status === "available" || property.status === "hold") ? (
             <Button render={<Link href={`/bookings/new?property=${property.id}`} />}>
               <Plus className="size-4" />
-              Book This Plot
+              {t("bookThisPlot")}
             </Button>
           ) : currentSale ? (
             <Button render={<Link href={`/receipts/new?sale=${currentSale.id}`} />}>
               <Receipt className="size-4" />
-              Receive Payment
+              {t("receivePayment")}
             </Button>
           ) : null}
         </div>
@@ -160,30 +170,30 @@ export default async function PropertyDetailPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Asking Price"
-          value={formatPkr(property.asking_price)}
-          hint="Catalog valuation rate"
+          title={t("askingPrice")}
+          value={formatPkr(property.asking_price, locale)}
+          hint={t("catalogRate")}
           icon={DollarSign}
           variant="primary"
         />
         <StatCard
-          title="Plot Dimensions"
-          value={`${formatNumber(property.area)} ${AREA_UNIT_LABELS[property.area_unit]}`}
-          hint={property.length_ft && property.width_ft ? `${property.length_ft} × ${property.width_ft} ft` : "Standard dimensions"}
+          title={t("plotDimensions")}
+          value={`${formatNumber(property.area, locale)} ${tUnit(property.area_unit)}`}
+          hint={property.length_ft && property.width_ft ? `${property.length_ft} × ${property.width_ft} ft` : t("standardDimensions")}
           icon={Maximize2}
           variant="sky"
         />
         <StatCard
-          title="Unit Status"
-          value={PROPERTY_STATUS_LABELS[property.status]}
-          hint={property.status === "hold" ? `Held for: ${property.hold_party_name || "Buyer"}` : property.status === "booked" ? "Allocated to buyer" : "Open for sale"}
+          title={t("unitStatus")}
+          value={tStatus(property.status)}
+          hint={property.status === "hold" ? t("heldFor", { name: property.hold_party_name || t("buyer") }) : property.status === "booked" ? t("allocatedBuyer") : t("openForSale")}
           icon={property.status === "available" ? CheckCircle2 : Clock}
           variant={property.status === "available" ? "success" : property.status === "hold" ? "warning" : "indigo"}
         />
         <StatCard
-          title="Buyer Status"
-          value={currentCustomer ? currentCustomer.full_name : "No Active Buyer"}
-          hint={currentCustomer ? `CNIC: ${currentCustomer.id_number || "On file"}` : "Unit is unassigned"}
+          title={t("buyerStatus")}
+          value={currentCustomer ? currentCustomer.full_name : t("noActiveBuyer")}
+          hint={currentCustomer ? `CNIC: ${currentCustomer.id_number || t("onFile")}` : t("unitUnassigned")}
           icon={User}
           variant={currentCustomer ? "primary" : "default"}
           href={currentCustomer ? `/customers/${currentCustomer.id}` : undefined}

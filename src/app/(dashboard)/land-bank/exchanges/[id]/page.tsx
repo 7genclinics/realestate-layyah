@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import {
   canApproveLand,
@@ -33,6 +34,11 @@ export default async function LandExchangeDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.landBank");
+  const tEx = await getTranslations("labels.landExchangeStatus");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tCommon = await getTranslations("common");
 
   const { data: deal } = await supabase
     .from("land_exchanges")
@@ -96,25 +102,25 @@ export default async function LandExchangeDetailPage({
             {deal.incoming_title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {society?.name ?? "—"} · {party?.name ?? "—"}
+            {society?.name ?? tCommon("dash")} · {party?.name ?? tCommon("dash")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
-            {LAND_EXCHANGE_STATUS_LABELS[deal.status]}
+            {tEx(deal.status)}
           </Badge>
           {canApprove ? (
-            <LandActionButton action="approve-exchange" id={deal.id} label="Approve" />
+            <LandActionButton action="approve-exchange" id={deal.id} label={tCommon("approve")} />
           ) : null}
           {canComplete ? (
             <LandActionButton
               action="complete-exchange"
               id={deal.id}
-              label="Complete exchange"
+              label={t("completeExchange")}
             />
           ) : null}
           <Button render={<Link href="/land-bank" />} variant="outline">
-            Back
+            {tCommon("back")}
           </Button>
         </div>
       </div>
@@ -122,25 +128,25 @@ export default async function LandExchangeDetailPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Outgoing value</CardDescription>
-            <CardTitle className="text-xl">{formatPkr(deal.outgoing_value)}</CardTitle>
+            <CardDescription>{t("outgoingValue")}</CardDescription>
+            <CardTitle className="text-xl">{formatPkr(deal.outgoing_value, locale)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Incoming value</CardDescription>
-            <CardTitle className="text-xl">{formatPkr(deal.incoming_value)}</CardTitle>
+            <CardDescription>{t("incomingValue")}</CardDescription>
+            <CardTitle className="text-xl">{formatPkr(deal.incoming_value, locale)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>
               {Number(deal.difference_amount) >= 0
-                ? "Society pays"
-                : "Society receives"}
+                ? t("societyPays")
+                : t("societyReceives")}
             </CardDescription>
             <CardTitle className="text-xl">
-              {formatPkr(Math.abs(Number(deal.difference_amount)))}
+              {formatPkr(Math.abs(Number(deal.difference_amount)), locale)}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -148,15 +154,15 @@ export default async function LandExchangeDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Deal details</CardTitle>
+          <CardTitle>{t("dealDetails")}</CardTitle>
           <CardDescription>
-            Incoming {deal.incoming_area} {AREA_UNIT_LABELS[deal.incoming_area_unit]}
-            {deal.incoming_khasra ? ` · khasra ${deal.incoming_khasra}` : ""}
+            {t("incomingArea", { area: deal.incoming_area, unit: tUnit(deal.incoming_area_unit) })}
+            {deal.incoming_khasra ? t("khasraLine", { khasra: deal.incoming_khasra }) : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <p className="text-xs text-muted-foreground">Outgoing property</p>
+            <p className="text-xs text-muted-foreground">{t("outgoingProperty")}</p>
             <p className="mt-1">
               {outgoingProperty ? (
                 <Link
@@ -166,12 +172,12 @@ export default async function LandExchangeDetailPage({
                   {outgoingProperty.code} · {outgoingProperty.plot_no}
                 </Link>
               ) : (
-                "—"
+                tCommon("dash")
               )}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Outgoing land</p>
+            <p className="text-xs text-muted-foreground">{t("outgoingLand")}</p>
             <p className="mt-1">
               {outgoingLand ? (
                 <Link
@@ -181,28 +187,27 @@ export default async function LandExchangeDetailPage({
                   {outgoingLand.code} · {outgoingLand.title}
                 </Link>
               ) : (
-                "—"
+                tCommon("dash")
               )}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Incoming land record</p>
+            <p className="text-xs text-muted-foreground">{t("incomingLandRecord")}</p>
             <p className="mt-1">
               {incomingLand ? (
                 <Link
                   href={`/land-bank/${incomingLand.id}`}
                   className="underline-offset-4 hover:underline"
                 >
-                  {incomingLand.code} · remaining{" "}
-                  {formatPkr(incomingLand.remaining_amount)}
+                  {incomingLand.code} · {t("remainingAmount", { amount: formatPkr(incomingLand.remaining_amount, locale) })}
                 </Link>
               ) : (
-                "Created on completion"
+                t("createdOnCompletion")
               )}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Party</p>
+            <p className="text-xs text-muted-foreground">{t("landlordParty")}</p>
             <p className="mt-1">
               {party ? (
                 <Link
@@ -212,13 +217,13 @@ export default async function LandExchangeDetailPage({
                   {party.name}
                 </Link>
               ) : (
-                "—"
+                tCommon("dash")
               )}
             </p>
           </div>
           {deal.agreement_terms ? (
             <div className="sm:col-span-2">
-              <p className="text-xs text-muted-foreground">Agreement</p>
+              <p className="text-xs text-muted-foreground">{t("agreement")}</p>
               <p className="mt-1 whitespace-pre-wrap">{deal.agreement_terms}</p>
             </div>
           ) : null}

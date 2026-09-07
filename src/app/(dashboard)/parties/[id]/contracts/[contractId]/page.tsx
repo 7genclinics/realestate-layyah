@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Briefcase, CheckCircle, CreditCard, Wallet } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts, canManageParties } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -19,6 +20,11 @@ export default async function ContractDetailPage({
   const { id, contractId } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.contracts");
+  const tType = await getTranslations("labels.contractType");
+  const tStatus = await getTranslations("labels.contractStatus");
+  const tParties = await getTranslations("pages.parties");
 
   const { data: contract } = await supabase
     .from("contracts")
@@ -60,7 +66,7 @@ export default async function ContractDetailPage({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Back to {party?.name ?? "Party"}
+              {t("backToParty", { name: party?.name ?? tParties("title") })}
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="font-mono text-xs font-semibold text-primary">{contract.code}</span>
@@ -70,22 +76,22 @@ export default async function ContractDetailPage({
               {contract.title}
             </h1>
             <Badge variant="secondary" className="rounded-md font-normal">
-              {CONTRACT_TYPE_LABELS[contract.contract_type]}
+              {tType(contract.contract_type)}
             </Badge>
             <Badge variant="outline" className="rounded-md">
-              {CONTRACT_STATUS_LABELS[contract.status]}
+              {tStatus(contract.status)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {society?.name ? `${society.name} · ` : ""}
-            Started {formatDate(contract.start_date ?? contract.created_at)}
+            {t("started", { date: formatDate(contract.start_date ?? contract.created_at, locale) })}
           </p>
         </div>
 
         {canManageAccounts(profile.role) && remaining > 0 ? (
           <Button render={<Link href={`/parties/${id}/pay?contract=${contractId}`} />}>
             <CreditCard className="size-4" />
-            Pay Contract
+            {t("payContract")}
           </Button>
         ) : null}
       </div>
@@ -93,23 +99,23 @@ export default async function ContractDetailPage({
       {/* Financial summary */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Agreed Value"
-          value={formatPkr(contract.contract_value)}
-          hint="Total work-order value"
+          title={t("agreedValue")}
+          value={formatPkr(contract.contract_value, locale)}
+          hint={t("woValueHint")}
           icon={Briefcase}
           variant="primary"
         />
         <StatCard
-          title="Paid to Date"
-          value={formatPkr(contract.paid_amount)}
-          hint="Disbursed against this contract"
+          title={t("paidToDate")}
+          value={formatPkr(contract.paid_amount, locale)}
+          hint={t("disbursedHint")}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
-          title="Remaining Payable"
-          value={formatPkr(remaining)}
-          hint={remaining > 0 ? "Outstanding balance" : "Fully settled"}
+          title={t("remainingPayable")}
+          value={formatPkr(remaining, locale)}
+          hint={remaining > 0 ? t("outstandingBalance") : t("fullySettled")}
           icon={Wallet}
           variant={remaining > 0 ? "warning" : "default"}
         />

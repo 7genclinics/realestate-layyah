@@ -16,6 +16,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts, canManageDocuments, canManageParties } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -51,6 +52,16 @@ export default async function PartyDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.parties");
+  const tType = await getTranslations("labels.partyType");
+  const tStatus = await getTranslations("labels.partyStatus");
+  const tContract = await getTranslations("labels.contractType");
+  const tCStatus = await getTranslations("labels.contractStatus");
+  const tLand = await getTranslations("labels.landStatus");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tPay = await getTranslations("labels.paymentMode");
+  const tCommon = await getTranslations("common");
 
   const { data: party } = await supabase
     .from("parties")
@@ -137,7 +148,7 @@ export default async function PartyDetailPage({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Back to Parties
+              {t("backToParties")}
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="font-mono text-xs font-semibold text-primary">{party.code}</span>
@@ -147,14 +158,14 @@ export default async function PartyDetailPage({
               {party.name}
             </h1>
             <Badge variant="secondary" className="rounded-md font-normal">
-              {PARTY_TYPE_LABELS[party.party_type]}
+              {tType(party.party_type)}
             </Badge>
             <Badge variant="outline" className="rounded-md">
-              {PARTY_STATUS_LABELS[party.status]}
+              {tStatus(party.status)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Phone: {party.phone} {party.phone_secondary ? `· Alt: ${party.phone_secondary}` : ""} · CNIC/NTN: {party.id_number || "Not provided"}
+            {tCommon("phone")}: {party.phone} {party.phone_secondary ? `· ${party.phone_secondary}` : ""} · {party.id_number || tCommon("dash")}
           </p>
         </div>
 
@@ -165,7 +176,7 @@ export default async function PartyDetailPage({
               variant="outline"
             >
               <Plus className="size-4" />
-              New Work Order
+              {t("newWorkOrder")}
             </Button>
           ) : null}
           {canManageAccounts(profile.role) && openContract ? (
@@ -177,7 +188,7 @@ export default async function PartyDetailPage({
               }
             >
               <CreditCard className="size-4" />
-              Pay Contract
+              {t("payPartyBtn")}
             </Button>
           ) : null}
         </div>
@@ -186,31 +197,31 @@ export default async function PartyDetailPage({
       {/* KPI Financial Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total Work Orders Value"
-          value={formatPkr(contractValue)}
-          hint={`${activeContracts.length} active civil contracts`}
+          title={t("totalWoValue")}
+          value={formatPkr(contractValue, locale)}
+          hint={`${activeContracts.length}`}
           icon={Briefcase}
           variant="primary"
         />
         <StatCard
-          title="Total Paid by Society"
-          value={formatPkr(paidContracts)}
-          hint={`${(payments ?? []).length} payment vouchers issued`}
+          title={t("totalPaidSociety")}
+          value={formatPkr(paidContracts, locale)}
+          hint={`${(payments ?? []).length}`}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
-          title="Net Outstanding Payable"
-          value={formatPkr(remaining)}
-          hint={`Opening balance: ${formatPkr(party.opening_balance)}`}
+          title={t("netPayable")}
+          value={formatPkr(remaining, locale)}
+          hint={formatPkr(party.opening_balance, locale)}
           icon={Wallet}
           variant={remaining > 0 ? "warning" : "default"}
           href="/cash-book"
         />
         <StatCard
-          title="Land Acquisitions"
-          value={landList.length > 0 ? formatPkr(totalLandValue) : "No Land Deals"}
-          hint={landList.length > 0 ? `${landList.length} parcels recorded` : "Contractor / Vendor profile"}
+          title={t("landAcquisitions")}
+          value={landList.length > 0 ? formatPkr(totalLandValue, locale) : t("noLandDeals")}
+          hint={landList.length > 0 ? t("parcelsRecorded", { count: landList.length }) : t("vendorProfile")}
           icon={LandPlot}
           variant="sky"
           href="/land-bank"

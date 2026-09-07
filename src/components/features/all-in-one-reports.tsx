@@ -598,7 +598,7 @@ export function AllInOneReports({
                     </RePieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No payment data recorded in this period.</p>
+                  <p className="text-xs text-muted-foreground">{t("noPaymentData")}</p>
                 )}
               </div>
             </div>
@@ -642,7 +642,7 @@ export function AllInOneReports({
                   <h2 className="font-semibold text-sm">{t("recentReceipts")}</h2>
                 </div>
                 <Link href="/receipts" className="text-xs text-primary hover:underline">
-                  View All Receipts →
+                  {t("viewAllReceipts")}
                 </Link>
               </div>
               <Table>
@@ -733,7 +733,7 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {CUSTOMER_STAGE_LABELS[c.stage as keyof typeof CUSTOMER_STAGE_LABELS] ?? c.stage}
+                        {tStage(c.stage)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -824,7 +824,7 @@ export function AllInOneReports({
                         variant={row.status === "overdue" ? "destructive" : "secondary"}
                         className="rounded-md font-normal"
                       >
-                        {INSTALLMENT_STATUS_LABELS[row.status as keyof typeof INSTALLMENT_STATUS_LABELS] ?? row.status}
+                        {tInst(row.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -835,10 +835,10 @@ export function AllInOneReports({
                           className="h-7 text-xs rounded-md"
                           render={<Link href={`/receipts/new?sale=${row.sale_id}&installment=${row.id}`} />}
                         >
-                          Receive
+                          {t("receive")}
                         </Button>
                       ) : (
-                        <span className="text-xs font-semibold text-emerald-600">Cleared</span>
+                        <span className="text-xs font-semibold text-emerald-600">{tCommon("cleared")}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -948,11 +948,11 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PROPERTY_TYPE_LABELS[p.property_type as keyof typeof PROPERTY_TYPE_LABELS] ?? p.property_type}
+                        {tPropType(p.property_type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatNumber(p.area)} {AREA_UNIT_LABELS[p.area_unit as keyof typeof AREA_UNIT_LABELS] ?? p.area_unit}
+                      {formatNumber(p.area)} {tArea(p.area_unit)}
                     </TableCell>
                     <TableCell className="font-semibold">{formatPkr(p.asking_price)}</TableCell>
                     <TableCell>
@@ -960,7 +960,7 @@ export function AllInOneReports({
                         variant={p.status === "available" ? "secondary" : p.status === "hold" ? "outline" : "default"}
                         className="rounded-md"
                       >
-                        {PROPERTY_STATUS_LABELS[p.status as keyof typeof PROPERTY_STATUS_LABELS] ?? p.status}
+                        {tPropStatus(p.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -1023,7 +1023,7 @@ export function AllInOneReports({
                     <TableCell className="font-medium">{c.title}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {CONTRACT_TYPE_LABELS[c.contract_type as keyof typeof CONTRACT_TYPE_LABELS] ?? c.contract_type}
+                        {tContractType(c.contract_type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-semibold">{formatPkr(c.contract_value)}</TableCell>
@@ -1035,7 +1035,7 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="rounded-md">
-                        {CONTRACT_STATUS_LABELS[c.status as keyof typeof CONTRACT_STATUS_LABELS] ?? c.status}
+                        {tContractStatus(c.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -1093,7 +1093,7 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell>{soc?.name ?? "—"}</TableCell>
                     <TableCell className="font-medium">
-                      {parcel.area} {AREA_UNIT_LABELS[parcel.area_unit as keyof typeof AREA_UNIT_LABELS] ?? parcel.area_unit}
+                      {parcel.area} {tArea(parcel.area_unit)}
                     </TableCell>
                     <TableCell className="font-semibold">{formatPkr(parcel.purchase_value)}</TableCell>
                     <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
@@ -1104,7 +1104,7 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md">
-                        {LAND_STATUS_LABELS[parcel.status as keyof typeof LAND_STATUS_LABELS] ?? parcel.status}
+                        {tLandStatus(parcel.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>
