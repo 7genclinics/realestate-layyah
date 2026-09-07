@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Ruler, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   addMaterialItem,
   addMeasurementEntry,
@@ -33,11 +34,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const UNIT_ENTRIES = Object.entries(CONTRACT_UNIT_LABELS) as [
-  keyof typeof CONTRACT_UNIT_LABELS,
-  string,
-][];
-
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50";
 
@@ -56,6 +52,9 @@ export function ContractDepth({
   measurements: MeasurementEntry[];
   materials: MaterialItem[];
 }) {
+  const t = useTranslations("contracts");
+  const tCommon = useTranslations("common");
+  const tUnit = useTranslations("labels.contractUnit");
   const measuredTotal = measurements.reduce((s, m) => s + Number(m.amount), 0);
   const materialTotal = materials.reduce((s, m) => s + Number(m.amount), 0);
 
@@ -66,19 +65,19 @@ export function ContractDepth({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Ruler className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Measurement Book</h2>
+            <h2 className="font-semibold text-sm">{t("measurementBook")}</h2>
           </div>
           {canManage ? <MeasurementForm contractId={contractId} /> : null}
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{tCommon("description")}</TableHead>
+              <TableHead>{tCommon("unit")}</TableHead>
+              <TableHead className="text-right">{t("colQty")}</TableHead>
+              <TableHead className="text-right">{t("colRate")}</TableHead>
+              <TableHead className="text-right">{tCommon("amount")}</TableHead>
               {canManage ? <TableHead className="w-10" /> : null}
             </TableRow>
           </TableHeader>
@@ -91,7 +90,7 @@ export function ContractDepth({
                   </TableCell>
                   <TableCell className="font-medium">{m.description}</TableCell>
                   <TableCell className="text-xs">
-                    {CONTRACT_UNIT_LABELS[m.unit as keyof typeof CONTRACT_UNIT_LABELS] ?? m.unit}
+                    {tUnit(m.unit)}
                   </TableCell>
                   <TableCell className="text-right">{Number(m.quantity).toLocaleString()}</TableCell>
                   <TableCell className="text-right">{formatPkr(m.rate)}</TableCell>
@@ -100,7 +99,7 @@ export function ContractDepth({
                     <TableCell>
                       <DeleteLineButton
                         onDelete={() => deleteMeasurementEntry(m.id, contractId)}
-                        label="Delete this measurement entry?"
+                        label={t("deleteMeasurement")}
                       />
                     </TableCell>
                   ) : null}
@@ -109,7 +108,7 @@ export function ContractDepth({
             ) : (
               <TableRow>
                 <TableCell colSpan={canManage ? 7 : 6} className="py-8 text-center text-muted-foreground">
-                  No measurements recorded yet.
+                  {t("emptyMeasurements")}
                 </TableCell>
               </TableRow>
             )}
@@ -118,7 +117,7 @@ export function ContractDepth({
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={5} className="text-right font-semibold">
-                  Total measured value
+                  {t("totalMeasured")}
                 </TableCell>
                 <TableCell className="text-right font-bold">{formatPkr(measuredTotal)}</TableCell>
                 {canManage ? <TableCell /> : null}
@@ -133,19 +132,19 @@ export function ContractDepth({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Package className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Materials &amp; Supplies</h2>
+            <h2 className="font-semibold text-sm">{t("materials")}</h2>
           </div>
           {canManage ? <MaterialForm contractId={contractId} /> : null}
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead className="text-right">Ordered</TableHead>
-              <TableHead className="text-right">Received</TableHead>
-              <TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-right">Value</TableHead>
+              <TableHead>{t("colMaterial")}</TableHead>
+              <TableHead>{tCommon("unit")}</TableHead>
+              <TableHead className="text-right">{t("colOrdered")}</TableHead>
+              <TableHead className="text-right">{t("colReceived")}</TableHead>
+              <TableHead className="text-right">{t("colRate")}</TableHead>
+              <TableHead className="text-right">{t("colValue")}</TableHead>
               {canManage ? <TableHead className="w-10" /> : null}
             </TableRow>
           </TableHeader>
@@ -168,7 +167,7 @@ export function ContractDepth({
                     <TableCell>
                       <DeleteLineButton
                         onDelete={() => deleteMaterialItem(m.id, contractId)}
-                        label={`Delete material "${m.name}"?`}
+                        label={t("deleteMaterial", { name: m.name })}
                       />
                     </TableCell>
                   ) : null}
@@ -177,7 +176,7 @@ export function ContractDepth({
             ) : (
               <TableRow>
                 <TableCell colSpan={canManage ? 7 : 6} className="py-8 text-center text-muted-foreground">
-                  No materials recorded yet.
+                  {t("emptyMaterials")}
                 </TableCell>
               </TableRow>
             )}
@@ -186,7 +185,7 @@ export function ContractDepth({
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={5} className="text-right font-semibold">
-                  Total material value
+                  {t("totalMaterial")}
                 </TableCell>
                 <TableCell className="text-right font-bold">{formatPkr(materialTotal)}</TableCell>
                 {canManage ? <TableCell /> : null}
@@ -207,6 +206,8 @@ function DeleteLineButton({
   label: string;
 }) {
   const router = useRouter();
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
   const [isPending, startTransition] = useTransition();
 
   function handle() {
@@ -216,7 +217,7 @@ function DeleteLineButton({
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success("Removed.");
+        toast.success(tToasts("removed"));
         router.refresh();
       }
     });
@@ -229,7 +230,7 @@ function DeleteLineButton({
       onClick={handle}
       disabled={isPending}
       className="text-muted-foreground hover:text-destructive"
-      title="Delete"
+      title={tCommon("delete")}
     >
       <Trash2 className="size-3.5" />
     </Button>
@@ -238,6 +239,11 @@ function DeleteLineButton({
 
 function MeasurementForm({ contractId }: { contractId: string }) {
   const router = useRouter();
+  const t = useTranslations("contracts");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tUnit = useTranslations("labels.contractUnit");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [entryDate, setEntryDate] = useState(today());
@@ -262,7 +268,7 @@ function MeasurementForm({ contractId }: { contractId: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Measurement recorded.");
+      toast.success(tToasts("measurementRecorded"));
       setDescription("");
       setQuantity("");
       setRate("");
