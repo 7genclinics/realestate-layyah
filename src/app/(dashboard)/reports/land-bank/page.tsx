@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import {
   canManageLandBank,
@@ -26,16 +27,20 @@ import {
 
 export default async function LandBankReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tAcq = await getTranslations("labels.landAcquisition");
+  const tStatus = await getTranslations("labels.landStatus");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tCommon = await getTranslations("common");
 
   if (!canViewFinancialReports(profile.role) && !canManageLandBank(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Land acquisition ledger</h1>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
-        </p>
+        <h1 className="text-2xl font-semibold">{t("landLedgerTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -65,21 +70,21 @@ export default async function LandBankReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Land acquisition ledger"
-        description="Purchase value, payments and remaining balance by land record."
+        title={t("landLedgerTitle")}
+        description={t("landLedgerDesc")}
         filename="land-acquisition-ledger"
         headers={[
-          "Land ID",
-          "Description",
-          "Society",
-          "Landlord",
-          "Type",
-          "Area",
-          "Khasra",
-          "Value",
-          "Paid",
-          "Payable",
-          "Status",
+          t("landId"),
+          tCommon("description"),
+          tCommon("society"),
+          t("landlord"),
+          tCommon("type"),
+          t("area"),
+          t("khasra"),
+          t("value"),
+          t("paid"),
+          t("payable"),
+          tCommon("status"),
         ]}
         rows={rows.map((row) => [
           row.code,
@@ -97,23 +102,23 @@ export default async function LandBankReportPage() {
       />
       <ReportTotals
         items={[
-          { label: "Acquisition value", value: formatPkr(value) },
-          { label: "Paid", value: formatPkr(paid) },
-          { label: "Payable", value: formatPkr(remaining) },
-          { label: "Records", value: String(rows.length) },
+          { label: t("acquisitionValue"), value: formatPkr(value, locale) },
+          { label: t("paid"), value: formatPkr(paid, locale) },
+          { label: t("payable"), value: formatPkr(remaining, locale) },
+          { label: t("records"), value: String(rows.length) },
         ]}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Land</TableHead>
-              <TableHead>Society / landlord</TableHead>
-              <TableHead>Area</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>Paid</TableHead>
-              <TableHead>Payable</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("land")}</TableHead>
+              <TableHead>{t("societyLandlord")}</TableHead>
+              <TableHead>{t("area")}</TableHead>
+              <TableHead>{t("value")}</TableHead>
+              <TableHead>{t("paid")}</TableHead>
+              <TableHead>{t("payable")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -132,19 +137,19 @@ export default async function LandBankReportPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {row.society?.name ?? "—"}
+                    {row.society?.name ?? tCommon("dash")}
                     <div className="text-xs text-muted-foreground">
-                      {row.party?.name ?? LAND_ACQUISITION_LABELS[row.acquisition_type]}
+                      {row.party?.name ?? tAcq(row.acquisition_type)}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {row.area} {AREA_UNIT_LABELS[row.area_unit]}
+                    {row.area} {tUnit(row.area_unit)}
                   </TableCell>
-                  <TableCell>{formatPkr(row.purchase_value)}</TableCell>
-                  <TableCell>{formatPkr(row.paid_amount)}</TableCell>
-                  <TableCell>{formatPkr(row.remaining_amount)}</TableCell>
+                  <TableCell>{formatPkr(row.purchase_value, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.paid_amount, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.remaining_amount, locale)}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{LAND_STATUS_LABELS[row.status]}</Badge>
+                    <Badge variant="secondary">{tStatus(row.status)}</Badge>
                   </TableCell>
                 </TableRow>
               ))
@@ -154,7 +159,7 @@ export default async function LandBankReportPage() {
                   colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No land records to report.
+                  {t("noLand")}
                 </TableCell>
               </TableRow>
             )}

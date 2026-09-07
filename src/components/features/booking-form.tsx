@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { createBooking } from "@/lib/actions/bookings";
 import {
   AREA_UNIT_LABELS,
@@ -63,6 +64,14 @@ export function BookingForm({
   defaultPropertyId?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("bookings");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.propertyType");
+  const tUnit = useTranslations("labels.areaUnit");
+  const tPayType = useTranslations("labels.paymentType");
+  const tStatus = useTranslations("labels.propertyStatus");
   const {
     register,
     handleSubmit,
@@ -154,11 +163,11 @@ export function BookingForm({
     const result = await createBooking(values);
 
     if (result.error || !result.customerId) {
-      toast.error(result.error ?? "Could not create booking");
+      toast.error(result.error ?? tToasts("couldNotCreateBooking"));
       return;
     }
 
-    toast.success("Booking created and installment schedule initialized");
+    toast.success(tToasts("bookingCreated"));
     router.push(`/customers/${result.customerId}`);
     router.refresh();
   }
@@ -169,16 +178,16 @@ export function BookingForm({
       <div className="rounded-[10px] border bg-card p-6 shadow-xs space-y-5">
         <div className="flex items-center gap-2 border-b pb-3">
           <Building2 className="size-4 text-primary" />
-          <h2 className="font-semibold text-base">Booking &amp; Unit Allocation</h2>
+          <h2 className="font-semibold text-base">{t("sectionTitle")}</h2>
         </div>
 
         <div className="space-y-2">
-          <Label>Deal Type</Label>
+          <Label>{t("dealType")}</Label>
           <div className="inline-flex rounded-[8px] border p-1 bg-muted/30">
             {(
               [
-                { value: "society", label: "Society inventory unit", Icon: Building2 },
-                { value: "external", label: "External / open-market", Icon: Globe2 },
+                { value: "society", label: t("dealSociety"), Icon: Building2 },
+                { value: "external", label: t("dealExternal"), Icon: Globe2 },
               ] as const
             ).map(({ value, label, Icon }) => (
               <button
@@ -197,15 +206,13 @@ export function BookingForm({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            {dealType === "external"
-              ? "Selling a plot, shop or unit that is not part of your society inventory (resale / open-market). No inventory unit is consumed."
-              : "Booking an available unit from your society inventory."}
+            {dealType === "external" ? t("dealExternalHint") : t("dealSocietyHint")}
           </p>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="customer_id">Select Customer Buyer *</Label>
+            <Label htmlFor="customer_id">{t("selectCustomer")}</Label>
             <select
               id="customer_id"
               className={selectClassName}
@@ -223,7 +230,7 @@ export function BookingForm({
             <>
               {properties.length ? (
                 <div className="space-y-2">
-                  <Label htmlFor="property_id">Select Property Unit *</Label>
+                  <Label htmlFor="property_id">{t("selectProperty")}</Label>
                   <select
                     id="property_id"
                     className={selectClassName}
@@ -231,7 +238,7 @@ export function BookingForm({
                   >
                     {properties.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.code} · Plot #{item.plot_no} ({item.status})
+                        {item.code} · {t("plotHash", { plot: item.plot_no })} ({tStatus(item.status)})
                       </option>
                     ))}
                   </select>
@@ -241,11 +248,9 @@ export function BookingForm({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label>Property Unit</Label>
+                  <Label>{t("propertyUnit")}</Label>
                   <p className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
-                    No available inventory units. Add a property, or switch to an{" "}
-                    <span className="font-medium text-foreground">External / open-market</span>{" "}
-                    deal above.
+                    {t("noInventory")}
                   </p>
                 </div>
               )}
@@ -253,14 +258,14 @@ export function BookingForm({
               {property ? (
                 <div className="rounded-md bg-muted/40 p-3 sm:col-span-2 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <span className="font-medium text-foreground">
-                    {PROPERTY_TYPE_LABELS[property.property_type]} · Plot #{property.plot_no}
+                    {tType(property.property_type)} · {t("plotHash", { plot: property.plot_no })}
                   </span>
                   <span className="text-muted-foreground">
-                    Size: {formatNumber(property.area)} {AREA_UNIT_LABELS[property.area_unit]}
+                    {t("size", { area: formatNumber(property.area), unit: tUnit(property.area_unit) })}
                   </span>
                   {property.asking_price ? (
                     <span className="font-semibold text-primary">
-                      Catalog Asking: {formatPkr(property.asking_price)}
+                      {t("catalogAsking", { amount: formatPkr(property.asking_price) })}
                     </span>
                   ) : null}
                 </div>
@@ -269,25 +274,25 @@ export function BookingForm({
           ) : (
             <>
               <div className="space-y-2">
-                <Label htmlFor="ext_property_type">Unit Type *</Label>
+                <Label htmlFor="ext_property_type">{t("unitType")}</Label>
                 <select
                   id="ext_property_type"
                   className={selectClassName}
                   {...register("ext_property_type")}
                 >
-                  {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+                  {Object.keys(PROPERTY_TYPE_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {tType(value)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_plot_no">Plot / Unit No *</Label>
+                <Label htmlFor="ext_plot_no">{t("plotUnitNo")}</Label>
                 <Input
                   id="ext_plot_no"
-                  placeholder="e.g. Shop 12, Plot 45-C, Khasra 210"
+                  placeholder={t("plotUnitPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_plot_no")}
                 />
@@ -299,12 +304,12 @@ export function BookingForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_area">Area / Size *</Label>
+                <Label htmlFor="ext_area">{t("areaSize")}</Label>
                 <Input
                   id="ext_area"
                   type="number"
                   step="any"
-                  placeholder="e.g. 5"
+                  placeholder={t("areaPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_area")}
                 />
@@ -316,55 +321,55 @@ export function BookingForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_area_unit">Area Unit *</Label>
+                <Label htmlFor="ext_area_unit">{t("areaUnit")}</Label>
                 <select
                   id="ext_area_unit"
                   className={selectClassName}
                   {...register("ext_area_unit")}
                 >
-                  {Object.entries(AREA_UNIT_LABELS).map(([value, label]) => (
+                  {Object.keys(AREA_UNIT_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {tUnit(value)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="ext_location">Location / Address</Label>
+                <Label htmlFor="ext_location">{t("location")}</Label>
                 <Input
                   id="ext_location"
-                  placeholder="Mouza / block / area, city"
+                  placeholder={t("locationPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_location")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_seller_name">Seller / Current Owner</Label>
+                <Label htmlFor="ext_seller_name">{t("seller")}</Label>
                 <Input
                   id="ext_seller_name"
-                  placeholder="Name of the person you are buying from"
+                  placeholder={t("sellerPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_seller_name")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_registry_no">Registry No</Label>
+                <Label htmlFor="ext_registry_no">{t("registryNo")}</Label>
                 <Input
                   id="ext_registry_no"
-                  placeholder="Registry / mutation reference"
+                  placeholder={t("registryPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_registry_no")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ext_khata_no">Khata / Khasra No</Label>
+                <Label htmlFor="ext_khata_no">{t("khataNo")}</Label>
                 <Input
                   id="ext_khata_no"
-                  placeholder="Khata / khasra reference"
+                  placeholder={t("khataPlaceholder")}
                   className="rounded-[8px]"
                   {...register("ext_khata_no")}
                 />
@@ -373,20 +378,20 @@ export function BookingForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="lock_type">Unit Lock Type</Label>
+            <Label htmlFor="lock_type">{t("lockType")}</Label>
             <select id="lock_type" className={selectClassName} {...register("lock_type")}>
-              <option value="booked">Booked (Firm Allocation)</option>
-              <option value="hold">Hold (Temporary Reservation)</option>
+              <option value="booked">{t("lockBooked")}</option>
+              <option value="hold">{t("lockHold")}</option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rate_per_unit">Rate per unit area (PKR) *</Label>
+            <Label htmlFor="rate_per_unit">{t("ratePerUnit")}</Label>
             <Input
               id="rate_per_unit"
               type="number"
               step="1"
-              placeholder="e.g. 350000 per Marla"
+              placeholder={t("ratePlaceholder")}
               className="rounded-[8px]"
               {...register("rate_per_unit")}
             />
@@ -398,27 +403,27 @@ export function BookingForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="token_amount">Down Payment / Token (PKR)</Label>
+            <Label htmlFor="token_amount">{t("token")}</Label>
             <Input
               id="token_amount"
               type="number"
               step="1"
-              placeholder="e.g. 500000"
+              placeholder={t("tokenPlaceholder")}
               className="rounded-[8px]"
               {...register("token_amount")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payment_type">Payment Mode</Label>
+            <Label htmlFor="payment_type">{t("paymentMode")}</Label>
             <select
               id="payment_type"
               className={selectClassName}
               {...register("payment_type")}
             >
-              {Object.entries(PAYMENT_TYPE_LABELS).map(([value, label]) => (
+              {Object.keys(PAYMENT_TYPE_LABELS).map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {tPayType(value)}
                 </option>
               ))}
             </select>
@@ -432,45 +437,45 @@ export function BookingForm({
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
               <Coins className="size-4 text-primary" />
-              <h2 className="font-semibold text-base">Installment Plan &amp; Periodic Additional Payments</h2>
+              <h2 className="font-semibold text-base">{t("planTitle")}</h2>
             </div>
             <Badge variant="secondary" className="rounded-md">
-              EMI Schedule Generator
+              {t("emiBadge")}
             </Badge>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="term_months">Total EMI Duration (Months) *</Label>
+              <Label htmlFor="term_months">{t("termMonths")}</Label>
               <Input
                 id="term_months"
                 type="number"
                 min="2"
-                placeholder="e.g. 12, 24, 36"
+                placeholder={t("termPlaceholder")}
                 className="rounded-[8px]"
                 {...register("term_months")}
               />
-              <p className="text-xs text-muted-foreground">Standard duration in months (e.g. 12, 24, 36, 48)</p>
+              <p className="text-xs text-muted-foreground">{t("termHint")}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="balloon_mode">Additional Periodic Payment Frequency</Label>
+              <Label htmlFor="balloon_mode">{t("balloonFreq")}</Label>
               <select
                 id="balloon_mode"
                 className={selectClassName}
                 {...register("balloon_mode")}
               >
-                <option value="none">None (Equal Monthly Installments Only)</option>
-                <option value="every_3_months">Every 3 Months (Quarterly Additional Payment)</option>
-                <option value="every_6_months">Every 6 Months (Semi-Annual Additional Payment)</option>
-                <option value="every_12_months">Every 12 Months (Annual Additional Payment)</option>
-                <option value="custom">Custom Milestone Months (e.g. 3, 6, 9, 12...)</option>
+                <option value="none">{t("balloonNone")}</option>
+                <option value="every_3_months">{t("balloon3")}</option>
+                <option value="every_6_months">{t("balloon6")}</option>
+                <option value="every_12_months">{t("balloon12")}</option>
+                <option value="custom">{t("balloonCustom")}</option>
               </select>
             </div>
 
             {balloonMode !== "none" && (
               <div className="space-y-2">
-                <Label htmlFor="balloon_amount">Additional Payment Amount (PKR) *</Label>
+                <Label htmlFor="balloon_amount">{t("balloonAmount")}</Label>
                 <Input
                   id="balloon_amount"
                   type="number"
@@ -479,25 +484,25 @@ export function BookingForm({
                   className="rounded-[8px]"
                   {...register("balloon_amount")}
                 />
-                <p className="text-xs text-muted-foreground">Added to regular monthly EMI on scheduled milestone months</p>
+                <p className="text-xs text-muted-foreground">{t("balloonAmountHint")}</p>
               </div>
             )}
 
             {balloonMode === "custom" && (
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="custom_balloon_months">Custom Additional Payment Months</Label>
+                <Label htmlFor="custom_balloon_months">{t("customMonths")}</Label>
                 <Input
                   id="custom_balloon_months"
-                  placeholder="e.g. 3, 6, 9, 12, 18, 24"
+                  placeholder={t("customMonthsPlaceholder")}
                   className="rounded-[8px]"
                   {...register("custom_balloon_months")}
                 />
-                <p className="text-xs text-muted-foreground">Comma-separated list of month numbers where additional payment applies</p>
+                <p className="text-xs text-muted-foreground">{t("customMonthsHint")}</p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="possession_amount">Lump Sum on Possession / Ballot (PKR)</Label>
+              <Label htmlFor="possession_amount">{t("possession")}</Label>
               <Input
                 id="possession_amount"
                 type="number"
@@ -506,7 +511,7 @@ export function BookingForm({
                 className="rounded-[8px]"
                 {...register("possession_amount")}
               />
-              <p className="text-xs text-muted-foreground">Optional final milestone due at handover / last month</p>
+              <p className="text-xs text-muted-foreground">{t("possessionHint")}</p>
             </div>
           </div>
         </div>
@@ -515,20 +520,20 @@ export function BookingForm({
       {/* Financial Valuation Summary Bar */}
       <div className="rounded-[10px] border bg-muted/30 p-5 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Total Sale Value</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("totalSale")}</p>
           <p className="text-xl font-bold text-foreground mt-0.5">{formatPkr(saleAmount)}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Token / Down Payment</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("tokenDown")}</p>
           <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatPkr(token)}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Net Installment Balance</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("netBalance")}</p>
           <p className="text-xl font-bold text-primary mt-0.5">{formatPkr(remaining)}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Schedule Milestones</p>
-          <p className="text-xl font-bold text-foreground mt-0.5">{preview.length} vouchers</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("scheduleMilestones")}</p>
+          <p className="text-xl font-bold text-foreground mt-0.5">{t("vouchers", { count: preview.length })}</p>
         </div>
       </div>
 
@@ -536,21 +541,21 @@ export function BookingForm({
       <div className="rounded-[10px] border bg-card p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <Calendar className="size-4 text-muted-foreground" />
-          <h2 className="font-semibold text-base">Agreement Terms &amp; CRM Remarks</h2>
+          <h2 className="font-semibold text-base">{t("agreementTitle")}</h2>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="agreement_date">Agreement Date</Label>
+            <Label htmlFor="agreement_date">{t("agreementDate")}</Label>
             <Input id="agreement_date" type="date" className="rounded-[8px]" {...register("agreement_date")} />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="agreement_terms">Agreement Terms &amp; Conditions</Label>
-            <Textarea id="agreement_terms" rows={3} placeholder="Terms of booking, possession timeline, transfer conditions..." className="rounded-[8px]" {...register("agreement_terms")} />
+            <Label htmlFor="agreement_terms">{t("agreementTerms")}</Label>
+            <Textarea id="agreement_terms" rows={3} placeholder={t("agreementPlaceholder")} className="rounded-[8px]" {...register("agreement_terms")} />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="notes">Internal Notes</Label>
-            <Textarea id="notes" rows={2} placeholder="Internal agent notes or buyer remarks..." className="rounded-[8px]" {...register("notes")} />
+            <Label htmlFor="notes">{t("internalNotes")}</Label>
+            <Textarea id="notes" rows={2} placeholder={t("notesPlaceholder")} className="rounded-[8px]" {...register("notes")} />
           </div>
         </div>
       </div>
@@ -561,10 +566,10 @@ export function BookingForm({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Coins className="size-4 text-primary" />
-              <h2 className="font-semibold text-sm">Generated Installment &amp; Milestone Schedule Preview</h2>
+              <h2 className="font-semibold text-sm">{t("previewTitle")}</h2>
             </div>
             <span className="text-xs font-medium text-muted-foreground">
-              {preview.length} scheduled payments
+              {t("scheduledPayments", { count: preview.length })}
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -572,11 +577,11 @@ export function BookingForm({
               <thead className="border-b bg-muted/40 text-left text-xs uppercase font-medium text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">#</th>
-                  <th className="px-4 py-3">Period / Description</th>
-                  <th className="px-4 py-3">Due Date</th>
-                  <th className="px-4 py-3">Regular EMI</th>
-                  <th className="px-4 py-3">Additional / Balloon</th>
-                  <th className="px-4 py-3 text-right">Total Scheduled Due</th>
+                  <th className="px-4 py-3">{t("colPeriod")}</th>
+                  <th className="px-4 py-3">{t("colDueDate")}</th>
+                  <th className="px-4 py-3">{t("colRegularEmi")}</th>
+                  <th className="px-4 py-3">{t("colBalloon")}</th>
+                  <th className="px-4 py-3 text-right">{t("colTotalDue")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -593,7 +598,7 @@ export function BookingForm({
                         <span>{row.period_label}</span>
                         {row.is_balloon && (
                           <Badge variant="secondary" className="rounded-md text-[10px] px-1.5 py-0">
-                            Milestone + Additional
+                            {t("milestoneBadge")}
                           </Badge>
                         )}
                       </div>
@@ -617,14 +622,14 @@ export function BookingForm({
       {/* Submit Action Bar */}
       <div className="flex justify-end gap-3 pt-4 border-t">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting || (dealType === "society" && !properties.length)}
         >
           {isSubmitting ? <Loader2 className="animate-spin size-4 mr-2" /> : <CheckCircle className="size-4 mr-2" />}
-          Confirm Booking &amp; Save Schedule
+          {tForms("confirmBooking")}
         </Button>
       </div>
     </form>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageInventory, canViewPropertyCosts } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,6 +21,8 @@ export default async function EditPropertyPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("pages.inventory");
+  const tCommon = await getTranslations("common");
 
   if (!canManageInventory(profile.role)) {
     redirect(`/inventory/${id}`);
@@ -49,21 +52,20 @@ export default async function EditPropertyPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit property</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            Update plot {property.plot_no}. Use the status control on the detail
-            page to change availability.
+            {t("editStatusHint", { plot: property.plot_no })}
           </p>
         </div>
         <Button render={<Link href={`/inventory/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Inventory details</CardTitle>
+          <CardTitle>{t("detailsTitle")}</CardTitle>
           <CardDescription>
-            Acquisition cost and minimum price are hidden from sales and agents.
+            {t("detailsHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

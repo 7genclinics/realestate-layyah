@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,16 +21,18 @@ export default async function PayLandPage({
 }) {
   const { id } = await params;
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.landBank");
+  const tCommon = await getTranslations("common");
 
   if (!canManageAccounts(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay land</h1>
+        <h1 className="text-2xl font-semibold">{t("payLand")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only accounts, managers and owners can post land payments.
+          {t("payNoPermission")}
         </p>
         <Button render={<Link href={`/land-bank/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -60,12 +63,12 @@ export default async function PayLandPage({
   ) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay land</h1>
+        <h1 className="text-2xl font-semibold">{t("payLand")}</h1>
         <p className="text-sm text-muted-foreground">
-          Approve this acquisition before posting payments.
+          {t("approveFirst")}
         </p>
         <Button render={<Link href={`/land-bank/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -74,12 +77,12 @@ export default async function PayLandPage({
   if (!accounts?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay land</h1>
+        <h1 className="text-2xl font-semibold">{t("payLand")}</h1>
         <p className="text-sm text-muted-foreground">
-          Configure a cash or bank account first.
+          {t("needAccount")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Cash book
+          {t("cashBook")}
         </Button>
       </div>
     );
@@ -89,17 +92,16 @@ export default async function PayLandPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Pay {parcel.code}
+          {t("payCode", { code: parcel.code })}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Posts a land-purchase expense to the cash book and reduces the parcel
-          balance.
+          {t("payHint")}
         </p>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>{parcel.title}</CardTitle>
-          <CardDescription>Amount cannot exceed the remaining payable.</CardDescription>
+          <CardDescription>{t("cannotExceed")}</CardDescription>
         </CardHeader>
         <CardContent>
           <LandPaymentForm

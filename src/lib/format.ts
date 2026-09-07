@@ -1,12 +1,13 @@
 import { format, parseISO } from "date-fns";
-import { enUS, ur } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 function intlLocale(locale?: string) {
   return locale === "ur" ? "ur-PK" : "en-PK";
 }
 
-function dateLocale(locale?: string) {
-  return locale === "ur" ? ur : enUS;
+function dateLocale(_locale?: string) {
+  // date-fns has no Urdu locale; keep enUS calendar labels and use Intl for numbers.
+  return enUS;
 }
 
 export function formatPkr(value: number | null | undefined, locale?: string) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import {
@@ -29,6 +30,10 @@ const STATUSES: PropertyStatus[] = [
 export default async function InventoryReportPage() {
   await requireProfile();
   const supabase = await createClient();
+  const t = await getTranslations("reports");
+  const tStatus = await getTranslations("labels.propertyStatus");
+  const tType = await getTranslations("labels.propertyType");
+  const tCommon = await getTranslations("common");
   const { data: properties } = await supabase
     .from("properties")
     .select("id, status, property_type, area, societies(name, code)")
@@ -45,9 +50,9 @@ export default async function InventoryReportPage() {
   >();
 
   for (const row of rows) {
-    const key = `${row.society?.name ?? "Unassigned"}|${row.status}|${row.property_type}`;
+    const key = `${row.society?.name ?? t("unassigned")}|${row.status}|${row.property_type}`;
     const current = grouped.get(key) ?? {
-      society: row.society?.name ?? "Unassigned",
+      society: row.society?.name ?? t("unassigned"),
       status: row.status,
       type: row.property_type,
       count: 0,
@@ -71,21 +76,21 @@ export default async function InventoryReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Inventory availability"
-        description="Units by society, listing status and property type."
+        title={t("inventoryAvailability")}
+        description={t("inventoryAvailabilityDesc")}
         filename="inventory-availability"
-        headers={["Society", "Status", "Type", "Units", "Total area"]}
+        headers={[tCommon("society"), tCommon("status"), tCommon("type"), t("units"), t("totalArea")]}
         rows={tableRows.map((row) => [
           row.society,
-          PROPERTY_STATUS_LABELS[row.status],
-          PROPERTY_TYPE_LABELS[row.type as keyof typeof PROPERTY_TYPE_LABELS],
+          tStatus(row.status),
+          tType(row.type),
           row.count,
           row.area,
         ])}
       />
       <ReportTotals
         items={STATUSES.slice(0, 4).map((status) => ({
-          label: PROPERTY_STATUS_LABELS[status],
+          label: tStatus(status),
           value: String(statusCounts[status]),
         }))}
       />
@@ -93,11 +98,11 @@ export default async function InventoryReportPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Society</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Units</TableHead>
-              <TableHead>Area</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead>{t("units")}</TableHead>
+              <TableHead>{t("area")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -112,9 +117,9 @@ export default async function InventoryReportPage() {
                       {row.society}
                     </Link>
                   </TableCell>
-                  <TableCell>{PROPERTY_STATUS_LABELS[row.status]}</TableCell>
+                  <TableCell>{tStatus(row.status)}</TableCell>
                   <TableCell>
-                    {PROPERTY_TYPE_LABELS[row.type as keyof typeof PROPERTY_TYPE_LABELS]}
+                    {tType(row.type)}
                   </TableCell>
                   <TableCell>{row.count}</TableCell>
                   <TableCell>{row.area}</TableCell>
@@ -126,7 +131,7 @@ export default async function InventoryReportPage() {
                   colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No inventory to report.
+                  {t("noInventory")}
                 </TableCell>
               </TableRow>
             )}

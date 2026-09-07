@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { Bell, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { enUS, ur } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
@@ -72,11 +72,11 @@ function entityHref(entityType: string | null, entityId: string | null): string 
   }
 }
 
-function timeAgo(iso: string, locale: string): string {
+function timeAgo(iso: string, _locale: string): string {
   try {
     return formatDistanceToNow(new Date(iso), {
       addSuffix: true,
-      locale: locale === "ur" ? ur : enUS,
+      locale: enUS,
     });
   } catch {
     return "";

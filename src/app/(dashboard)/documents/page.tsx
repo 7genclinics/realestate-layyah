@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageDocuments } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -30,6 +31,12 @@ export default async function DocumentsPage({
   const { profile } = await requireProfile();
   const { type, status, q } = await searchParams;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.documents");
+  const tType = await getTranslations("labels.documentType");
+  const tStatus = await getTranslations("labels.documentStatus");
+  const tEntity = await getTranslations("labels.documentEntity");
+  const tCommon = await getTranslations("common");
 
   let query = supabase
     .from("documents")
@@ -61,14 +68,13 @@ export default async function DocumentsPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Agreements, IDs, invoices and payment proofs linked to operational
-            records.
+            {t("subtitle")}
           </p>
         </div>
         {canManageDocuments(profile.role) ? (
-          <Button render={<Link href="/documents/new" />}>Upload document</Button>
+          <Button render={<Link href="/documents/new" />}>{t("upload")}</Button>
         ) : null}
       </div>
 
@@ -76,7 +82,7 @@ export default async function DocumentsPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search title or ID"
+          placeholder={t("searchPlaceholder")}
           className="h-8 max-w-sm rounded-lg border border-input bg-transparent px-2.5 text-sm"
         />
         <select
@@ -84,10 +90,10 @@ export default async function DocumentsPage({
           defaultValue={type ?? ""}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
         >
-          <option value="">All types</option>
-          {Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => (
+          <option value="">{t("allTypes")}</option>
+          {Object.keys(DOCUMENT_TYPE_LABELS).map((value) => (
             <option key={value} value={value}>
-              {label}
+              {tType(value)}
             </option>
           ))}
         </select>
@@ -96,15 +102,15 @@ export default async function DocumentsPage({
           defaultValue={status ?? ""}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
         >
-          <option value="">Current versions</option>
-          {Object.entries(DOCUMENT_STATUS_LABELS).map(([value, label]) => (
+          <option value="">{t("currentVersions")}</option>
+          {Object.keys(DOCUMENT_STATUS_LABELS).map((value) => (
             <option key={value} value={value}>
-              {label}
+              {tStatus(value)}
             </option>
           ))}
         </select>
         <Button type="submit" variant="outline">
-          Filter
+          {tCommon("filter")}
         </Button>
       </form>
 
@@ -112,13 +118,13 @@ export default async function DocumentsPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Linked to</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>{t("id")}</TableHead>
+              <TableHead>{tCommon("title")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead>{t("linkedTo")}</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{t("action")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -148,27 +154,27 @@ export default async function DocumentsPage({
                     ) : null}
                     {row.is_confidential ? (
                       <Badge variant="secondary" className="ml-2">
-                        Confidential
+                        {t("confidential")}
                       </Badge>
                     ) : null}
                   </TableCell>
-                  <TableCell>{DOCUMENT_TYPE_LABELS[row.document_type]}</TableCell>
+                  <TableCell>{tType(row.document_type)}</TableCell>
                   <TableCell>
                     <Link
                       href={entityRecordHref(row.entity_type, row.entity_id)}
                       className="underline-offset-4 hover:underline"
                     >
-                      {DOCUMENT_ENTITY_LABELS[row.entity_type]}
+                      {tEntity(row.entity_type)}
                     </Link>
                   </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
+                  <TableCell>{formatDate(row.document_date, locale)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
                         row.status === "rejected" ? "destructive" : "secondary"
                       }
                     >
-                      {DOCUMENT_STATUS_LABELS[row.status]}
+                      {tStatus(row.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -188,7 +194,7 @@ export default async function DocumentsPage({
                   colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No documents uploaded yet.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

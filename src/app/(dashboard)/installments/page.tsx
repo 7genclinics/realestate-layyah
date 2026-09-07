@@ -176,7 +176,7 @@ export default async function InstallmentsPage({
                           {row.customer.full_name}
                         </Link>
                       ) : (
-                        {tCommon("dash")}
+                        tCommon("dash")
                       )}
                     </TableCell>
                     <TableCell>

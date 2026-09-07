@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { format, startOfMonth } from "date-fns";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewFinancialReports } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -27,16 +28,19 @@ export default async function CashBookReportPage({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tCommon = await getTranslations("common");
 
   if (!canViewFinancialReports(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Income & expense</h1>
+        <h1 className="text-2xl font-semibold">{t("cashTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -73,10 +77,10 @@ export default async function CashBookReportPage({
     if (row.transaction_type === "transfer") {
       continue;
     }
-    const key = `${row.category?.name ?? "Uncategorised"}|${row.society?.name ?? "All projects"}`;
+    const key = `${row.category?.name ?? t("uncategorised")}|${row.society?.name ?? t("allProjects")}`;
     const current = grouped.get(key) ?? {
-      category: row.category?.name ?? "Uncategorised",
-      society: row.society?.name ?? "All projects",
+      category: row.category?.name ?? t("uncategorised"),
+      society: row.society?.name ?? t("allProjects"),
       income: 0,
       expense: 0,
     };
@@ -104,10 +108,10 @@ export default async function CashBookReportPage({
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Income & expense"
-        description={`Cash-book totals from ${from} to ${to}. Transfers are excluded from income/expense.`}
+        title={t("cashTitle")}
+        description={t("cashDescPeriod", { from, to })}
         filename={`cash-book-${from}-to-${to}`}
-        headers={["Category", "Society", "Income", "Expense", "Net"]}
+        headers={[t("csvCategory"), tCommon("society"), t("income"), t("expense"), t("net")]}
         rows={tableRows.map((row) => [
           row.category,
           row.society,
@@ -118,7 +122,7 @@ export default async function CashBookReportPage({
       >
         <form className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted-foreground">
-            From
+            {tCommon("from")}
             <input
               name="from"
               type="date"
@@ -127,7 +131,7 @@ export default async function CashBookReportPage({
             />
           </label>
           <label className="text-xs text-muted-foreground">
-            To
+            {tCommon("to")}
             <input
               name="to"
               type="date"
@@ -136,34 +140,36 @@ export default async function CashBookReportPage({
             />
           </label>
           <Button type="submit" variant="outline">
-            Apply
+            {tCommon("apply")}
           </Button>
         </form>
       </ReportHeader>
       <ReportTotals
         items={[
-          { label: "Income", value: formatPkr(income) },
-          { label: "Expense", value: formatPkr(expense) },
-          { label: "Net cash flow", value: formatPkr(income - expense) },
+          { label: t("income"), value: formatPkr(income, locale) },
+          { label: t("expense"), value: formatPkr(expense, locale) },
+          { label: t("netCashFlow"), value: formatPkr(income - expense, locale) },
           {
-            label: `End date (${to})`,
-            value: formatPkr(todaySummary.net),
+            label: t("endDate", { date: to }),
+            value: formatPkr(todaySummary.net, locale),
           },
         ]}
       />
       <p className="text-xs text-muted-foreground">
-        Selected end date income {formatPkr(todaySummary.income)} · expense{" "}
-        {formatPkr(todaySummary.expense)}
+        {t("endDateHint", {
+          income: formatPkr(todaySummary.income, locale),
+          expense: formatPkr(todaySummary.expense, locale),
+        })}
       </p>
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead>Society</TableHead>
-              <TableHead>Income</TableHead>
-              <TableHead>Expense</TableHead>
-              <TableHead>Net</TableHead>
+              <TableHead>{t("csvCategory")}</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{t("income")}</TableHead>
+              <TableHead>{t("expense")}</TableHead>
+              <TableHead>{t("net")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -172,9 +178,9 @@ export default async function CashBookReportPage({
                 <TableRow key={`${row.category}-${row.society}`}>
                   <TableCell>{row.category}</TableCell>
                   <TableCell>{row.society}</TableCell>
-                  <TableCell>{formatPkr(row.income)}</TableCell>
-                  <TableCell>{formatPkr(row.expense)}</TableCell>
-                  <TableCell>{formatPkr(row.income - row.expense)}</TableCell>
+                  <TableCell>{formatPkr(row.income, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.expense, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.income - row.expense, locale)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -183,7 +189,7 @@ export default async function CashBookReportPage({
                   colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No posted cash-book entries in this period.
+                  {t("noCashEntries")}
                 </TableCell>
               </TableRow>
             )}

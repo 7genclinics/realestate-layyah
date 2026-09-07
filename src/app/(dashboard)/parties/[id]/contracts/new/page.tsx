@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageParties } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -19,17 +20,18 @@ export default async function NewContractPage({
 }) {
   const { id } = await params;
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.parties");
+  const tCommon = await getTranslations("common");
 
   if (!canManageParties(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New work order</h1>
+        <h1 className="text-2xl font-semibold">{t("newWorkOrder")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only owners, managers, accounts and site managers can create work
-          orders.
+          {t("woNoPermission")}
         </p>
         <Button render={<Link href={`/parties/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -44,9 +46,9 @@ export default async function NewContractPage({
   if (!parties?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New work order</h1>
-        <p className="text-sm text-muted-foreground">Add a party first.</p>
-        <Button render={<Link href="/parties/new" />}>Add party</Button>
+        <h1 className="text-2xl font-semibold">{t("newWorkOrder")}</h1>
+        <p className="text-sm text-muted-foreground">{t("addPartyFirst")}</p>
+        <Button render={<Link href="/parties/new" />}>{t("addParty")}</Button>
       </div>
     );
   }
@@ -54,18 +56,16 @@ export default async function NewContractPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New work order</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("newWorkOrder")}</h1>
         <p className="text-sm text-muted-foreground">
-          Rate × quantity becomes the contract value. Remaining payable starts
-          at that amount.
+          {t("woSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Work order details</CardTitle>
+          <CardTitle>{t("woDetails")}</CardTitle>
           <CardDescription>
-            Payments later reduce the remaining balance and post to the cash
-            book.
+            {t("woHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

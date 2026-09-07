@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -101,6 +102,17 @@ export function AllInOneReports({
   societies,
   customers,
 }: AllInOneReportsProps) {
+  const t = useTranslations("reports");
+  const tCommon = useTranslations("common");
+  const tStage = useTranslations("labels.customerStage");
+  const tInst = useTranslations("labels.installmentStatus");
+  const tPropType = useTranslations("labels.propertyType");
+  const tPropStatus = useTranslations("labels.propertyStatus");
+  const tArea = useTranslations("labels.areaUnit");
+  const tContractType = useTranslations("labels.contractType");
+  const tContractStatus = useTranslations("labels.contractStatus");
+  const tLandStatus = useTranslations("labels.landStatus");
+  const tTxn = useTranslations("labels.cashTransactionType");
   const [activeTab, setActiveTab] = useState<
     "executive" | "customers" | "installments" | "cashbook" | "inventory" | "contracts" | "land"
   >("executive");
@@ -354,21 +366,21 @@ export function AllInOneReports({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-              Master Analytics &amp; Reports Center
+              {t("masterTitle")}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              All-in-one consolidated financial statements, real-time ledgers, collection recovery funnels, and cash flow analytics.
+              {t("masterSubtitle")}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleExportCsv} className="rounded-md">
               <Download className="size-3.5 mr-1.5" />
-              Export CSV
+              {t("exportCsv")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} className="rounded-md">
               <Printer className="size-3.5 mr-1.5" />
-              Print Statement
+              {t("printStatement")}
             </Button>
           </div>
         </div>
@@ -377,13 +389,13 @@ export function AllInOneReports({
         <div className="rounded-[10px] border bg-card p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
           {/* Preset Buttons */}
           <div className="flex flex-wrap items-center gap-1 bg-muted/60 p-1 rounded-[8px]">
-            <PresetButton label="All Time" active={period === "all"} onClick={() => setPeriod("all")} />
-            <PresetButton label="Today" active={period === "today"} onClick={() => setPeriod("today")} />
-            <PresetButton label="This Week" active={period === "week"} onClick={() => setPeriod("week")} />
-            <PresetButton label="This Month" active={period === "month"} onClick={() => setPeriod("month")} />
-            <PresetButton label="Last Month" active={period === "last_month"} onClick={() => setPeriod("last_month")} />
-            <PresetButton label="This Year" active={period === "year"} onClick={() => setPeriod("year")} />
-            <PresetButton label="Custom Dates" active={period === "custom"} onClick={() => setPeriod("custom")} />
+            <PresetButton label={t("allTime")} active={period === "all"} onClick={() => setPeriod("all")} />
+            <PresetButton label={t("today")} active={period === "today"} onClick={() => setPeriod("today")} />
+            <PresetButton label={t("thisWeek")} active={period === "week"} onClick={() => setPeriod("week")} />
+            <PresetButton label={t("thisMonth")} active={period === "month"} onClick={() => setPeriod("month")} />
+            <PresetButton label={t("lastMonth")} active={period === "last_month"} onClick={() => setPeriod("last_month")} />
+            <PresetButton label={t("thisYear")} active={period === "year"} onClick={() => setPeriod("year")} />
+            <PresetButton label={t("customDates")} active={period === "custom"} onClick={() => setPeriod("custom")} />
           </div>
 
           {/* Date Pickers (if custom) & Society Filter */}
@@ -413,7 +425,7 @@ export function AllInOneReports({
               onChange={(e) => setSelectedSociety(e.target.value)}
               className="h-8 rounded-md border border-input bg-transparent px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="all">All Societies &amp; Projects</option>
+              <option value="all">{t("allSocieties")}</option>
               {societies.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -427,44 +439,44 @@ export function AllInOneReports({
       {/* KPI Cards Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
-          title="Gross Sales Booked"
+          title={t("kpiGrossSales")}
           value={formatPkr(totalSalesRevenue)}
-          hint={`${filteredSales.length} plot deals recorded`}
+          hint={t("kpiPlotDeals", { count: filteredSales.length })}
           icon={TrendingUp}
           variant="primary"
         />
         <StatCard
-          title="Total Collections"
+          title={t("kpiCollections")}
           value={formatPkr(totalCollections)}
-          hint={`${filteredReceipts.length} cleared receipts`}
+          hint={t("kpiReceipts", { count: filteredReceipts.length })}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
-          title="Cash Outflows"
+          title={t("kpiOutflows")}
           value={formatPkr(totalOutflows)}
-          hint="Expenses, land &amp; contractor payouts"
+          hint={t("kpiOutflowsHint")}
           icon={ArrowDownRight}
           variant="warning"
         />
         <StatCard
-          title="Net Cash Flow"
+          title={t("kpiNetCash")}
           value={formatPkr(netCashFlow)}
-          hint={netCashFlow >= 0 ? "Surplus operational cash" : "Net negative period flow"}
+          hint={netCashFlow >= 0 ? t("kpiSurplus") : t("kpiNegative")}
           icon={Wallet}
           variant={netCashFlow >= 0 ? "sky" : "danger"}
         />
         <StatCard
-          title="Overdue Recoveries"
+          title={t("kpiOverdue")}
           value={formatPkr(totalOverdueAmount)}
-          hint={`${overdueInstallments.length} pending installments`}
+          hint={t("kpiPendingInst", { count: overdueInstallments.length })}
           icon={Coins}
           variant="danger"
         />
         <StatCard
-          title="Inventory Valuation"
+          title={t("kpiInventory")}
           value={formatPkr(totalInventoryValue)}
-          hint={`${availablePlotsCount} plots open for sale`}
+          hint={t("kpiPlotsOpen", { count: availablePlotsCount })}
           icon={Building2}
           variant="indigo"
         />
@@ -477,48 +489,48 @@ export function AllInOneReports({
             active={activeTab === "executive"}
             onClick={() => setActiveTab("executive")}
             icon={BarChart3}
-            label="Executive Dashboard & Graphs"
+            label={t("tabExecutive")}
           />
           <TabButton
             active={activeTab === "customers"}
             onClick={() => setActiveTab("customers")}
             icon={Users}
-            label="Customer Accounts Ledger"
+            label={t("tabCustomers")}
             count={customers.length}
           />
           <TabButton
             active={activeTab === "installments"}
             onClick={() => setActiveTab("installments")}
             icon={CalendarClock}
-            label="Installments & Aging Pipeline"
+            label={t("tabInstallments")}
             count={filteredInstallments.length}
           />
           <TabButton
             active={activeTab === "cashbook"}
             onClick={() => setActiveTab("cashbook")}
             icon={Receipt}
-            label="Cash Book & Profit / Loss"
+            label={t("tabCashbook")}
             count={filteredTransactions.length}
           />
           <TabButton
             active={activeTab === "inventory"}
             onClick={() => setActiveTab("inventory")}
             icon={Building2}
-            label="Inventory & Turnover"
+            label={t("tabInventory")}
             count={properties.length}
           />
           <TabButton
             active={activeTab === "contracts"}
             onClick={() => setActiveTab("contracts")}
             icon={Handshake}
-            label="Development & Contractors"
+            label={t("tabContracts")}
             count={contracts.length}
           />
           <TabButton
             active={activeTab === "land"}
             onClick={() => setActiveTab("land")}
             icon={LandPlot}
-            label="Land Bank & Landlords"
+            label={t("tabLand")}
             count={landParcels.length}
           />
         </div>
@@ -534,7 +546,7 @@ export function AllInOneReports({
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="size-4 text-primary" />
-                  <h2 className="font-semibold text-base">Sales Revenue by Society (PKR)</h2>
+                  <h2 className="font-semibold text-base">{t("salesBySociety")}</h2>
                 </div>
                 <span className="text-xs text-muted-foreground">{societies.length} projects</span>
               </div>
@@ -559,7 +571,7 @@ export function AllInOneReports({
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-2">
                   <PieChart className="size-4 text-emerald-500" />
-                  <h2 className="font-semibold text-base">Collection Methods Breakdown</h2>
+                  <h2 className="font-semibold text-base">{t("collectionMethods")}</h2>
                 </div>
                 <span className="text-xs text-muted-foreground">{formatPkr(totalCollections)}</span>
               </div>
@@ -599,7 +611,7 @@ export function AllInOneReports({
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-2">
                   <Coins className="size-4 text-amber-500" />
-                  <h2 className="font-semibold text-base">Installment Aging &amp; Overdue Recovery Buckets</h2>
+                  <h2 className="font-semibold text-base">{t("agingBuckets")}</h2>
                 </div>
                 <span className="text-xs font-semibold text-rose-600">{formatPkr(totalOverdueAmount)}</span>
               </div>
@@ -627,7 +639,7 @@ export function AllInOneReports({
               <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
                 <div className="flex items-center gap-2">
                   <Receipt className="size-4 text-muted-foreground" />
-                  <h2 className="font-semibold text-sm">Recent Customer Payment Receipts</h2>
+                  <h2 className="font-semibold text-sm">{t("recentReceipts")}</h2>
                 </div>
                 <Link href="/receipts" className="text-xs text-primary hover:underline">
                   View All Receipts →
@@ -671,7 +683,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Customer Master Account Ledger Statement</h2>
+                  <h2 className="font-semibold text-sm">{t("customerMaster")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{customers.length} total customer accounts</span>
           </div>
@@ -762,7 +774,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Installment Schedule &amp; Overdue Collections Pipeline</h2>
+                  <h2 className="font-semibold text-sm">{t("installmentPipeline")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{filteredInstallments.length} installment records</span>
           </div>
@@ -843,7 +855,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Receipt className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Cash Transactions &amp; Ledger Journal</h2>
+                  <h2 className="font-semibold text-sm">{t("cashJournal")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{filteredTransactions.length} vouchers</span>
           </div>
@@ -902,7 +914,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Building2 className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Plot Inventory Stock &amp; Availability Statement</h2>
+                  <h2 className="font-semibold text-sm">{t("inventoryStock")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{properties.length} plot units</span>
           </div>
@@ -976,7 +988,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Handshake className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Civil Work Orders &amp; Contractor Spend Ledgers</h2>
+                  <h2 className="font-semibold text-sm">{t("workOrders")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{contracts.length} work orders</span>
           </div>
@@ -1040,7 +1052,7 @@ export function AllInOneReports({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <LandPlot className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Land Bank Acquisition &amp; Landlord Payables Statement</h2>
+                  <h2 className="font-semibold text-sm">{t("landStatement")}</h2>
             </div>
             <span className="text-xs text-muted-foreground">{landParcels.length} parcels</span>
           </div>

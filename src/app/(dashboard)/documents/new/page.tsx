@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageDocuments } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -23,16 +24,18 @@ export default async function NewDocumentPage({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const t = await getTranslations("pages.documents");
+  const tCommon = await getTranslations("common");
 
   if (!canManageDocuments(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Upload document</h1>
+        <h1 className="text-2xl font-semibold">{t("newTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          You do not have permission to upload documents.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/documents" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -79,7 +82,7 @@ export default async function NewDocumentPage({
     })),
     property: (properties ?? []).map((row) => ({
       id: row.id,
-      label: `${row.code} · Plot ${row.plot_no}`,
+      label: `${row.code} · ${t("plotLabel", { plot: row.plot_no })}`,
     })),
     party: (parties ?? []).map((row) => ({
       id: row.id,
@@ -113,19 +116,17 @@ export default async function NewDocumentPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {previous ? "Upload new version" : "Upload document"}
+          {previous ? t("uploadNewVersion") : t("newTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Files are stored privately. Uploading a new version keeps the old file
-          and marks it as replaced.
+          {t("fileHint")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Document details</CardTitle>
+          <CardTitle>{t("documentDetails")}</CardTitle>
           <CardDescription>
-            JPG, PNG or PDF up to 10 MB. Confidential files are hidden from
-            sales and site staff.
+            {t("fileTypesHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

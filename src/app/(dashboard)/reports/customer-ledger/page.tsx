@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewCrmReports, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -17,9 +18,20 @@ import {
 
 export default async function CustomerLedgerReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tCommon = await getTranslations("common");
 
   if (!canViewCrmReports(profile.role)) {
-    return <Denied href="/reports" />;
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-semibold">{t("ledgerTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
+        <Button render={<Link href="/reports" />} variant="outline">
+          {tCommon("back")}
+        </Button>
+      </div>
+    );
   }
 
   const supabase = await createClient();
@@ -100,38 +112,38 @@ export default async function CustomerLedgerReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Customer ledger"
-        description="Sale value, posted receipts, remaining balance and overdue EMI by customer."
+        title={t("ledgerTitle")}
+        description={t("ledgerDesc")}
         filename="customer-ledger"
         headers={[
-          "Customer ID",
-          "Name",
-          "Phone",
-          "Sale value",
-          "Receipts",
-          "Remaining",
-          "Overdue",
+          t("customerId"),
+          tCommon("name"),
+          tCommon("phone"),
+          t("saleValue"),
+          t("receipts"),
+          t("outstanding"),
+          t("overdueEmi"),
         ]}
         rows={csvRows}
       />
       <ReportTotals
         items={[
-          { label: "Sale value", value: formatPkr(totals.saleValue) },
-          { label: "Receipts", value: formatPkr(totals.collected) },
-          { label: "Remaining", value: formatPkr(totals.remaining) },
-          { label: "Overdue EMI", value: formatPkr(totals.overdue) },
+          { label: t("saleValue"), value: formatPkr(totals.saleValue, locale) },
+          { label: t("receipts"), value: formatPkr(totals.collected, locale) },
+          { label: t("outstanding"), value: formatPkr(totals.remaining, locale) },
+          { label: t("overdueEmi"), value: formatPkr(totals.overdue, locale) },
         ]}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Sale value</TableHead>
-              <TableHead>Receipts</TableHead>
-              <TableHead>Remaining</TableHead>
-              <TableHead>Overdue</TableHead>
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{tCommon("phone")}</TableHead>
+              <TableHead>{t("saleValue")}</TableHead>
+              <TableHead>{t("receipts")}</TableHead>
+              <TableHead>{t("outstanding")}</TableHead>
+              <TableHead>{t("overdueEmi")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -150,14 +162,14 @@ export default async function CustomerLedgerReportPage() {
                     </span>
                   </TableCell>
                   <TableCell>{row.phone}</TableCell>
-                  <TableCell>{formatPkr(row.saleValue)}</TableCell>
-                  <TableCell>{formatPkr(row.collected)}</TableCell>
-                  <TableCell>{formatPkr(row.remaining)}</TableCell>
-                  <TableCell>{formatPkr(row.overdue)}</TableCell>
+                  <TableCell>{formatPkr(row.saleValue, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.collected, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.remaining, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.overdue, locale)}</TableCell>
                 </TableRow>
               ))
             ) : (
-              <EmptyRow />
+              <EmptyRow message={t("noLedger")} />
             )}
           </TableBody>
         </Table>
@@ -166,26 +178,12 @@ export default async function CustomerLedgerReportPage() {
   );
 }
 
-function EmptyRow() {
+function EmptyRow({ message }: { message: string }) {
   return (
     <TableRow>
       <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-        No customer ledger rows yet.
+        {message}
       </TableCell>
     </TableRow>
-  );
-}
-
-function Denied({ href }: { href: string }) {
-  return (
-    <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Report</h1>
-      <p className="text-sm text-muted-foreground">
-        You do not have permission to view this report.
-      </p>
-      <Button render={<Link href={href} />} variant="outline">
-        Back
-      </Button>
-    </div>
   );
 }

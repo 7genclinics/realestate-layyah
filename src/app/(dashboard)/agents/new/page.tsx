@@ -81,7 +81,7 @@ export default async function NewAgentPage() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
                 {Object.keys(AGENT_TYPE_LABELS).map((typeKey) => (
-                  <option key={typeKey} value={typeKey}>{tTypes(typeKey)}</option>
+                  <option key={typeKey} value={typeKey}>{tTypes(typeKey as never)}</option>
                 ))}
               </select>
             </div>

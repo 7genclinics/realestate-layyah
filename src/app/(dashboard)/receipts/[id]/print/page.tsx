@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { ReceiptPrintView } from "@/components/features/receipt-print-view";
@@ -14,6 +15,7 @@ export default async function ReceiptPrintPage({
   const { id } = await params;
   await requireProfile();
   const supabase = await createClient();
+  const tCommon = await getTranslations("common");
 
   const { data: receipt, error } = await supabase
     .from("receipts")
@@ -71,7 +73,7 @@ export default async function ReceiptPrintPage({
     <div className="space-y-4 print:space-y-0">
       <div className="flex items-center justify-between print:hidden">
         <Button render={<Link href={`/receipts/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
         <PrintReceiptButton />
       </div>

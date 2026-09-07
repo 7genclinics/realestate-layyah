@@ -90,7 +90,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
             {t("agencyLine", {
               agency: agent.agency_name || tCommon("independent"),
               phone: agent.phone,
-              rate: agent.commission_rate,
+              rate: Number(agent.commission_rate ?? 0),
             })}
           </p>
         </div>

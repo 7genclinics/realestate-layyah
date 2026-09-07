@@ -146,7 +146,7 @@ export default async function BookingsPage({
           <option value="">{t("allStatuses")}</option>
           {Object.keys(SALE_STATUS_LABELS).map((val) => (
             <option key={val} value={val}>
-              {tSale(val)}
+              {tSale(val as never)}
             </option>
           ))}
         </select>

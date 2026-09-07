@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { canManageLeads } from "@/lib/permissions";
@@ -21,6 +22,8 @@ export default async function EditLeadPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("pages.leads");
+  const tCommon = await getTranslations("common");
 
   if (!canManageLeads(profile.role)) {
     redirect(`/leads/${id}`);
@@ -64,17 +67,17 @@ export default async function EditLeadPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit lead</h1>
-          <p className="text-sm text-muted-foreground">{lead.full_name}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
+          <p className="text-sm text-muted-foreground">{t("editSubtitle", { name: lead.full_name })}</p>
         </div>
         <Button render={<Link href={`/leads/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Lead details</CardTitle>
-          <CardDescription>Update the enquiry information.</CardDescription>
+          <CardTitle>{t("detailsTitle")}</CardTitle>
+          <CardDescription>{t("updateEnquiry")}</CardDescription>
         </CardHeader>
         <CardContent>
           <LeadForm

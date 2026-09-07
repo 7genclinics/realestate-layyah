@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageDocuments } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -23,16 +24,20 @@ import {
 
 export default async function DocumentsReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tType = await getTranslations("labels.documentType");
+  const tStatus = await getTranslations("labels.documentStatus");
+  const tEntity = await getTranslations("labels.documentEntity");
+  const tCommon = await getTranslations("common");
 
   if (!canManageDocuments(profile.role) && profile.role !== "auditor") {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Documents report</h1>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
-        </p>
+        <h1 className="text-2xl font-semibold">{t("docsTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -54,15 +59,15 @@ export default async function DocumentsReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Documents & approvals"
-        description="Uploaded evidence with approval status. Replaced versions remain in the export."
+        title={t("docsApprovals")}
+        description={t("docsApprovalsDesc")}
         filename="documents-report"
-        headers={["ID", "Title", "Type", "Linked to", "Date", "Status", "Version"]}
+        headers={[tCommon("code"), tCommon("title"), tCommon("type"), t("linkedTo"), tCommon("date"), tCommon("status"), t("version")]}
         rows={rows.map((row) => [
           row.code,
           row.title,
-          DOCUMENT_TYPE_LABELS[row.document_type],
-          DOCUMENT_ENTITY_LABELS[row.entity_type],
+          tType(row.document_type),
+          tEntity(row.entity_type),
           row.document_date,
           row.status,
           row.version,
@@ -70,23 +75,23 @@ export default async function DocumentsReportPage() {
       />
       <ReportTotals
         items={[
-          { label: "Submitted", value: String(submitted) },
-          { label: "Approved", value: String(approved) },
-          { label: "Rejected", value: String(rejected) },
-          { label: "Total files", value: String(rows.length) },
+          { label: t("submitted"), value: String(submitted) },
+          { label: tCommon("approved"), value: String(approved) },
+          { label: tCommon("rejected"), value: String(rejected) },
+          { label: t("totalFiles"), value: String(rows.length) },
         ]}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Linked to</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>{tCommon("code")}</TableHead>
+              <TableHead>{tCommon("title")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead>{t("linkedTo")}</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{t("action")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -102,14 +107,14 @@ export default async function DocumentsReportPage() {
                     </Link>
                   </TableCell>
                   <TableCell>{row.title}</TableCell>
-                  <TableCell>{DOCUMENT_TYPE_LABELS[row.document_type]}</TableCell>
-                  <TableCell>{DOCUMENT_ENTITY_LABELS[row.entity_type]}</TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
+                  <TableCell>{tType(row.document_type)}</TableCell>
+                  <TableCell>{tEntity(row.entity_type)}</TableCell>
+                  <TableCell>{formatDate(row.document_date, locale)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={row.status === "rejected" ? "destructive" : "secondary"}
                     >
-                      {DOCUMENT_STATUS_LABELS[row.status]}
+                      {tStatus(row.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -129,7 +134,7 @@ export default async function DocumentsReportPage() {
                   colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No documents uploaded yet.
+                  {t("noDocuments")}
                 </TableCell>
               </TableRow>
             )}

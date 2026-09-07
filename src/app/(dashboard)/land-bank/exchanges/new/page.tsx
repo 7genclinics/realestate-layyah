@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageLandBank } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -14,16 +15,18 @@ import {
 
 export default async function NewLandExchangePage() {
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.landBank");
+  const tCommon = await getTranslations("common");
 
   if (!canManageLandBank(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New exchange</h1>
+        <h1 className="text-2xl font-semibold">{t("newExchangePage")}</h1>
         <p className="text-sm text-muted-foreground">
-          You do not have permission to record land exchanges.
+          {t("noExchangePermission")}
         </p>
         <Button render={<Link href="/land-bank" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -54,11 +57,11 @@ export default async function NewLandExchangePage() {
   if (!societies?.length || !parties?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New exchange</h1>
+        <h1 className="text-2xl font-semibold">{t("newExchangePage")}</h1>
         <p className="text-sm text-muted-foreground">
-          Create a society and a party (the other landowner) first.
+          {t("needSocietyParty")}
         </p>
-        <Button render={<Link href="/parties/new" />}>Add party</Button>
+        <Button render={<Link href="/parties/new" />}>{t("addParty")}</Button>
       </div>
     );
   }
@@ -66,18 +69,16 @@ export default async function NewLandExchangePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Land exchange</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("exchangeDetail")}</h1>
         <p className="text-sm text-muted-foreground">
-          Link the land or plot given by the society with the land received.
-          Approval is required before inventory status changes.
+          {t("newExchangeSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Exchange deal</CardTitle>
+          <CardTitle>{t("exchangeDeal")}</CardTitle>
           <CardDescription>
-            Difference = incoming value − outgoing value. A positive difference
-            is payable by the society after completion.
+            {t("differenceHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

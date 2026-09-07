@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, CalendarClock, Users, Banknote, Landmark } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getStaffMembers } from "@/lib/staff";
 import { formatPkr, formatDate } from "@/lib/format";
 import { STAFF_DEPARTMENT_LABELS, STAFF_STATUS_LABELS } from "@/lib/constants";
@@ -27,6 +28,11 @@ export default async function StaffPage({
 }) {
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
+  const locale = await getLocale();
+  const t = await getTranslations("pages.staff");
+  const tDept = await getTranslations("labels.staffDepartment");
+  const tStatus = await getTranslations("labels.staffStatus");
+  const tCommon = await getTranslations("common");
 
   const { data: staffMembers, total } = await getStaffMembers({ page, pageSize: PAGE_SIZE });
 
@@ -38,20 +44,20 @@ export default async function StaffPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Staff &amp; Payroll
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manage employee master records, monthly salary disbursements, advances, and payroll vouchers.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" render={<Link href="/staff/payroll" />}>
             <CalendarClock className="size-4" />
-            Run Payroll
+            {t("runPayroll")}
           </Button>
           <Button render={<Link href="/staff/new" />}>
             <Plus className="size-4" />
-            Add Employee
+            {t("addEmployee")}
           </Button>
         </div>
       </div>
@@ -59,24 +65,24 @@ export default async function StaffPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Active Employees"
+          title={t("activeEmployees")}
           value={total}
-          hint="Society & office administration staff"
+          hint={t("activeHint")}
           icon={Users}
           variant="sky"
         />
         <StatCard
-          title="Monthly Payroll Commitment"
-          value={formatPkr(totalBasicSalary)}
-          hint="Total basic salary budget"
+          title={t("monthlyPayroll")}
+          value={formatPkr(totalBasicSalary, locale)}
+          hint={t("payrollHint")}
           icon={Banknote}
           variant="primary"
           href="/staff/payroll"
         />
         <StatCard
-          title="Outstanding Advances"
-          value={formatPkr(totalAdvances)}
-          hint="Salary advances to be deducted"
+          title={t("outstandingAdvances")}
+          value={formatPkr(totalAdvances, locale)}
+          hint={t("advancesHint")}
           icon={Landmark}
           variant="warning"
           href="/cash-book"
@@ -88,21 +94,21 @@ export default async function StaffPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Users className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Employee Master Records</h2>
+            <h2 className="font-semibold text-sm">{t("masterRecords")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{total} total staff</span>
+          <span className="text-xs text-muted-foreground">{t("totalStaff", { count: total })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Employee</TableHead>
-              <TableHead>Designation / Dept</TableHead>
-              <TableHead>Phone / CNIC</TableHead>
-              <TableHead>Joining Date</TableHead>
-              <TableHead>Basic Salary</TableHead>
-              <TableHead>Active Advance</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("employee")}</TableHead>
+              <TableHead>{t("designationDept")}</TableHead>
+              <TableHead>{t("phoneCnic")}</TableHead>
+              <TableHead>{t("joiningDate")}</TableHead>
+              <TableHead>{t("basicSalary")}</TableHead>
+              <TableHead>{t("activeAdvance")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -120,21 +126,21 @@ export default async function StaffPage({
                   <TableCell>
                     <div className="font-medium">{staff.designation}</div>
                     <div className="text-xs text-muted-foreground">
-                      {STAFF_DEPARTMENT_LABELS[staff.department as keyof typeof STAFF_DEPARTMENT_LABELS] ?? staff.department}
+                      {tDept(staff.department)}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{staff.phone}</div>
                     <div className="text-xs text-muted-foreground">{staff.cnic || "—"}</div>
                   </TableCell>
-                  <TableCell>{formatDate(staff.joining_date)}</TableCell>
-                  <TableCell className="font-semibold">{formatPkr(staff.basic_salary)}</TableCell>
+                  <TableCell>{formatDate(staff.joining_date, locale)}</TableCell>
+                  <TableCell className="font-semibold">{formatPkr(staff.basic_salary, locale)}</TableCell>
                   <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
-                    {formatPkr(staff.active_advance)}
+                    {formatPkr(staff.active_advance, locale)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="rounded-md">
-                      {STAFF_STATUS_LABELS[staff.status as keyof typeof STAFF_STATUS_LABELS] ?? staff.status}
+                      {tStatus(staff.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -143,7 +149,7 @@ export default async function StaffPage({
                       viewHref={`/staff/${staff.id}`}
                       editHref={`/staff/${staff.id}/edit`}
                       deleteAction={deleteStaffMember}
-                      confirmMessage={`Delete employee "${staff.full_name}"? All payroll and advance records will also be removed.`}
+                      confirmMessage={t("deleteConfirm", { name: staff.full_name })}
                     />
                   </TableCell>
                 </TableRow>
@@ -151,7 +157,7 @@ export default async function StaffPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                  No employees registered yet. Click &quot;Add Employee&quot; to begin.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

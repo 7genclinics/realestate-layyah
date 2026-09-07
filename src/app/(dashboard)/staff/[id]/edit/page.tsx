@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageStaff } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -14,6 +15,10 @@ export default async function EditStaffPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("pages.staff");
+  const tDept = await getTranslations("labels.staffDepartment");
+  const tStatus = await getTranslations("labels.staffStatus");
+  const tCommon = await getTranslations("common");
 
   if (!canManageStaff(profile.role)) {
     redirect(`/staff/${id}`);
@@ -41,14 +46,14 @@ export default async function EditStaffPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Edit Employee / Staff Member
+            {t("editTitle")}
           </h1>
           <p className="text-sm text-slate-500">
-            Update employment and salary details for {staff.full_name}.
+            {t("editSubtitle", { name: staff.full_name })}
           </p>
         </div>
         <Button render={<Link href={`/staff/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
 
@@ -56,31 +61,31 @@ export default async function EditStaffPage({
         <form action={updateAction} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Full Name *</label>
+              <label className={labelClass}>{t("fullName")}</label>
               <input type="text" name="full_name" required defaultValue={staff.full_name} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Phone Number *</label>
+              <label className={labelClass}>{t("phoneNumber")}</label>
               <input type="text" name="phone" required defaultValue={staff.phone} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>CNIC Number</label>
+              <label className={labelClass}>{t("cnicNumber")}</label>
               <input type="text" name="cnic" defaultValue={staff.cnic ?? ""} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Designation *</label>
+              <label className={labelClass}>{t("designation")}</label>
               <input type="text" name="designation" required defaultValue={staff.designation} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Department *</label>
+              <label className={labelClass}>{t("department")}</label>
               <select name="department" required defaultValue={staff.department} className={inputClass}>
-                {Object.entries(STAFF_DEPARTMENT_LABELS).map(([deptKey, deptLabel]) => (
-                  <option key={deptKey} value={deptKey}>{deptLabel}</option>
+                {Object.keys(STAFF_DEPARTMENT_LABELS).map((deptKey) => (
+                  <option key={deptKey} value={deptKey}>{tDept(deptKey as never)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Basic Monthly Salary (PKR) *</label>
+              <label className={labelClass}>{t("basicSalaryLabel")}</label>
               <input
                 type="number"
                 name="basic_salary"
@@ -91,10 +96,10 @@ export default async function EditStaffPage({
               />
             </div>
             <div>
-              <label className={labelClass}>Status</label>
+              <label className={labelClass}>{tCommon("status")}</label>
               <select name="status" defaultValue={staff.status} className={inputClass}>
-                {Object.entries(STAFF_STATUS_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {Object.keys(STAFF_STATUS_LABELS).map((key) => (
+                  <option key={key} value={key}>{tStatus(key as never)}</option>
                 ))}
               </select>
             </div>
@@ -102,7 +107,7 @@ export default async function EditStaffPage({
 
           <div className="pt-4">
             <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
-              Update Employee Record
+              {t("updateEmployee")}
             </Button>
           </div>
         </form>

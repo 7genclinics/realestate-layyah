@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { uploadDocument } from "@/lib/actions/documents";
 import {
@@ -34,6 +35,12 @@ export function DocumentUploadForm({
   defaultTitle?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("documents");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.documentType");
+  const tEntity = useTranslations("labels.documentEntity");
   const [entityType, setEntityType] = useState(
     defaultEntityType ?? "customer",
   );
@@ -48,11 +55,11 @@ export function DocumentUploadForm({
     setIsSubmitting(false);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not upload document");
+      toast.error(result.error ?? tToasts("couldNotUploadDocument"));
       return;
     }
 
-    toast.success("Document uploaded");
+    toast.success(tToasts("documentUploaded"));
     router.push(`/documents/${result.id}`);
     router.refresh();
   }
@@ -64,7 +71,7 @@ export function DocumentUploadForm({
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="title">{tCommon("title")}</Label>
           <Input
             id="title"
             name="title"
@@ -73,22 +80,22 @@ export function DocumentUploadForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="document_type">Document type</Label>
+          <Label htmlFor="document_type">{t("documentType")}</Label>
           <select
             id="document_type"
             name="document_type"
             className={selectClassName}
             defaultValue="agreement"
           >
-            {Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(DOCUMENT_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tType(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="document_date">Document date</Label>
+          <Label htmlFor="document_date">{t("documentDate")}</Label>
           <Input
             id="document_date"
             name="document_date"
@@ -98,7 +105,7 @@ export function DocumentUploadForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="entity_type">Linked to</Label>
+          <Label htmlFor="entity_type">{t("linkedTo")}</Label>
           <select
             id="entity_type"
             name="entity_type"
@@ -106,17 +113,17 @@ export function DocumentUploadForm({
             value={entityType}
             onChange={(event) => setEntityType(event.target.value)}
           >
-            {Object.entries(DOCUMENT_ENTITY_LABELS)
-              .filter(([value]) => value !== "sale" && value !== "contract")
-              .map(([value, label]) => (
+            {Object.keys(DOCUMENT_ENTITY_LABELS)
+              .filter((value) => value !== "sale" && value !== "contract")
+              .map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {tEntity(value)}
                 </option>
               ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="entity_id">Record</Label>
+          <Label htmlFor="entity_id">{t("record")}</Label>
           <select
             id="entity_id"
             name="entity_id"
@@ -133,7 +140,7 @@ export function DocumentUploadForm({
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="file">File (JPG, PNG, PDF · max 10 MB)</Label>
+          <Label htmlFor="file">{t("fileLabel")}</Label>
           <Input
             id="file"
             name="file"
@@ -143,21 +150,21 @@ export function DocumentUploadForm({
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{tCommon("description")}</Label>
           <Textarea id="description" name="description" rows={2} />
         </div>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" name="is_confidential" />
-          Confidential (accounts / managers only)
+          {t("confidential")}
         </label>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || !records.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Upload
+          {tForms("upload")}
         </Button>
       </div>
     </form>

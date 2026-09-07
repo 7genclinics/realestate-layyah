@@ -1,3 +1,4 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import { getStaffMembers } from "@/lib/staff";
 import { createClient } from "@/lib/server";
 import { processPayrollRecord } from "@/lib/actions/staff";
@@ -8,6 +9,8 @@ export default async function MonthlyPayrollPage() {
   const { data: staffMembers } = await getStaffMembers({ pageSize: 1000 });
   const supabase = await createClient();
   const { data: accounts } = await supabase.from("cash_accounts").select("id, name");
+  const locale = await getLocale();
+  const t = await getTranslations("pages.staff");
 
   const currentMonth = new Date().toISOString().substring(0, 7);
 
@@ -15,16 +18,16 @@ export default async function MonthlyPayrollPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Monthly Payroll Disbursement ({currentMonth})
+          {t("payrollHeading", { month: currentMonth })}
         </h1>
         <p className="text-sm text-slate-500">
-          Calculate net salaries, apply advance deductions & bonus, and generate salary vouchers linked to the Cash Book.
+          {t("payrollSubtitle")}
         </p>
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         <div className="border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-800">Payroll Calculation Sheet</h2>
+          <h2 className="font-semibold text-slate-800">{t("payrollCalcSheet")}</h2>
         </div>
 
         <div className="divide-y">
@@ -37,16 +40,18 @@ export default async function MonthlyPayrollPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-3">
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg">{staff.full_name}</h3>
-                    <p className="text-xs text-slate-500">{staff.designation} · Basic Salary: {formatPkr(staff.basic_salary)}</p>
+                    <p className="text-xs text-slate-500">
+                      {staff.designation} · {t("basicSalaryLine", { amount: formatPkr(staff.basic_salary, locale) })}
+                    </p>
                   </div>
                   <div className="text-sm font-semibold text-amber-600">
-                    Active Advance Outstanding: {formatPkr(staff.active_advance)}
+                    {t("activeAdvanceOutstanding", { amount: formatPkr(staff.active_advance, locale) })}
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">Basic Salary</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">{t("basicSalary")}</label>
                     <input
                       type="number"
                       name="basic_salary"
@@ -58,7 +63,7 @@ export default async function MonthlyPayrollPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">Bonus / Allowance</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">{t("bonusAllowance")}</label>
                     <input
                       type="number"
                       name="bonus"
@@ -69,7 +74,7 @@ export default async function MonthlyPayrollPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">Advance Deduction</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">{t("advanceDeduction")}</label>
                     <input
                       type="number"
                       name="advance_deduction"
@@ -80,7 +85,7 @@ export default async function MonthlyPayrollPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">Other Deductions</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">{t("otherDeductions")}</label>
                     <input
                       type="number"
                       name="other_deduction"
@@ -93,9 +98,9 @@ export default async function MonthlyPayrollPage() {
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
                   <div className="w-full sm:w-64">
-                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">Pay From Cash Account</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">{t("payFromAccount")}</label>
                     <select name="cash_account_id" required className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm">
-                      <option value="">Select Account</option>
+                      <option value="">{t("selectAccount")}</option>
                       {(accounts || []).map((acc: any) => (
                         <option key={acc.id} value={acc.id}>{acc.name}</option>
                       ))}
@@ -103,7 +108,7 @@ export default async function MonthlyPayrollPage() {
                   </div>
 
                   <Button type="submit" size="sm" className="bg-sky-600 hover:bg-sky-700">
-                    Disburse Monthly Salary Voucher
+                    {t("disburse")}
                   </Button>
                 </div>
               </form>

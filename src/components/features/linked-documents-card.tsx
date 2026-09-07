@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  DOCUMENT_STATUS_LABELS,
-  DOCUMENT_TYPE_LABELS,
-} from "@/lib/constants";
+import { useTranslations } from "next-intl";
 import type { DocumentStatus, DocumentType } from "@/lib/database.types";
 import { formatDate } from "@/lib/format";
 import { DocumentPreviewDialog } from "@/components/features/document-preview-dialog";
@@ -48,13 +45,19 @@ export function LinkedDocumentsCard({
   documents: LinkedDocument[];
   canUpload: boolean;
 }) {
+  const t = useTranslations("documents");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.documentType");
+  const tStatus = useTranslations("labels.documentStatus");
+  const tForms = useTranslations("forms");
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle>Documents</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
           <CardDescription>
-            Agreements, IDs and payment proofs attached to this record.
+            {t("cardHint")}
           </CardDescription>
         </div>
         {canUpload ? (
@@ -67,7 +70,7 @@ export function LinkedDocumentsCard({
               />
             }
           >
-            Upload
+            {tForms("upload")}
           </Button>
         ) : null}
       </CardHeader>
@@ -75,12 +78,12 @@ export function LinkedDocumentsCard({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>{tCommon("code")}</TableHead>
+              <TableHead>{tCommon("title")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,11 +106,11 @@ export function LinkedDocumentsCard({
                       </span>
                     ) : null}
                   </TableCell>
-                  <TableCell>{DOCUMENT_TYPE_LABELS[row.document_type]}</TableCell>
+                  <TableCell>{tType(row.document_type)}</TableCell>
                   <TableCell>{formatDate(row.document_date)}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {DOCUMENT_STATUS_LABELS[row.status]}
+                      {tStatus(row.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -127,7 +130,7 @@ export function LinkedDocumentsCard({
                   colSpan={6}
                   className="py-6 text-center text-muted-foreground"
                 >
-                  No documents attached yet.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

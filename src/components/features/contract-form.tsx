@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createContract } from "@/lib/actions/parties";
 import {
@@ -34,6 +35,12 @@ export function ContractForm({
   defaultPartyId?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("parties");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.contractType");
+  const tUnit = useTranslations("labels.contractUnit");
   const {
     register,
     handleSubmit,
@@ -71,11 +78,11 @@ export function ContractForm({
     const result = await createContract(values);
 
     if (result.error || !result.id || !result.partyId) {
-      toast.error(result.error ?? "Could not create work order");
+      toast.error(result.error ?? tToasts("couldNotCreateWorkOrder"));
       return;
     }
 
-    toast.success("Work order created");
+    toast.success(tToasts("workOrderCreated"));
     router.push(`/parties/${result.partyId}`);
     router.refresh();
   }
@@ -84,7 +91,7 @@ export function ContractForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="party_id">Party</Label>
+          <Label htmlFor="party_id">{t("party")}</Label>
           <select id="party_id" className={selectClassName} {...register("party_id")}>
             {parties.map((row) => (
               <option key={row.id} value={row.id}>
@@ -94,9 +101,9 @@ export function ContractForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="society_id">Project / society</Label>
+          <Label htmlFor="society_id">{t("projectSociety")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
-            <option value="">Not linked</option>
+            <option value="">{t("notLinked")}</option>
             {societies.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.name}
@@ -105,46 +112,46 @@ export function ContractForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="contract_type">Work type</Label>
+          <Label htmlFor="contract_type">{t("workType")}</Label>
           <select
             id="contract_type"
             className={selectClassName}
             {...register("contract_type")}
           >
-            {Object.entries(CONTRACT_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(CONTRACT_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tType(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="title">{tCommon("title")}</Label>
           <Input id="title" {...register("title")} />
           {errors.title ? (
             <p className="text-xs text-destructive">{errors.title.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unit">Unit</Label>
+          <Label htmlFor="unit">{t("unitLabel")}</Label>
           <select id="unit" className={selectClassName} {...register("unit")}>
-            {Object.entries(CONTRACT_UNIT_LABELS).map(([value, label]) => (
+            {Object.keys(CONTRACT_UNIT_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tUnit(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="rate">Rate (PKR)</Label>
+          <Label htmlFor="rate">{t("ratePkr")}</Label>
           <Input id="rate" type="number" step="1" {...register("rate")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity / measurement</Label>
+          <Label htmlFor="quantity">{t("quantity")}</Label>
           <Input id="quantity" type="number" step="0.01" {...register("quantity")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="contract_value">Contract value (PKR)</Label>
+          <Label htmlFor="contract_value">{t("contractValue")}</Label>
           <Input id="contract_value" type="number" step="1" {...register("contract_value")} />
           {errors.contract_value ? (
             <p className="text-xs text-destructive">
@@ -153,7 +160,7 @@ export function ContractForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="retention_amount">Retention (PKR)</Label>
+          <Label htmlFor="retention_amount">{t("retention")}</Label>
           <Input
             id="retention_amount"
             type="number"
@@ -162,25 +169,25 @@ export function ContractForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="start_date">Start date</Label>
+          <Label htmlFor="start_date">{t("startDate")}</Label>
           <Input id="start_date" type="date" {...register("start_date")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="end_date">End date</Label>
+          <Label htmlFor="end_date">{t("endDate")}</Label>
           <Input id="end_date" type="date" {...register("end_date")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || !parties.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Save work order
+          {tForms("saveWorkOrder")}
         </Button>
       </div>
     </form>

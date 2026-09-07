@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts, canManageParties } from "@/lib/permissions";
 import { PartyForm } from "@/components/features/party-form";
@@ -13,16 +14,18 @@ import {
 
 export default async function NewPartyPage() {
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.parties");
+  const tCommon = await getTranslations("common");
 
   if (!canManageParties(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Add party</h1>
+        <h1 className="text-2xl font-semibold">{t("addTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only owners, managers, accounts and site managers can add parties.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/parties" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -31,17 +34,16 @@ export default async function NewPartyPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Add party</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("addTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          One master record for a landlord, contractor or vendor. Work orders
-          are added separately.
+          {t("addSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Party profile</CardTitle>
+          <CardTitle>{t("profileTitle")}</CardTitle>
           <CardDescription>
-            Bank details are visible only to accounts, managers and owners.
+            {t("profileHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

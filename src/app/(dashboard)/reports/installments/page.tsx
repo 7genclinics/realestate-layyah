@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { addDays, format } from "date-fns";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewCrmReports, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -25,9 +26,21 @@ export default async function InstallmentDueReportPage({
 }) {
   const { profile } = await requireProfile();
   const { window: selected = "overdue" } = await searchParams;
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tInst = await getTranslations("labels.installmentStatus");
+  const tCommon = await getTranslations("common");
 
   if (!canViewCrmReports(profile.role)) {
-    return <Denied />;
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-semibold">{t("installmentDue")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
+        <Button render={<Link href="/reports" />} variant="outline">
+          {tCommon("back")}
+        </Button>
+      </div>
+    );
   }
 
   const supabase = await createClient();
@@ -102,57 +115,57 @@ export default async function InstallmentDueReportPage({
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Installment due"
-        description="Open EMI amounts due today, upcoming, or already overdue."
+        title={t("installmentDue")}
+        description={t("installmentDueDesc")}
         filename={`installments-${selected}`}
         headers={[
-          "Customer",
-          "Sale",
-          "Plot",
-          "Society",
-          "Period",
-          "Due",
-          "Open amount",
-          "Status",
+          tCommon("customer"),
+          t("sale"),
+          tCommon("plot"),
+          tCommon("society"),
+          t("period"),
+          t("due"),
+          t("openAmount"),
+          tCommon("status"),
         ]}
         rows={csvRows}
       >
         <div className="flex flex-wrap gap-2">
           <Filter href="/reports/installments?window=overdue" active={selected === "overdue"}>
-            Overdue
+            {t("overdueFilter")}
           </Filter>
           <Filter href="/reports/installments?window=today" active={selected === "today"}>
-            Due today
+            {t("dueToday")}
           </Filter>
           <Filter href="/reports/installments?window=7" active={selected === "7"}>
-            Next 7 days
+            {t("next7")}
           </Filter>
           <Filter href="/reports/installments?window=15" active={selected === "15"}>
-            Next 15 days
+            {t("next15")}
           </Filter>
           <Filter href="/reports/installments?window=30" active={selected === "30"}>
-            Next 30 days
+            {t("next30")}
           </Filter>
         </div>
       </ReportHeader>
       <ReportTotals
         items={[
-          { label: "Installments", value: String(items.length) },
-          { label: "Open amount", value: formatPkr(totalOpen) },
-          { label: "As of", value: format(today, "dd MMM yyyy") },
+          { label: t("installments"), value: String(items.length) },
+          { label: t("openAmount"), value: formatPkr(totalOpen, locale) },
+          { label: t("asOf"), value: format(today, "dd MMM yyyy") },
         ]}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Sale / plot</TableHead>
-              <TableHead>Society</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead>Due</TableHead>
-              <TableHead>Open</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{t("salePlot")}</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{t("period")}</TableHead>
+              <TableHead>{t("due")}</TableHead>
+              <TableHead>{t("open")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -165,24 +178,24 @@ export default async function InstallmentDueReportPage({
                         href={`/customers/${row.sale.customer_id}`}
                         className="underline-offset-4 hover:underline"
                       >
-                        {row.customer?.full_name ?? "—"}
+                        {row.customer?.full_name ?? tCommon("dash")}
                       </Link>
                     ) : (
-                      "—"
+                      tCommon("dash")
                     )}
                   </TableCell>
                   <TableCell>
                     {row.sale?.code} · {row.sale?.plot_no}
                   </TableCell>
-                  <TableCell>{row.society?.name ?? "—"}</TableCell>
+                  <TableCell>{row.society?.name ?? tCommon("dash")}</TableCell>
                   <TableCell>{row.period_label}</TableCell>
-                  <TableCell>{formatDate(row.due_date)}</TableCell>
-                  <TableCell>{formatPkr(row.open)}</TableCell>
+                  <TableCell>{formatDate(row.due_date, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.open, locale)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={row.status === "overdue" ? "destructive" : "secondary"}
                     >
-                      {INSTALLMENT_STATUS_LABELS[row.status]}
+                      {tInst(row.status)}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -193,7 +206,7 @@ export default async function InstallmentDueReportPage({
                   colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No installments in this window.
+                  {t("noWindow")}
                 </TableCell>
               </TableRow>
             )}
@@ -224,19 +237,5 @@ function Filter({
     >
       {children}
     </Link>
-  );
-}
-
-function Denied() {
-  return (
-    <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Installment due</h1>
-      <p className="text-sm text-muted-foreground">
-        You do not have permission to view this report.
-      </p>
-      <Button render={<Link href="/reports" />} variant="outline">
-        Back
-      </Button>
-    </div>
   );
 }

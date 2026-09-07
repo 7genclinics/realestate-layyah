@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { PAYMENT_MODE_LABELS } from "@/lib/constants";
@@ -23,6 +24,10 @@ export default async function ReceiptDetailPage({
   const { id } = await params;
   await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.receipts");
+  const tPay = await getTranslations("labels.paymentMode");
+  const tCommon = await getTranslations("common");
 
   const { data: receipt, error } = await supabase
     .from("receipts")
@@ -81,44 +86,44 @@ export default async function ReceiptDetailPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-mono text-xs text-muted-foreground">{receipt.code}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Receipt</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("receiptTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            {formatDate(receipt.payment_date)} · {formatPkr(receipt.amount)}
+            {formatDate(receipt.payment_date, locale)} · {formatPkr(receipt.amount, locale)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button render={<Link href={`/receipts/${id}/print`} />}>Print</Button>
+          <Button render={<Link href={`/receipts/${id}/print`} />}>{tCommon("print")}</Button>
           <Button render={<Link href="/receipts" />} variant="outline">
-            Back
+            {tCommon("back")}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Summary</CardTitle>
+          <CardTitle>{t("summary")}</CardTitle>
           <CardDescription>
             {customer.full_name} · {sale.plot_no}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="text-xs text-muted-foreground">Payment mode</p>
+            <p className="text-xs text-muted-foreground">{t("paymentMode")}</p>
             <Badge variant="secondary" className="mt-1">
-              {PAYMENT_MODE_LABELS[receipt.payment_mode]}
+              {tPay(receipt.payment_mode)}
             </Badge>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Reference</p>
-            <p className="text-sm">{receipt.reference_no || "—"}</p>
+            <p className="text-xs text-muted-foreground">{tCommon("reference")}</p>
+            <p className="text-sm">{receipt.reference_no || tCommon("dash")}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Received by</p>
-            <p className="text-sm">{receivedBy?.full_name ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{t("receivedBy")}</p>
+            <p className="text-sm">{receivedBy?.full_name ?? tCommon("dash")}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Remaining balance</p>
-            <p className="text-sm">{formatPkr(sale.remaining_amount)}</p>
+            <p className="text-xs text-muted-foreground">{t("remainingBalance")}</p>
+            <p className="text-sm">{formatPkr(sale.remaining_amount, locale)}</p>
           </div>
         </CardContent>
       </Card>

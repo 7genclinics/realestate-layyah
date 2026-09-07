@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createParty, updateParty } from "@/lib/actions/parties";
 import { PARTY_STATUS_LABELS, PARTY_TYPE_LABELS } from "@/lib/constants";
@@ -33,6 +34,12 @@ export function PartyForm({
 }) {
   const router = useRouter();
   const isEdit = Boolean(partyId);
+  const t = useTranslations("parties");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tType = useTranslations("labels.partyType");
+  const tStatus = useTranslations("labels.partyStatus");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
@@ -64,9 +71,11 @@ export function PartyForm({
       : await createParty(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not save party");
+      toast.error(result.error ?? tToasts("couldNotSaveParty"));
       return;
     }
+
+    const entityLabel = isEdit ? tToasts("partyUpdated") : tToasts("partyCreated");
 
     if (attachments.length) {
       const upload = await uploadPendingAttachments(
@@ -76,15 +85,22 @@ export function PartyForm({
       );
       if (upload.failed) {
         toast.warning(
-          `Party saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+          tToasts("attachmentsFailed", {
+            entity: entityLabel,
+            count: upload.failed,
+            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+          }),
         );
       } else {
         toast.success(
-          `${isEdit ? "Party updated" : "Party created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+          tToasts("attachmentsOk", {
+            entity: entityLabel,
+            count: upload.uploaded,
+          }),
         );
       }
     } else {
-      toast.success(isEdit ? "Party updated" : "Party created");
+      toast.success(entityLabel);
     }
 
     router.push(`/parties/${result.id}`);
@@ -95,77 +111,77 @@ export function PartyForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">{tCommon("name")}</Label>
           <Input id="name" {...register("name")} />
           {errors.name ? (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="party_type">Type</Label>
+          <Label htmlFor="party_type">{tCommon("type")}</Label>
           <select id="party_type" className={selectClassName} {...register("party_type")}>
-            {Object.entries(PARTY_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(PARTY_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tType(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">{tCommon("status")}</Label>
           <select id="status" className={selectClassName} {...register("status")}>
-            {Object.entries(PARTY_STATUS_LABELS).map(([value, label]) => (
+            {Object.keys(PARTY_STATUS_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tStatus(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
+          <Label htmlFor="phone">{tCommon("phone")}</Label>
           <Input id="phone" {...register("phone")} />
           {errors.phone ? (
             <p className="text-xs text-destructive">{errors.phone.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone_secondary">Secondary phone</Label>
+          <Label htmlFor="phone_secondary">{t("secondaryPhone")}</Label>
           <Input id="phone_secondary" {...register("phone_secondary")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="id_number">CNIC / NTN</Label>
+          <Label htmlFor="id_number">{t("cnicNtn")}</Label>
           <Input id="id_number" {...register("id_number")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="opening_balance">Opening balance (PKR)</Label>
+          <Label htmlFor="opening_balance">{t("openingBalance")}</Label>
           <Input id="opening_balance" type="number" step="1" {...register("opening_balance")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="address">Address</Label>
+          <Label htmlFor="address">{tCommon("address")}</Label>
           <Input id="address" {...register("address")} />
         </div>
         {canEditBank ? (
           <>
             <div className="space-y-2">
-              <Label htmlFor="bank_name">Bank name</Label>
+              <Label htmlFor="bank_name">{t("bankName")}</Label>
               <Input id="bank_name" {...register("bank_name")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account_title">Account title</Label>
+              <Label htmlFor="account_title">{t("accountTitle")}</Label>
               <Input id="account_title" {...register("account_title")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account_no">Account no.</Label>
+              <Label htmlFor="account_no">{t("accountNo")}</Label>
               <Input id="account_no" {...register("account_no")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="iban">IBAN</Label>
+              <Label htmlFor="iban">{t("iban")}</Label>
               <Input id="iban" {...register("iban")} />
             </div>
           </>
         ) : null}
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
@@ -175,16 +191,16 @@ export function PartyForm({
         onChange={setAttachments}
         defaultType="identity"
         disabled={isSubmitting}
-        description="Attach the party's CNIC/NTN, agreement or other files (JPG, PNG, PDF · max 10 MB)."
+        description={t("attachHint")}
       />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          {isEdit ? "Update party" : "Save party"}
+          {isEdit ? tForms("updateParty") : tForms("saveParty")}
         </Button>
       </div>
     </form>

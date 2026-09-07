@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageLandBank } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,6 +21,8 @@ export default async function EditLandPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("pages.landBank");
+  const tCommon = await getTranslations("common");
 
   if (!canManageLandBank(profile.role)) {
     redirect(`/land-bank/${id}`);
@@ -50,22 +53,20 @@ export default async function EditLandPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit land record</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editLandTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            Update {parcel.title}. Available while the acquisition is still
-            proposed or under negotiation.
+            {t("editLandSubtitle", { title: parcel.title })}
           </p>
         </div>
         <Button render={<Link href={`/land-bank/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Land details</CardTitle>
+          <CardTitle>{t("landDetails")}</CardTitle>
           <CardDescription>
-            Optional khasra / khewat / khata / mouza fields stay on the record
-            for registry work.
+            {t("khasraHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

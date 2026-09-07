@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Eye, ExternalLink, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { getDocumentSignedUrl } from "@/lib/actions/documents";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/constants";
@@ -37,6 +38,10 @@ export function DocumentPreviewDialog({
   size = "sm",
   className,
 }: DocumentPreviewDialogProps) {
+  const t = useTranslations("documents");
+  const tCommon = useTranslations("common");
+  const tToasts = useTranslations("toasts");
+  const tType = useTranslations("labels.documentType");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
@@ -49,7 +54,7 @@ export function DocumentPreviewDialog({
       setLoading(false);
 
       if (result.error || !result.url) {
-        toast.error(result.error ?? "Could not load document preview");
+        toast.error(result.error ?? tToasts("couldNotLoadDocPreview"));
         setOpen(false);
         return;
       }
@@ -61,7 +66,7 @@ export function DocumentPreviewDialog({
   const isPdf = mimeType === "application/pdf" || (url && /\.pdf($|\?)/i.test(url));
   const typeLabel =
     documentType && documentType in DOCUMENT_TYPE_LABELS
-      ? DOCUMENT_TYPE_LABELS[documentType as DocumentType]
+      ? tType(documentType as DocumentType)
       : documentType;
 
   return (
@@ -73,15 +78,15 @@ export function DocumentPreviewDialog({
         className={className ?? "h-7 px-2 text-xs font-medium"}
         onClick={() => void handleOpen()}
         disabled={loading}
-        title="Preview document in popup"
-        aria-label="Preview document"
+        title={t("previewTitle")}
+        aria-label={t("previewAria")}
       >
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <Eye className="h-3.5 w-3.5" />
         )}
-        <span className="ml-1">Preview</span>
+        <span className="ml-1">{tCommon("preview")}</span>
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -101,7 +106,7 @@ export function DocumentPreviewDialog({
             </div>
             <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Document Preview Modal
+              {t("modalHint")}
             </DialogDescription>
           </DialogHeader>
 
@@ -109,10 +114,10 @@ export function DocumentPreviewDialog({
             {loading ? (
               <div className="flex flex-col items-center gap-2 py-16 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm">Loading document preview...</p>
+                <p className="text-sm">{t("loadingPreview")}</p>
               </div>
             ) : !url ? (
-              <p className="text-sm text-destructive">Failed to load preview.</p>
+              <p className="text-sm text-destructive">{t("failedPreview")}</p>
             ) : isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -128,14 +133,14 @@ export function DocumentPreviewDialog({
               />
             ) : (
               <div className="flex flex-col items-center gap-3 py-12 text-center text-sm text-muted-foreground">
-                <p>Direct inline preview is not supported for this file format.</p>
+                <p>{t("unsupported")}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
                 >
                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                  Open in new window
+                  {t("openWindow")}
                 </Button>
               </div>
             )}
@@ -149,11 +154,11 @@ export function DocumentPreviewDialog({
                 onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
               >
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                Open in new tab
+                {t("openTab")}
               </Button>
             ) : <div />}
             <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
-              Close
+              {tCommon("close")}
             </Button>
           </DialogFooter>
         </DialogContent>

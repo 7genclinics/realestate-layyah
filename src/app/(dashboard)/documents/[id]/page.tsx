@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canApproveDocuments, canManageDocuments } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -31,6 +32,12 @@ export default async function DocumentDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.documents");
+  const tType = await getTranslations("labels.documentType");
+  const tStatus = await getTranslations("labels.documentStatus");
+  const tEntity = await getTranslations("labels.documentEntity");
+  const tCommon = await getTranslations("common");
 
   const { data: document } = await supabase
     .from("documents")
@@ -58,7 +65,7 @@ export default async function DocumentDetailPage({
           <p className="font-mono text-xs text-muted-foreground">{document.code}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{document.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {DOCUMENT_TYPE_LABELS[document.document_type]} · v{document.version}
+            {tType(document.document_type)} · v{document.version}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -74,11 +81,11 @@ export default async function DocumentDetailPage({
                 <Link href={`/documents/new?replaces=${document.id}`} />
               }
             >
-              New version
+              {t("newVersion")}
             </Button>
           ) : null}
           <Button render={<Link href="/documents" />} variant="outline">
-            Back
+            {tCommon("back")}
           </Button>
         </div>
       </div>
@@ -91,42 +98,42 @@ export default async function DocumentDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Metadata</CardTitle>
+          <CardTitle>{t("metadata")}</CardTitle>
           <CardDescription>
-            Linked to{" "}
+            {t("linkedToPrefix")}{" "}
             <Link
               href={entityRecordHref(document.entity_type, document.entity_id)}
               className="underline-offset-4 hover:underline"
             >
-              {DOCUMENT_ENTITY_LABELS[document.entity_type]}
+              {tEntity(document.entity_type)}
             </Link>
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Detail label="Status">
+          <Detail label={tCommon("status")}>
             <Badge
               variant={document.status === "rejected" ? "destructive" : "secondary"}
             >
-              {DOCUMENT_STATUS_LABELS[document.status]}
+              {tStatus(document.status)}
             </Badge>
           </Detail>
-          <Detail label="Document date">{formatDate(document.document_date)}</Detail>
-          <Detail label="File">{document.file_name}</Detail>
-          <Detail label="Size">
+          <Detail label={t("documentDate")}>{formatDate(document.document_date, locale)}</Detail>
+          <Detail label={t("file")}>{document.file_name}</Detail>
+          <Detail label={t("size")}>
             {document.file_size
-              ? `${Math.round(document.file_size / 1024)} KB`
-              : "—"}
+              ? t("kb", { n: Math.round(document.file_size / 1024) })
+              : tCommon("dash")}
           </Detail>
-          <Detail label="Uploaded by">{uploadedBy?.full_name ?? "—"}</Detail>
-          <Detail label="Approved by">
+          <Detail label={t("uploadedBy")}>{uploadedBy?.full_name ?? tCommon("dash")}</Detail>
+          <Detail label={t("approvedBy")}>
             {approver?.full_name
-              ? `${approver.full_name} · ${formatDateTime(document.approved_at)}`
-              : "—"}
+              ? `${approver.full_name} · ${formatDateTime(document.approved_at, locale)}`
+              : tCommon("dash")}
           </Detail>
-          <Detail label="Confidential">
-            {document.is_confidential ? "Yes" : "No"}
+          <Detail label={t("confidential")}>
+            {document.is_confidential ? tCommon("yes") : tCommon("no")}
           </Detail>
-          <Detail label="Description">{document.description || "—"}</Detail>
+          <Detail label={tCommon("description")}>{document.description || tCommon("dash")}</Detail>
         </CardContent>
       </Card>
     </div>

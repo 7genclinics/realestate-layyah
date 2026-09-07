@@ -158,15 +158,14 @@ export function InstallmentActions({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reschedule installment</DialogTitle>
+            <DialogTitle>{t("rescheduleTitle")}</DialogTitle>
             <DialogDescription>
-              Move the due date for milestone <strong>{periodLabel}</strong>. The
-              schedule change is logged; balances are unaffected.
+              {t("rescheduleHint", { period: periodLabel })}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="reschedule-date">New due date</Label>
+              <Label htmlFor="reschedule-date">{t("newDueDate")}</Label>
               <Input
                 id="reschedule-date"
                 type="date"
@@ -175,11 +174,11 @@ export function InstallmentActions({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="reschedule-note">Note (optional)</Label>
+              <Label htmlFor="reschedule-note">{t("noteOptional")}</Label>
               <Textarea
                 id="reschedule-note"
                 rows={2}
-                placeholder="e.g. Customer requested a 2-week extension"
+                placeholder={t("rescheduleNotePlaceholder")}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
@@ -187,10 +186,10 @@ export function InstallmentActions({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close} disabled={isPending}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button onClick={handleReschedule} disabled={isPending}>
-              {isPending ? "Saving…" : "Reschedule"}
+              {isPending ? tCommon("saving") : t("reschedule")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -205,29 +204,27 @@ export function InstallmentActions({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Waive installment balance</DialogTitle>
+            <DialogTitle>{t("waiveTitle")}</DialogTitle>
             <DialogDescription>
-              Forgive the open balance on milestone <strong>{periodLabel}</strong>.
-              This reduces the customer&apos;s receivable and cannot be undone
-              without a manager restoring it.
+              {t("waiveHint", { period: periodLabel })}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5">
-            <Label htmlFor="waive-reason">Reason</Label>
+            <Label htmlFor="waive-reason">{t("reason")}</Label>
             <Textarea
               id="waive-reason"
               rows={3}
-              placeholder="Why is this balance being waived?"
+              placeholder={t("waiveReasonPlaceholder")}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close} disabled={isPending}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button variant="destructive" onClick={handleWaive} disabled={isPending}>
-              {isPending ? "Waiving…" : "Confirm waive"}
+              {isPending ? t("waiving") : t("confirmWaive")}
             </Button>
           </DialogFooter>
         </DialogContent>

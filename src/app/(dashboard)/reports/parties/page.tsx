@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewFinancialReports } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -18,16 +19,18 @@ import {
 
 export default async function PartiesReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tType = await getTranslations("labels.partyType");
+  const tCommon = await getTranslations("common");
 
   if (!canViewFinancialReports(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Contractor ledger</h1>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
-        </p>
+        <h1 className="text-2xl font-semibold">{t("partiesTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -61,14 +64,14 @@ export default async function PartiesReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Contractor / vendor ledger"
-        description="Contract value, payments and balance payable, including opening balances."
+        title={t("partiesLedgerTitle")}
+        description={t("partiesLedgerDesc")}
         filename="party-ledger"
-        headers={["Party ID", "Name", "Type", "Contract value", "Paid", "Payable"]}
+        headers={[t("partyId"), tCommon("name"), tCommon("type"), t("contractValue"), t("paid"), t("payable")]}
         rows={rows.map((row) => [
           row.code,
           row.name,
-          PARTY_TYPE_LABELS[row.party_type],
+          tType(row.party_type),
           row.value,
           row.paid,
           row.remaining,
@@ -77,16 +80,16 @@ export default async function PartiesReportPage() {
       <ReportTotals
         items={[
           {
-            label: "Contract value",
-            value: formatPkr(rows.reduce((sum, row) => sum + row.value, 0)),
+            label: t("contractValue"),
+            value: formatPkr(rows.reduce((sum, row) => sum + row.value, 0), locale),
           },
           {
-            label: "Paid",
-            value: formatPkr(rows.reduce((sum, row) => sum + row.paid, 0)),
+            label: t("paid"),
+            value: formatPkr(rows.reduce((sum, row) => sum + row.paid, 0), locale),
           },
           {
-            label: "Payable",
-            value: formatPkr(rows.reduce((sum, row) => sum + row.remaining, 0)),
+            label: t("payable"),
+            value: formatPkr(rows.reduce((sum, row) => sum + row.remaining, 0), locale),
           },
         ]}
       />
@@ -94,11 +97,11 @@ export default async function PartiesReportPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Party</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Contract value</TableHead>
-              <TableHead>Paid</TableHead>
-              <TableHead>Payable</TableHead>
+              <TableHead>{t("party")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead>{t("contractValue")}</TableHead>
+              <TableHead>{t("paid")}</TableHead>
+              <TableHead>{t("payable")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,10 +119,10 @@ export default async function PartiesReportPage() {
                       {row.code}
                     </span>
                   </TableCell>
-                  <TableCell>{PARTY_TYPE_LABELS[row.party_type]}</TableCell>
-                  <TableCell>{formatPkr(row.value)}</TableCell>
-                  <TableCell>{formatPkr(row.paid)}</TableCell>
-                  <TableCell>{formatPkr(row.remaining)}</TableCell>
+                  <TableCell>{tType(row.party_type)}</TableCell>
+                  <TableCell>{formatPkr(row.value, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.paid, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.remaining, locale)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -128,7 +131,7 @@ export default async function PartiesReportPage() {
                   colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No parties to report.
+                  {t("noParties")}
                 </TableCell>
               </TableRow>
             )}

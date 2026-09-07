@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getDevelopmentProjects } from "@/lib/development";
 import { createClient } from "@/lib/server";
 import { createDevelopmentProject, addDevelopmentExpense } from "@/lib/actions/development";
@@ -6,6 +7,9 @@ import { Button } from "@/components/ui/button";
 
 export default async function NewDevelopmentEntryPage() {
   const supabase = await createClient();
+  const t = await getTranslations("pages.development");
+  const tCat = await getTranslations("labels.developmentCategory");
+  const tType = await getTranslations("labels.partyType");
 
   const { data: societies } = await supabase.from("societies").select("id, name");
   const { data: parties } = await supabase.from("parties").select("id, name, party_type");
@@ -17,30 +21,29 @@ export default async function NewDevelopmentEntryPage() {
     <div className="max-w-4xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Add Development Record / Expense
+          {t("addRecordTitle")}
         </h1>
         <p className="text-sm text-slate-500">
-          Create a development project or record a development expense voucher.
+          {t("addRecordSubtitle")}
         </p>
       </div>
 
-      {/* Form 1: Create Project */}
       <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
         <h2 className="text-lg font-semibold text-slate-900 border-b pb-3">
-          1. Configure New Development Project / Budget
+          {t("configureProject")}
         </h2>
         <form action={createDevelopmentProject} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Society / Project *
+                {t("societyProject")}
               </label>
               <select
                 name="society_id"
                 required
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                <option value="">Select Society</option>
+                <option value="">{t("selectSociety")}</option>
                 {(societies || []).map((s: any) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -49,42 +52,42 @@ export default async function NewDevelopmentEntryPage() {
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Development Category *
+                {t("developmentCategory")}
               </label>
               <select
                 name="category"
                 required
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                <option value="">Select Category</option>
-                {Object.entries(DEVELOPMENT_CATEGORY_LABELS).map(([catKey, catLabel]) => (
-                  <option key={catKey} value={catKey}>{catLabel}</option>
+                <option value="">{t("selectCategory")}</option>
+                {Object.keys(DEVELOPMENT_CATEGORY_LABELS).map((catKey) => (
+                  <option key={catKey} value={catKey}>{tCat(catKey)}</option>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Project Name *
+                {t("projectNameLabel")}
               </label>
               <input
                 type="text"
                 name="name"
                 required
-                placeholder="e.g. Main Boulevard Sewerage & Paving"
+                placeholder={t("projectNamePlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Allocated Budget (PKR)
+                {t("allocatedBudget")}
               </label>
               <input
                 type="number"
                 name="budget"
                 step="0.01"
-                placeholder="e.g. 5000000"
+                placeholder={t("budgetPlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
@@ -92,39 +95,38 @@ export default async function NewDevelopmentEntryPage() {
 
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-              Description / Notes
+              {t("descriptionNotes")}
             </label>
             <textarea
               name="description"
               rows={2}
-              placeholder="Scope of work, location, contract details..."
+              placeholder={t("scopePlaceholder")}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
             />
           </div>
 
           <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
-            Create Project
+            {t("createProject")}
           </Button>
         </form>
       </div>
 
-      {/* Form 2: Record Expense */}
       <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
         <h2 className="text-lg font-semibold text-slate-900 border-b pb-3">
-          2. Record Development Expense Voucher
+          {t("recordExpense")}
         </h2>
         <form action={addDevelopmentExpense} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Development Project *
+                {t("developmentProject")}
               </label>
               <select
                 name="project_id"
                 required
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                <option value="">Select Project</option>
+                <option value="">{t("selectProject")}</option>
                 {projects.map((p: any) => (
                   <option key={p.id} value={p.id}>{p.name} ({p.societies?.name})</option>
                 ))}
@@ -133,42 +135,42 @@ export default async function NewDevelopmentEntryPage() {
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Vendor / Contractor (Party)
+                {t("vendorContractor")}
               </label>
               <select
                 name="party_id"
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                <option value="">Direct Expense (No Vendor)</option>
+                <option value="">{t("directExpense")}</option>
                 {(parties || []).map((pty: any) => (
-                  <option key={pty.id} value={pty.id}>{pty.name} ({pty.party_type})</option>
+                  <option key={pty.id} value={pty.id}>{pty.name} ({tType(pty.party_type)})</option>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Amount Paid (PKR) *
+                {t("amountPaid")}
               </label>
               <input
                 type="number"
                 name="amount"
                 step="0.01"
                 required
-                placeholder="e.g. 250000"
+                placeholder={t("amountPlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Paid From Cash Account
+                {t("paidFrom")}
               </label>
               <select
                 name="cash_account_id"
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                <option value="">Select Account</option>
+                <option value="">{t("selectAccount")}</option>
                 {(accounts || []).map((acc: any) => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
                 ))}
@@ -177,7 +179,7 @@ export default async function NewDevelopmentEntryPage() {
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Expense Date
+                {t("expenseDateLabel")}
               </label>
               <input
                 type="date"
@@ -190,19 +192,19 @@ export default async function NewDevelopmentEntryPage() {
 
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-              Expense Description *
+              {t("expenseDescription")}
             </label>
             <input
               type="text"
               name="description"
               required
-              placeholder="e.g. Material supply 50 tons cement & labour payment"
+              placeholder={t("expensePlaceholder")}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
             />
           </div>
 
           <Button type="submit" className="bg-amber-600 hover:bg-amber-700">
-            Save Expense Voucher
+            {t("saveExpense")}
           </Button>
         </form>
       </div>

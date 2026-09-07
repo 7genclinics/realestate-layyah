@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Handshake, Landmark, Briefcase, Wallet } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageParties } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -32,6 +33,11 @@ export default async function PartiesPage({
   const { q, page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.parties");
+  const tType = await getTranslations("labels.partyType");
+  const tStatus = await getTranslations("labels.partyStatus");
+  const tCommon = await getTranslations("common");
 
   let baseQuery = supabase
     .from("parties")
@@ -89,15 +95,15 @@ export default async function PartiesPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Parties &amp; Vendors</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Landlords, civil contractors, materials suppliers, utilities, and work orders payable ledger.
+            {t("subtitle")}
           </p>
         </div>
         {canEdit ? (
           <Button render={<Link href="/parties/new" />}>
             <Plus className="size-4" />
-            Add Party
+            {t("addParty")}
           </Button>
         ) : null}
       </div>
@@ -105,24 +111,24 @@ export default async function PartiesPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Registered Parties"
+          title={t("totalRegistered")}
           value={totalPartiesCount}
-          hint={`${contractorsCount} contractors & subcontractors`}
+          hint={t("contractorsHint", { count: contractorsCount })}
           icon={Handshake}
           variant="sky"
         />
         <StatCard
-          title="Landlords"
+          title={t("landlords")}
           value={landlordsCount}
-          hint="Land bank acquisition partners"
+          hint={t("landlordsHint")}
           icon={Landmark}
           variant="primary"
           href="/land-bank"
         />
         <StatCard
-          title="Suppliers &amp; Vendors"
+          title={t("suppliers")}
           value={suppliersCount}
-          hint="Material & utility vendors"
+          hint={t("suppliersHint")}
           icon={Briefcase}
           variant="warning"
           href="/development"
@@ -133,11 +139,11 @@ export default async function PartiesPage({
         <Input
           name="q"
           defaultValue={q}
-          placeholder="Search name, phone or ID code"
+          placeholder={t("searchPlaceholder")}
           className="max-w-sm"
         />
         <Button type="submit" variant="outline">
-          Search
+          {tCommon("search")}
         </Button>
       </form>
 
@@ -145,20 +151,20 @@ export default async function PartiesPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Handshake className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Parties &amp; Contractor Directory</h2>
+            <h2 className="font-semibold text-sm">{t("directory")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{totalPartiesCount} parties</span>
+          <span className="text-xs text-muted-foreground">{t("count", { count: totalPartiesCount })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Party ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Party Type</TableHead>
-              <TableHead>Phone Number</TableHead>
-              <TableHead>Total Payable</TableHead>
-              <TableHead>Status</TableHead>
-              {canEdit && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead>{t("partyId")}</TableHead>
+              <TableHead>{tCommon("name")}</TableHead>
+              <TableHead>{t("partyType")}</TableHead>
+              <TableHead>{t("phoneNumber")}</TableHead>
+              <TableHead>{t("totalPayable")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              {canEdit && <TableHead className="text-right">{tCommon("actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -193,14 +199,14 @@ export default async function PartiesPage({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PARTY_TYPE_LABELS[party.party_type]}
+                        {PARTY_TYPE_LABELS[party.party_type] ? tType(party.party_type) : party.party_type}
                       </Badge>
                     </TableCell>
                     <TableCell>{party.phone}</TableCell>
-                    <TableCell className="font-semibold text-amber-600 dark:text-amber-400">{formatPkr(payable)}</TableCell>
+                    <TableCell className="font-semibold text-amber-600 dark:text-amber-400">{formatPkr(payable, locale)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="rounded-md">
-                        {PARTY_STATUS_LABELS[party.status]}
+                        {tStatus(party.status)}
                       </Badge>
                     </TableCell>
                     {canEdit && (
@@ -210,7 +216,7 @@ export default async function PartiesPage({
                           viewHref={`/parties/${party.id}`}
                           editHref={`/parties/${party.id}/edit`}
                           deleteAction={deleteParty}
-                          confirmMessage={`Delete party "${party.name}"?`}
+                          confirmMessage={t("deleteConfirm", { name: party.name })}
                         />
                       </TableCell>
                     )}
@@ -223,7 +229,7 @@ export default async function PartiesPage({
                   colSpan={canEdit ? 7 : 6}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No parties found. Click &quot;Add Party&quot; to register a landlord or vendor.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

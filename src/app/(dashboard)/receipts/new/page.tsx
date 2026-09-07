@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -19,16 +20,18 @@ export default async function NewReceiptPage({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const t = await getTranslations("pages.receipts");
+  const tCommon = await getTranslations("common");
 
   if (!canManageCrm(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Receive payment</h1>
+        <h1 className="text-2xl font-semibold">{t("newTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only sales, accounts, managers and owners can post receipts.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/receipts" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -62,11 +65,11 @@ export default async function NewReceiptPage({
   if (!sales?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Receive payment</h1>
+        <h1 className="text-2xl font-semibold">{t("newTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          No open sales with a remaining balance. Create a booking first.
+          {t("noOpenSales")}
         </p>
-        <Button render={<Link href="/bookings/new" />}>New booking</Button>
+        <Button render={<Link href="/bookings/new" />}>{t("newBooking")}</Button>
       </div>
     );
   }
@@ -74,16 +77,16 @@ export default async function NewReceiptPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Receive payment</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("newTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Posts a receipt, allocates to EMI and updates the customer balance.
+          {t("newSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Payment details</CardTitle>
+          <CardTitle>{t("paymentDetails")}</CardTitle>
           <CardDescription>
-            Amount is allocated to the selected installment or oldest open EMI.
+            {t("paymentHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

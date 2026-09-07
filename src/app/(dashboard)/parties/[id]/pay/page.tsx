@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -22,16 +23,18 @@ export default async function PayPartyPage({
   const { id } = await params;
   const { contract } = await searchParams;
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.parties");
+  const tCommon = await getTranslations("common");
 
   if (!canManageAccounts(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay party</h1>
+        <h1 className="text-2xl font-semibold">{t("payParty")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only accounts, managers and owners can post party payments.
+          {t("payNoPermission")}
         </p>
         <Button render={<Link href={`/parties/${id}`} />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -56,12 +59,12 @@ export default async function PayPartyPage({
   if (!contracts?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay party</h1>
+        <h1 className="text-2xl font-semibold">{t("payParty")}</h1>
         <p className="text-sm text-muted-foreground">
-          No open work orders with a remaining balance.
+          {t("noOpenOrders")}
         </p>
         <Button render={<Link href={`/parties/${id}/contracts/new`} />}>
-          New work order
+          {t("newWorkOrder")}
         </Button>
       </div>
     );
@@ -70,12 +73,12 @@ export default async function PayPartyPage({
   if (!accounts?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Pay party</h1>
+        <h1 className="text-2xl font-semibold">{t("payParty")}</h1>
         <p className="text-sm text-muted-foreground">
-          Configure a cash or bank account first.
+          {t("needAccount")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Cash book
+          {t("cashBook")}
         </Button>
       </div>
     );
@@ -84,18 +87,16 @@ export default async function PayPartyPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Pay party</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("payParty")}</h1>
         <p className="text-sm text-muted-foreground">
-          Posts an expense voucher to the cash book and reduces the work-order
-          balance.
+          {t("payPageSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Payment details</CardTitle>
+          <CardTitle>{t("paymentDetails")}</CardTitle>
           <CardDescription>
-            Amount cannot exceed the remaining payable on the selected work
-            order.
+            {t("paymentHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

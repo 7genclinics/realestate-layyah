@@ -55,7 +55,7 @@ export async function ReceiptPrintView({ receipt }: { receipt: ReceiptPrintData 
           <p className="text-xs uppercase text-neutral-500">{t("receivedFrom")}</p>
           <p className="font-medium">{receipt.customer.full_name}</p>
           <p className="text-neutral-600">
-            {tRelation(receipt.customer.relation)}{" "}
+            {tRelation(receipt.customer.relation as never)}{" "}
             {receipt.customer.guardian_name || tCommon("dash")}
           </p>
           <p className="text-neutral-600">{receipt.customer.phone}</p>

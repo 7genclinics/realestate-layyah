@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewCrmReports } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -19,16 +20,20 @@ import {
 
 export default async function SalesReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tSale = await getTranslations("labels.saleStatus");
+  const tCommon = await getTranslations("common");
 
   if (!canViewCrmReports(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Sales report</h1>
+        <h1 className="text-2xl font-semibold">{t("salesTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -60,18 +65,18 @@ export default async function SalesReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Sales & collections"
-        description="Bookings, sale value, collections and outstanding balances."
+        title={t("salesTitle")}
+        description={t("salesDesc")}
         filename="sales-report"
         headers={[
-          "Sale",
-          "Customer",
-          "Society",
-          "Plot",
-          "Sale value",
-          "Collected",
-          "Outstanding",
-          "Status",
+          t("sale"),
+          tCommon("customer"),
+          tCommon("society"),
+          tCommon("plot"),
+          t("saleValue"),
+          t("collected"),
+          t("outstanding"),
+          tCommon("status"),
         ]}
         rows={rows.map((row) => [
           row.code,
@@ -86,23 +91,23 @@ export default async function SalesReportPage() {
       />
       <ReportTotals
         items={[
-          { label: "Active bookings", value: String(active.length) },
-          { label: "Cancelled", value: String(cancelled) },
-          { label: "Sale value", value: formatPkr(saleValue) },
-          { label: "Outstanding", value: formatPkr(outstanding) },
+          { label: t("activeBookings"), value: String(active.length) },
+          { label: t("cancelled"), value: String(cancelled) },
+          { label: t("saleValue"), value: formatPkr(saleValue, locale) },
+          { label: t("outstanding"), value: formatPkr(outstanding, locale) },
         ]}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Sale</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Society / plot</TableHead>
-              <TableHead>Sale value</TableHead>
-              <TableHead>Collected</TableHead>
-              <TableHead>Outstanding</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("sale")}</TableHead>
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{t("societyPlot")}</TableHead>
+              <TableHead>{t("saleValue")}</TableHead>
+              <TableHead>{t("collected")}</TableHead>
+              <TableHead>{t("outstanding")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -110,15 +115,15 @@ export default async function SalesReportPage() {
               rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-mono text-xs">{row.code}</TableCell>
-                  <TableCell>{row.customer?.full_name ?? "—"}</TableCell>
+                  <TableCell>{row.customer?.full_name ?? tCommon("dash")}</TableCell>
                   <TableCell>
-                    {row.society?.name ?? "—"} · {row.plot_no}
+                    {row.society?.name ?? tCommon("dash")} · {row.plot_no}
                   </TableCell>
-                  <TableCell>{formatPkr(row.sale_amount)}</TableCell>
-                  <TableCell>{formatPkr(row.collected)}</TableCell>
-                  <TableCell>{formatPkr(row.remaining_amount)}</TableCell>
+                  <TableCell>{formatPkr(row.sale_amount, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.collected, locale)}</TableCell>
+                  <TableCell>{formatPkr(row.remaining_amount, locale)}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{SALE_STATUS_LABELS[row.status]}</Badge>
+                    <Badge variant="secondary">{tSale(row.status)}</Badge>
                   </TableCell>
                 </TableRow>
               ))
@@ -128,7 +133,7 @@ export default async function SalesReportPage() {
                   colSpan={7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No sales yet.
+                  {t("noSales")}
                 </TableCell>
               </TableRow>
             )}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { History, ShieldCheck } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { getRecentAudit } from "@/lib/audit";
 import { canViewAudit } from "@/lib/permissions";
@@ -34,6 +35,11 @@ export default async function AuditLogPage() {
     redirect("/dashboard");
   }
 
+  const locale = await getLocale();
+  const t = await getTranslations("pages.audit");
+  const tAction = await getTranslations("labels.auditAction");
+  const tCommon = await getTranslations("common");
+
   const entries = await getRecentAudit(300);
 
   const today = new Date();
@@ -47,32 +53,32 @@ export default async function AuditLogPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Audit Log
+          {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Immutable trail of every important change — who did what, and when.
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Recorded Events"
+          title={t("recordedEvents")}
           value={entries.length}
-          hint="Most recent 300 shown"
+          hint={t("recentHint")}
           icon={History}
           variant="sky"
         />
         <StatCard
-          title="Events Today"
+          title={t("eventsToday")}
           value={todayCount}
-          hint="Since midnight"
+          hint={t("sinceMidnight")}
           icon={ShieldCheck}
           variant="primary"
         />
         <StatCard
-          title="Active Users"
+          title={t("activeUsers")}
           value={actorCount}
-          hint="Distinct actors in this window"
+          hint={t("actorsHint")}
           icon={ShieldCheck}
           variant="warning"
         />
@@ -82,20 +88,20 @@ export default async function AuditLogPage() {
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <History className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Activity Trail</h2>
+            <h2 className="font-semibold text-sm">{t("activityTrail")}</h2>
           </div>
           <span className="text-xs text-muted-foreground">
-            {entries.length} events
+            {t("eventsCount", { count: entries.length })}
           </span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>When</TableHead>
-              <TableHead>Actor</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Entity</TableHead>
-              <TableHead>Summary</TableHead>
+              <TableHead>{t("when")}</TableHead>
+              <TableHead>{t("actor")}</TableHead>
+              <TableHead>{t("action")}</TableHead>
+              <TableHead>{t("entity")}</TableHead>
+              <TableHead>{t("summary")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,19 +109,17 @@ export default async function AuditLogPage() {
               entries.map((entry) => (
                 <TableRow key={entry.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {formatDateTime(entry.created_at)}
+                    {formatDateTime(entry.created_at, locale)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {entry.actor?.full_name ?? "System"}
+                    {entry.actor?.full_name ?? t("system")}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={ACTION_TONE[entry.action] ?? "outline"}
                       className="rounded-md font-normal"
                     >
-                      {AUDIT_ACTION_LABELS[
-                        entry.action as keyof typeof AUDIT_ACTION_LABELS
-                      ] ?? entry.action}
+                      {tAction(entry.action as never)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs font-mono text-muted-foreground">
@@ -127,8 +131,7 @@ export default async function AuditLogPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  No audit events recorded yet. Actions like bookings, receipts and
-                  approvals will appear here.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

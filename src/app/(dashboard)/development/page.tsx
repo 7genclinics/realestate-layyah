@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Building, DollarSign, PieChart, Hammer, Receipt } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getDevelopmentProjects, getDevelopmentExpenses } from "@/lib/development";
 import { formatPkr, formatDate } from "@/lib/format";
 import { DEVELOPMENT_CATEGORY_LABELS, DEVELOPMENT_STATUS_LABELS } from "@/lib/constants";
@@ -31,6 +32,11 @@ export default async function DevelopmentPage({
   const { page: pageStr, epage: epageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const epage = Math.max(1, parseInt(epageStr ?? "1", 10));
+  const locale = await getLocale();
+  const t = await getTranslations("pages.development");
+  const tCat = await getTranslations("labels.developmentCategory");
+  const tStatus = await getTranslations("labels.developmentStatus");
+  const tCommon = await getTranslations("common");
 
   const [{ data: projects, total: projTotal }, { data: expenses, total: expTotal }] =
     await Promise.all([
@@ -48,39 +54,39 @@ export default async function DevelopmentPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Development &amp; Site Works
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track infrastructure projects, roads, boundary walls, electricity/WAPDA, horticulture &amp; site expense vouchers.
+            {t("subtitle")}
           </p>
         </div>
         <Button render={<Link href="/development/new" />}>
           <Plus className="size-4" />
-          Add Project / Expense
+          {t("addProject")}
         </Button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Development Budget"
-          value={formatPkr(totalBudget)}
-          hint={`${projTotal} configured infrastructure projects`}
+          title={t("totalBudget")}
+          value={formatPkr(totalBudget, locale)}
+          hint={t("projectsHint", { count: projTotal })}
           icon={Building}
           variant="primary"
         />
         <StatCard
-          title="Total Development Spend"
-          value={formatPkr(totalSpent)}
-          hint="Logged and synced with Cash Book"
+          title={t("totalSpend")}
+          value={formatPkr(totalSpent, locale)}
+          hint={t("spendHint")}
           icon={DollarSign}
           variant="warning"
           href="/cash-book"
         />
         <StatCard
-          title="Remaining Budget"
-          value={formatPkr(remaining)}
-          hint={`${percentRemaining}% budget available`}
+          title={t("remainingBudget")}
+          value={formatPkr(remaining, locale)}
+          hint={t("remainingHint", { percent: percentRemaining })}
           icon={PieChart}
           variant={remaining >= 0 ? "success" : "danger"}
         />
@@ -91,21 +97,21 @@ export default async function DevelopmentPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Hammer className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Development Projects &amp; Budgets</h2>
+            <h2 className="font-semibold text-sm">{t("projectsBudgets")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{projTotal} projects</span>
+          <span className="text-xs text-muted-foreground">{t("projectsCount", { count: projTotal })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Project Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Society</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Total Spent</TableHead>
-              <TableHead>Remaining</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("projectName")}</TableHead>
+              <TableHead>{t("category")}</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{t("budget")}</TableHead>
+              <TableHead>{t("totalSpentCol")}</TableHead>
+              <TableHead>{t("remainingCol")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,7 +123,7 @@ export default async function DevelopmentPage({
                     <TableCell className="font-medium text-foreground">{proj.name}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {DEVELOPMENT_CATEGORY_LABELS[proj.category as keyof typeof DEVELOPMENT_CATEGORY_LABELS] ?? proj.category}
+                        {tCat(proj.category)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -125,18 +131,18 @@ export default async function DevelopmentPage({
                         <Link href="/societies" className="text-primary hover:underline underline-offset-4">
                           {society.name}
                         </Link>
-                      ) : "—"}
+                      ) : tCommon("dash")}
                     </TableCell>
-                    <TableCell className="font-semibold">{formatPkr(proj.budget)}</TableCell>
+                    <TableCell className="font-semibold">{formatPkr(proj.budget, locale)}</TableCell>
                     <TableCell className="font-medium text-amber-600 dark:text-amber-400">
-                      {formatPkr(proj.total_spent)}
+                      {formatPkr(proj.total_spent, locale)}
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
-                      {formatPkr(proj.remaining_budget)}
+                      {formatPkr(proj.remaining_budget, locale)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="rounded-md">
-                        {DEVELOPMENT_STATUS_LABELS[proj.status as keyof typeof DEVELOPMENT_STATUS_LABELS] ?? proj.status}
+                        {tStatus(proj.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -144,7 +150,7 @@ export default async function DevelopmentPage({
                         id={proj.id}
                         editHref="/development/new"
                         deleteAction={deleteDevelopmentProject}
-                        confirmMessage={`Delete project "${proj.name}"? All associated expenses will also be removed.`}
+                        confirmMessage={t("deleteProject", { name: proj.name })}
                       />
                     </TableCell>
                   </TableRow>
@@ -153,7 +159,7 @@ export default async function DevelopmentPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                  No development projects yet. Click &quot;Add Project / Expense&quot; to configure.
+                  {t("emptyProjects")}
                 </TableCell>
               </TableRow>
             )}
@@ -167,20 +173,20 @@ export default async function DevelopmentPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Receipt className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Recent Expense Vouchers</h2>
+            <h2 className="font-semibold text-sm">{t("recentVouchers")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{expTotal} expense vouchers</span>
+          <span className="text-xs text-muted-foreground">{t("vouchersCount", { count: expTotal })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead>Vendor / Party</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Cash/Bank Account</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("expenseDate")}</TableHead>
+              <TableHead>{t("projectName")}</TableHead>
+              <TableHead>{t("vendorParty")}</TableHead>
+              <TableHead>{t("description")}</TableHead>
+              <TableHead>{tCommon("amount")}</TableHead>
+              <TableHead>{t("cashAccount")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -191,31 +197,31 @@ export default async function DevelopmentPage({
                 const account = Array.isArray(exp.cash_accounts) ? exp.cash_accounts[0] : exp.cash_accounts;
                 return (
                   <TableRow key={exp.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(exp.expense_date)}</TableCell>
-                    <TableCell className="font-medium">{project?.name ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(exp.expense_date, locale)}</TableCell>
+                    <TableCell className="font-medium">{project?.name ?? tCommon("dash")}</TableCell>
                     <TableCell>
                       {party?.id ? (
                         <Link href={`/parties/${party.id}`} className="text-primary hover:underline underline-offset-4">
                           {party.name}
                         </Link>
                       ) : (
-                        party?.name ?? "Direct spend"
+                        party?.name ?? t("directSpend")
                       )}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{exp.description}</TableCell>
                     <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
-                      {formatPkr(exp.amount)}
+                      {formatPkr(exp.amount, locale)}
                     </TableCell>
                     <TableCell>
                       <Link href="/cash-book" className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
-                        {account?.name ?? "Cash Box"}
+                        {account?.name ?? t("cashBox")}
                       </Link>
                     </TableCell>
                     <TableCell className="text-right">
                       <RowActions
                         id={exp.id}
                         deleteAction={deleteDevelopmentExpense}
-                        confirmMessage="Delete this expense voucher? It will remove the record."
+                        confirmMessage={t("deleteExpense")}
                       />
                     </TableCell>
                   </TableRow>
@@ -224,7 +230,7 @@ export default async function DevelopmentPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No expense vouchers logged yet.
+                  {t("emptyExpenses")}
                 </TableCell>
               </TableRow>
             )}

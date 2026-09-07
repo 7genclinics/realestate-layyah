@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewCrmReports, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -17,24 +18,27 @@ import {
 } from "@/components/ui/table";
 
 const BUCKETS = [
-  { id: "1-30", label: "1–30 days", min: 1, max: 30 },
-  { id: "31-60", label: "31–60 days", min: 31, max: 60 },
-  { id: "61-90", label: "61–90 days", min: 61, max: 90 },
-  { id: "90+", label: "90+ days", min: 91, max: Number.POSITIVE_INFINITY },
+  { id: "1-30", key: "bucket130" as const, min: 1, max: 30 },
+  { id: "31-60", key: "bucket3160" as const, min: 31, max: 60 },
+  { id: "61-90", key: "bucket6190" as const, min: 61, max: 90 },
+  { id: "90+", key: "bucket90" as const, min: 91, max: Number.POSITIVE_INFINITY },
 ] as const;
 
 export default async function AgingReportPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tCommon = await getTranslations("common");
 
   if (!canViewCrmReports(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Installment aging</h1>
+        <h1 className="text-2xl font-semibold">{t("agingTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -74,6 +78,7 @@ export default async function AgingReportPage() {
     );
     return {
       ...bucket,
+      label: t(bucket.key),
       count: bucketRows.length,
       amount: roundMoney(bucketRows.reduce((sum, row) => sum + row.open, 0)),
     };
@@ -92,36 +97,36 @@ export default async function AgingReportPage() {
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Installment aging"
-        description="Overdue EMI grouped into 1–30, 31–60, 61–90 and 90+ day buckets."
+        title={t("agingTitle")}
+        description={t("agingDesc")}
         filename="installment-aging"
         headers={[
-          "Customer",
-          "Sale",
-          "Plot",
-          "Period",
-          "Due",
-          "Days overdue",
-          "Open amount",
+          tCommon("customer"),
+          t("sale"),
+          tCommon("plot"),
+          t("period"),
+          t("due"),
+          t("daysOverdue"),
+          t("openAmount"),
         ]}
         rows={csvRows}
       />
       <ReportTotals
         items={summaries.map((bucket) => ({
           label: `${bucket.label} (${bucket.count})`,
-          value: formatPkr(bucket.amount),
+          value: formatPkr(bucket.amount, locale),
         }))}
       />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Sale / plot</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead>Due</TableHead>
-              <TableHead>Days</TableHead>
-              <TableHead>Open</TableHead>
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{t("salePlot")}</TableHead>
+              <TableHead>{t("period")}</TableHead>
+              <TableHead>{t("due")}</TableHead>
+              <TableHead>{t("days")}</TableHead>
+              <TableHead>{t("open")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -134,19 +139,19 @@ export default async function AgingReportPage() {
                         href={`/customers/${row.sale.customer_id}`}
                         className="underline-offset-4 hover:underline"
                       >
-                        {row.customer?.full_name ?? "—"}
+                        {row.customer?.full_name ?? tCommon("dash")}
                       </Link>
                     ) : (
-                      "—"
+                      tCommon("dash")
                     )}
                   </TableCell>
                   <TableCell>
                     {row.sale?.code} · {row.sale?.plot_no}
                   </TableCell>
                   <TableCell>{row.period_label}</TableCell>
-                  <TableCell>{formatDate(row.due_date)}</TableCell>
+                  <TableCell>{formatDate(row.due_date, locale)}</TableCell>
                   <TableCell>{row.days}</TableCell>
-                  <TableCell>{formatPkr(row.open)}</TableCell>
+                  <TableCell>{formatPkr(row.open, locale)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -155,7 +160,7 @@ export default async function AgingReportPage() {
                   colSpan={6}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No overdue installments.
+                  {t("noOverdue")}
                 </TableCell>
               </TableRow>
             )}

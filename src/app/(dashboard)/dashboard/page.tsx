@@ -10,7 +10,7 @@ import {
   startOfMonth,
   subDays,
 } from "date-fns";
-import { enUS, ur } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -119,7 +119,7 @@ export default async function DashboardPage({
   const locale = await getLocale();
   const t = await getTranslations("dashboard");
   const tStatus = await getTranslations("labels.propertyStatus");
-  const dateLocale = locale === "ur" ? ur : enUS;
+  const dateLocale = enUS;
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
 

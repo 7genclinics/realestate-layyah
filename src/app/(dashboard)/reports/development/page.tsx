@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { format, startOfMonth } from "date-fns";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canViewFinancialReports } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -23,16 +24,17 @@ export default async function DevelopmentReportPage({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const locale = await getLocale();
+  const t = await getTranslations("reports");
+  const tCommon = await getTranslations("common");
 
   if (!canViewFinancialReports(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Development cost</h1>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report.
-        </p>
+        <h1 className="text-2xl font-semibold">{t("devTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("noPermission")}</p>
         <Button render={<Link href="/reports" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -76,10 +78,10 @@ export default async function DevelopmentReportPage({
   >();
 
   for (const row of rows) {
-    const key = `${row.society?.name ?? "All projects"}|${row.category?.name ?? "Development"}`;
+    const key = `${row.society?.name ?? t("allProjects")}|${row.category?.name ?? t("devTitle")}`;
     const current = grouped.get(key) ?? {
-      society: row.society?.name ?? "All projects",
-      category: row.category?.name ?? "Development",
+      society: row.society?.name ?? t("allProjects"),
+      category: row.category?.name ?? t("devTitle"),
       amount: 0,
     };
     grouped.set(key, {
@@ -94,15 +96,15 @@ export default async function DevelopmentReportPage({
   return (
     <div className="space-y-6">
       <ReportHeader
-        title="Development cost"
-        description="Society development, contractor and land-purchase expenses by project."
+        title={t("devTitle")}
+        description={t("devDesc")}
         filename={`development-${from}-to-${to}`}
-        headers={["Society", "Category", "Amount"]}
+        headers={[tCommon("society"), t("csvCategory"), tCommon("amount")]}
         rows={tableRows.map((row) => [row.society, row.category, row.amount])}
       >
         <form className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted-foreground">
-            From
+            {tCommon("from")}
             <input
               name="from"
               type="date"
@@ -111,7 +113,7 @@ export default async function DevelopmentReportPage({
             />
           </label>
           <label className="text-xs text-muted-foreground">
-            To
+            {tCommon("to")}
             <input
               name="to"
               type="date"
@@ -120,18 +122,18 @@ export default async function DevelopmentReportPage({
             />
           </label>
           <Button type="submit" variant="outline">
-            Apply
+            {tCommon("apply")}
           </Button>
         </form>
       </ReportHeader>
-      <ReportTotals items={[{ label: "Total spend", value: formatPkr(total) }]} />
+      <ReportTotals items={[{ label: t("totalSpend"), value: formatPkr(total, locale) }]} />
       <div className="rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Society</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{t("csvCategory")}</TableHead>
+              <TableHead>{tCommon("amount")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,7 +142,7 @@ export default async function DevelopmentReportPage({
                 <TableRow key={`${row.society}-${row.category}`}>
                   <TableCell>{row.society}</TableCell>
                   <TableCell>{row.category}</TableCell>
-                  <TableCell>{formatPkr(row.amount)}</TableCell>
+                  <TableCell>{formatPkr(row.amount, locale)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -149,7 +151,7 @@ export default async function DevelopmentReportPage({
                   colSpan={3}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No development spend in this period.
+                  {t("noDevSpend")}
                 </TableCell>
               </TableRow>
             )}

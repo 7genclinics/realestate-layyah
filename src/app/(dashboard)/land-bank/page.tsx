@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, ArrowRightLeft, LandPlot, Wallet, Building2, MapPin } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageLandBank } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -33,6 +34,13 @@ export default async function LandBankPage({
   const { profile } = await requireProfile();
   const { q } = await searchParams;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.landBank");
+  const tAcq = await getTranslations("labels.landAcquisition");
+  const tStatus = await getTranslations("labels.landStatus");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tEx = await getTranslations("labels.landExchangeStatus");
+  const tCommon = await getTranslations("common");
 
   let parcelsQuery = supabase
     .from("land_parcels")
@@ -76,20 +84,20 @@ export default async function LandBankPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Land Bank</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Master land parcels, acquisitions, mouza/khasra numbers, and barter exchange deals.
+            {t("subtitle")}
           </p>
         </div>
         {canEdit ? (
           <div className="flex items-center gap-2">
             <Button render={<Link href="/land-bank/exchanges/new" />} variant="outline">
               <ArrowRightLeft className="size-4" />
-              New Exchange Deal
+              {t("newExchange")}
             </Button>
             <Button render={<Link href="/land-bank/new" />}>
               <Plus className="size-4" />
-              Add Land Parcel
+              {t("addParcel")}
             </Button>
           </div>
         ) : null}
@@ -98,23 +106,23 @@ export default async function LandBankPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Land Parcels"
+          title={t("totalParcels")}
           value={rows.length}
-          hint={`${rows.filter((r) => r.status === "fully_paid").length} fully paid & clear`}
+          hint={t("fullyPaidHint", { count: rows.filter((r) => r.status === "fully_paid").length })}
           icon={LandPlot}
           variant="sky"
         />
         <StatCard
-          title="Acquisition Value"
-          value={formatPkr(totalLandValue)}
-          hint="Total inventory cost of land"
+          title={t("acquisitionValue")}
+          value={formatPkr(totalLandValue, locale)}
+          hint={t("acquisitionHint")}
           icon={Building2}
           variant="primary"
         />
         <StatCard
-          title="Outstanding Landlord Payable"
-          value={formatPkr(payable)}
-          hint="Pending payments to landlords"
+          title={t("landlordPayable")}
+          value={formatPkr(payable, locale)}
+          hint={t("payableHint")}
           icon={Wallet}
           variant="warning"
           href="/parties"
@@ -122,9 +130,9 @@ export default async function LandBankPage({
       </div>
 
       <form className="flex gap-2">
-        <Input name="q" defaultValue={q} placeholder="Search title, code, khasra or location" className="max-w-sm" />
+        <Input name="q" defaultValue={q} placeholder={t("searchPlaceholder")} className="max-w-sm" />
         <Button type="submit" variant="outline">
-          Search
+          {tCommon("search")}
         </Button>
       </form>
 
@@ -133,21 +141,21 @@ export default async function LandBankPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <MapPin className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Land Parcels Directory</h2>
+            <h2 className="font-semibold text-sm">{t("parcelsDirectory")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{rows.length} parcels recorded</span>
+          <span className="text-xs text-muted-foreground">{t("parcelsCount", { count: rows.length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Land Title</TableHead>
-              <TableHead>Society</TableHead>
-              <TableHead>Landlord / Party</TableHead>
-              <TableHead>Area</TableHead>
-              <TableHead>Total Value</TableHead>
-              <TableHead>Remaining Payable</TableHead>
-              <TableHead>Status</TableHead>
-              {canEdit && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead>{t("landTitle")}</TableHead>
+              <TableHead>{tCommon("society")}</TableHead>
+              <TableHead>{t("landlordParty")}</TableHead>
+              <TableHead>{t("area")}</TableHead>
+              <TableHead>{t("totalValue")}</TableHead>
+              <TableHead>{t("remainingPayable")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              {canEdit && <TableHead className="text-right">{tCommon("actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -181,20 +189,20 @@ export default async function LandBankPage({
                       </Link>
                     ) : (
                       <span className="text-xs text-muted-foreground">
-                        {LAND_ACQUISITION_LABELS[row.acquisition_type]}
+                        {tAcq(row.acquisition_type)}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {row.area} {AREA_UNIT_LABELS[row.area_unit]}
+                    {row.area} {tUnit(row.area_unit)}
                   </TableCell>
-                  <TableCell className="font-semibold">{formatPkr(row.purchase_value)}</TableCell>
+                  <TableCell className="font-semibold">{formatPkr(row.purchase_value, locale)}</TableCell>
                   <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
-                    {formatPkr(row.remaining_amount)}
+                    {formatPkr(row.remaining_amount, locale)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="rounded-md">
-                      {LAND_STATUS_LABELS[row.status]}
+                      {tStatus(row.status)}
                     </Badge>
                   </TableCell>
                   {canEdit && (
@@ -204,7 +212,7 @@ export default async function LandBankPage({
                         viewHref={`/land-bank/${row.id}`}
                         editHref={`/land-bank/${row.id}/edit`}
                         deleteAction={deleteLandParcel}
-                        confirmMessage={`Delete land parcel "${row.title}"? This cannot be undone.`}
+                        confirmMessage={t("deleteParcel", { title: row.title })}
                       />
                     </TableCell>
                   )}
@@ -213,7 +221,7 @@ export default async function LandBankPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={canEdit ? 8 : 7} className="py-10 text-center text-muted-foreground">
-                  No land records yet. Click &quot;Add Land Parcel&quot; to begin.
+                  {t("emptyParcels")}
                 </TableCell>
               </TableRow>
             )}
@@ -226,22 +234,22 @@ export default async function LandBankPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <ArrowRightLeft className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Land Exchange &amp; Barter Deals</h2>
+            <h2 className="font-semibold text-sm">{t("exchangesHeading")}</h2>
           </div>
           <Button render={<Link href="/reports/land-bank" />} variant="outline" size="sm">
-            Land Report
+            {t("landReport")}
           </Button>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Deal Code</TableHead>
-              <TableHead>Incoming Land</TableHead>
-              <TableHead>Landlord / Party</TableHead>
-              <TableHead>Incoming Value</TableHead>
-              <TableHead>Outgoing Value</TableHead>
-              <TableHead>Net Difference</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("dealCode")}</TableHead>
+              <TableHead>{t("incomingLand")}</TableHead>
+              <TableHead>{t("landlordParty")}</TableHead>
+              <TableHead>{t("incomingValue")}</TableHead>
+              <TableHead>{t("outgoingValue")}</TableHead>
+              <TableHead>{t("netDifference")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -268,14 +276,14 @@ export default async function LandBankPage({
                         party?.name ?? "—"
                       )}
                     </TableCell>
-                    <TableCell className="font-semibold">{formatPkr(row.incoming_value)}</TableCell>
-                    <TableCell className="font-medium text-muted-foreground">{formatPkr(row.outgoing_value)}</TableCell>
+                    <TableCell className="font-semibold">{formatPkr(row.incoming_value, locale)}</TableCell>
+                    <TableCell className="font-medium text-muted-foreground">{formatPkr(row.outgoing_value, locale)}</TableCell>
                     <TableCell className="font-semibold text-primary">
-                      {formatPkr(row.difference_amount)}
+                      {formatPkr(row.difference_amount, locale)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md">
-                        {LAND_EXCHANGE_STATUS_LABELS[row.status]}
+                        {tEx(row.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -284,7 +292,7 @@ export default async function LandBankPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No exchange deals yet.
+                  {t("emptyExchanges")}
                 </TableCell>
               </TableRow>
             )}

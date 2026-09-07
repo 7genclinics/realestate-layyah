@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageInventory } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -14,16 +15,18 @@ import {
 
 export default async function NewPropertyPage() {
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.inventory");
+  const tCommon = await getTranslations("common");
 
   if (!canManageInventory(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Add property</h1>
+        <h1 className="text-2xl font-semibold">{t("addTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only owners, managers and inventory managers can add units.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/inventory" />} variant="outline">
-          Back to inventory
+          {t("backToInventory")}
         </Button>
       </div>
     );
@@ -38,11 +41,11 @@ export default async function NewPropertyPage() {
   if (!societies?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Add property</h1>
+        <h1 className="text-2xl font-semibold">{t("addTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Create a society first, then add plots and shops to its inventory.
+          {t("needSociety")}
         </p>
-        <Button render={<Link href="/societies" />}>Go to societies</Button>
+        <Button render={<Link href="/societies" />}>{t("goToSocieties")}</Button>
       </div>
     );
   }
@@ -50,16 +53,16 @@ export default async function NewPropertyPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Add property</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("addTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          New units start as Available. Status changes are recorded in history.
+          {t("addSubtitle")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Inventory details</CardTitle>
+          <CardTitle>{t("detailsTitle")}</CardTitle>
           <CardDescription>
-            Acquisition cost and minimum price are hidden from sales and agents.
+            {t("detailsHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

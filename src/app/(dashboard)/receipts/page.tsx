@@ -139,7 +139,7 @@ export default async function ReceiptsPage() {
                           {customer.full_name}
                         </Link>
                       ) : (
-                        {tCommon("dash")}
+                        tCommon("dash")
                       )}
                     </TableCell>
                     <TableCell>
@@ -149,7 +149,7 @@ export default async function ReceiptsPage() {
                           <span className="ml-1.5 font-mono text-xs text-muted-foreground">({sale.code})</span>
                         </div>
                       ) : (
-                        {tCommon("dash")}
+                        tCommon("dash")
                       )}
                     </TableCell>
                     <TableCell>

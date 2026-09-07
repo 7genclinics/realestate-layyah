@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts, canManageParties } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,6 +21,8 @@ export default async function EditPartyPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("pages.parties");
+  const tCommon = await getTranslations("common");
 
   if (!canManageParties(profile.role)) {
     redirect(`/parties/${id}`);
@@ -52,20 +55,20 @@ export default async function EditPartyPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit party</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            Update the master record for {party.name}.
+            {t("editSubtitle", { name: party.name })}
           </p>
         </div>
         <Button render={<Link href={`/parties/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Party profile</CardTitle>
+          <CardTitle>{t("profileTitle")}</CardTitle>
           <CardDescription>
-            Bank details are visible only to accounts, managers and owners.
+            {t("profileHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

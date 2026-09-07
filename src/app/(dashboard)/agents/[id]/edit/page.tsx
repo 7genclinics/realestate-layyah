@@ -80,7 +80,7 @@ export default async function EditAgentPage({
               <label className={labelClass}>{t("agentType")}</label>
               <select name="agent_type" required defaultValue={agent.agent_type} className={inputClass}>
                 {Object.keys(AGENT_TYPE_LABELS).map((typeKey) => (
-                  <option key={typeKey} value={typeKey}>{tTypes(typeKey)}</option>
+                  <option key={typeKey} value={typeKey}>{tTypes(typeKey as never)}</option>
                 ))}
               </select>
             </div>
@@ -98,7 +98,7 @@ export default async function EditAgentPage({
               <label className={labelClass}>{t("status")}</label>
               <select name="status" defaultValue={agent.status} className={inputClass}>
                 {Object.keys(AGENT_STATUS_LABELS).map((key) => (
-                  <option key={key} value={key}>{tStatus(key)}</option>
+                  <option key={key} value={key}>{tStatus(key as never)}</option>
                 ))}
               </select>
             </div>

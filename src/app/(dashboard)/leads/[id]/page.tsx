@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Phone, Target } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { getActivities } from "@/lib/audit";
 import { createClient } from "@/lib/server";
@@ -28,6 +29,12 @@ export default async function LeadDetailPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const locale = await getLocale();
+  const t = await getTranslations("pages.leads");
+  const tStatus = await getTranslations("labels.leadStatus");
+  const tSource = await getTranslations("labels.customerSource");
+  const tActivity = await getTranslations("labels.activityType");
+  const tCommon = await getTranslations("common");
 
   if (!canManageLeads(profile.role)) {
     redirect("/dashboard");
@@ -68,17 +75,16 @@ export default async function LeadDetailPage({
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="size-3.5" />
-              {lead.phone || "No phone"}
+              {lead.phone || t("noPhone")}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="rounded-md">
-            {LEAD_STATUS_LABELS[lead.status as keyof typeof LEAD_STATUS_LABELS] ??
-              lead.status}
+            {tStatus(lead.status)}
           </Badge>
           <Button render={<Link href={`/leads/${id}/edit`} />} variant="outline">
-            Edit
+            {tCommon("edit")}
           </Button>
         </div>
       </div>
@@ -87,31 +93,29 @@ export default async function LeadDetailPage({
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Enquiry details</CardTitle>
+              <CardTitle className="text-base">{t("enquiryDetails")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
-              <Detail label="Source">
-                {CUSTOMER_SOURCE_LABELS[
-                  lead.source as keyof typeof CUSTOMER_SOURCE_LABELS
-                ] ?? lead.source}
+              <Detail label={t("source")}>
+                {tSource(lead.source)}
               </Detail>
-              <Detail label="Budget">
-                {lead.budget ? formatPkr(Number(lead.budget)) : "—"}
+              <Detail label={t("budget")}>
+                {lead.budget ? formatPkr(Number(lead.budget), locale) : tCommon("dash")}
               </Detail>
-              <Detail label="Interested society">{society?.name ?? "—"}</Detail>
-              <Detail label="Referring agent">{agent?.name ?? "—"}</Detail>
-              <Detail label="Interest" span>
-                {lead.interest || "—"}
+              <Detail label={t("interestedSociety")}>{society?.name ?? tCommon("dash")}</Detail>
+              <Detail label={t("referringAgent")}>{agent?.name ?? tCommon("dash")}</Detail>
+              <Detail label={t("interest")} span>
+                {lead.interest || tCommon("dash")}
               </Detail>
-              <Detail label="Notes" span>
-                {lead.notes || "—"}
+              <Detail label={tCommon("notes")} span>
+                {lead.notes || tCommon("dash")}
               </Detail>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Activity timeline</CardTitle>
+              <CardTitle className="text-base">{t("activityTimeline")}</CardTitle>
             </CardHeader>
             <CardContent>
               {activities.length ? (
@@ -121,12 +125,10 @@ export default async function LeadDetailPage({
                       <span className="absolute -left-[23px] top-1 size-3 rounded-full border-2 border-background bg-primary" />
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">
-                          {ACTIVITY_TYPE_LABELS[
-                            activity.activity_type as keyof typeof ACTIVITY_TYPE_LABELS
-                          ] ?? activity.activity_type}
+                          {tActivity(activity.activity_type)}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(activity.created_at)}
+                          {formatDateTime(activity.created_at, locale)}
                         </span>
                       </div>
                       {activity.subject ? (
@@ -136,15 +138,14 @@ export default async function LeadDetailPage({
                         <p className="text-sm text-muted-foreground">{activity.body}</p>
                       ) : null}
                       <p className="text-xs text-muted-foreground">
-                        {activity.actor?.full_name ?? "System"}
+                        {activity.actor?.full_name ?? tCommon("user")}
                       </p>
                     </li>
                   ))}
                 </ol>
               ) : (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  No activity logged yet. Use the panel to record calls, visits
-                  and status changes.
+                  {t("emptyActivity")}
                 </p>
               )}
             </CardContent>
@@ -156,7 +157,7 @@ export default async function LeadDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Target className="size-4 text-primary" />
-                Pipeline actions
+                {t("pipelineActions")}
               </CardTitle>
             </CardHeader>
             <CardContent>
