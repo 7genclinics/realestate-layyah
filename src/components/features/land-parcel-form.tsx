@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { createLandParcel, updateLandParcel } from "@/lib/actions/land-bank";
 import {
   AREA_UNIT_LABELS,
@@ -42,6 +43,13 @@ export function LandParcelForm({
 }) {
   const router = useRouter();
   const isEdit = Boolean(parcelId);
+  const t = useTranslations("land");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tAcq = useTranslations("labels.landAcquisition");
+  const tUnit = useTranslations("labels.areaUnit");
+  const tStatus = useTranslations("labels.landStatus");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
@@ -83,9 +91,11 @@ export function LandParcelForm({
       : await createLandParcel(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not save land record");
+      toast.error(result.error ?? tToasts("couldNotSaveLand"));
       return;
     }
+
+    const entityLabel = isEdit ? tToasts("landUpdated") : tToasts("landCreated");
 
     if (attachments.length) {
       const upload = await uploadPendingAttachments(
@@ -95,15 +105,22 @@ export function LandParcelForm({
       );
       if (upload.failed) {
         toast.warning(
-          `Land record saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+          tToasts("attachmentsFailed", {
+            entity: entityLabel,
+            count: upload.failed,
+            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+          }),
         );
       } else {
         toast.success(
-          `${isEdit ? "Land record updated" : "Land record created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+          tToasts("attachmentsOk", {
+            entity: entityLabel,
+            count: upload.uploaded,
+          }),
         );
       }
     } else {
-      toast.success(isEdit ? "Land record updated" : "Land record created");
+      toast.success(entityLabel);
     }
 
     router.push(`/land-bank/${result.id}`);
@@ -114,7 +131,7 @@ export function LandParcelForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="society_id">Society</Label>
+          <Label htmlFor="society_id">{t("society")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
             {societies.map((row) => (
               <option key={row.id} value={row.id}>
@@ -124,30 +141,30 @@ export function LandParcelForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="acquisition_type">Acquisition type</Label>
+          <Label htmlFor="acquisition_type">{t("acquisitionType")}</Label>
           <select
             id="acquisition_type"
             className={selectClassName}
             {...register("acquisition_type")}
           >
-            {Object.entries(LAND_ACQUISITION_LABELS).map(([value, label]) => (
+            {Object.keys(LAND_ACQUISITION_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tAcq(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="title">Land description</Label>
+          <Label htmlFor="title">{t("landDescription")}</Label>
           <Input id="title" {...register("title")} />
           {errors.title ? (
             <p className="text-xs text-destructive">{errors.title.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="party_id">Landlord / seller</Label>
+          <Label htmlFor="party_id">{t("landlord")}</Label>
           <select id="party_id" className={selectClassName} {...register("party_id")}>
-            <option value="">None</option>
+            <option value="">{tCommon("none")}</option>
             {parties.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.name}
@@ -159,72 +176,72 @@ export function LandParcelForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">{tCommon("status")}</Label>
           <select id="status" className={selectClassName} {...register("status")}>
-            <option value="proposed">Proposed</option>
-            <option value="under_negotiation">Under negotiation</option>
+            <option value="proposed">{tStatus("proposed")}</option>
+            <option value="under_negotiation">{tStatus("under_negotiation")}</option>
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="location">Location</Label>
+          <Label htmlFor="location">{t("location")}</Label>
           <Input id="location" {...register("location")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="khasra">Khasra</Label>
+          <Label htmlFor="khasra">{t("khasra")}</Label>
           <Input id="khasra" {...register("khasra")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="khewat">Khewat</Label>
+          <Label htmlFor="khewat">{t("khewat")}</Label>
           <Input id="khewat" {...register("khewat")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="khata">Khata</Label>
+          <Label htmlFor="khata">{t("khata")}</Label>
           <Input id="khata" {...register("khata")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="mouza">Mouza</Label>
+          <Label htmlFor="mouza">{t("mouza")}</Label>
           <Input id="mouza" {...register("mouza")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="area">Area / raqba</Label>
+          <Label htmlFor="area">{t("areaRaqba")}</Label>
           <Input id="area" type="number" step="0.01" {...register("area")} />
           {errors.area ? (
             <p className="text-xs text-destructive">{String(errors.area.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="area_unit">Unit</Label>
+          <Label htmlFor="area_unit">{tCommon("unit")}</Label>
           <select id="area_unit" className={selectClassName} {...register("area_unit")}>
-            {Object.entries(AREA_UNIT_LABELS).map(([value, label]) => (
+            {Object.keys(AREA_UNIT_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tUnit(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="rate_per_unit">Rate per unit (PKR)</Label>
+          <Label htmlFor="rate_per_unit">{t("ratePerUnit")}</Label>
           <Input id="rate_per_unit" type="number" step="1" {...register("rate_per_unit")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="purchase_value">Purchase value (PKR)</Label>
+          <Label htmlFor="purchase_value">{t("purchaseValue")}</Label>
           <Input id="purchase_value" type="number" step="1" {...register("purchase_value")} />
           {suggested > 0 ? (
             <p className="text-xs text-muted-foreground">
-              Area × rate = {formatPkr(suggested)}. Leave value at 0 to use this.
+              {t("suggested", { amount: formatPkr(suggested) })}
             </p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="token_amount">Token / down payment (PKR)</Label>
+          <Label htmlFor="token_amount">{t("tokenDown")}</Label>
           <Input id="token_amount" type="number" step="1" {...register("token_amount")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="agreement_terms">Agreement terms</Label>
+          <Label htmlFor="agreement_terms">{t("agreementTerms")}</Label>
           <Textarea id="agreement_terms" rows={3} {...register("agreement_terms")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
@@ -234,16 +251,16 @@ export function LandParcelForm({
         onChange={setAttachments}
         defaultType="title"
         disabled={isSubmitting}
-        description="Attach the title deed, mutation (fard/intiqal) or other files (JPG, PNG, PDF · max 10 MB)."
+        description={t("titleAttach")}
       />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          {isEdit ? "Update land record" : "Save land record"}
+          {isEdit ? tForms("updateLand") : tForms("saveLand")}
         </Button>
       </div>
     </form>
