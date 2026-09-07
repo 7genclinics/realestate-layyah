@@ -281,58 +281,58 @@ function MeasurementForm({ contractId }: { contractId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="outline" className="h-7 text-xs rounded-md" onClick={() => setOpen(true)}>
         <Plus className="size-3.5" />
-        Add measurement
+        {tForms("addMeasurement")}
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record measurement</DialogTitle>
-          <DialogDescription>Add a line to this contract&apos;s measurement book.</DialogDescription>
+          <DialogTitle>{t("recordMeasurement")}</DialogTitle>
+          <DialogDescription>{t("recordHint")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="m-date">Date</Label>
+              <Label htmlFor="m-date">{tCommon("date")}</Label>
               <Input id="m-date" type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="m-unit">Unit</Label>
+              <Label htmlFor="m-unit">{tCommon("unit")}</Label>
               <select id="m-unit" value={unit} onChange={(e) => setUnit(e.target.value)} className={selectClass}>
-                {UNIT_ENTRIES.map(([value, label]) => (
+                {Object.keys(CONTRACT_UNIT_LABELS).map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {tUnit(value)}
                   </option>
                 ))}
               </select>
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="m-desc">Description</Label>
+              <Label htmlFor="m-desc">{tCommon("description")}</Label>
             <Input
               id="m-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Brick masonry — Block A boundary wall"
+              placeholder={t("descPlaceholder")}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="m-qty">Quantity</Label>
+              <Label htmlFor="m-qty">{t("quantity")}</Label>
               <Input id="m-qty" type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="m-rate">Rate (PKR)</Label>
+              <Label htmlFor="m-rate">{t("ratePkr")}</Label>
               <Input id="m-rate" type="number" min="0" step="any" value={rate} onChange={(e) => setRate(e.target.value)} />
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            Amount: <span className="font-semibold text-foreground">{formatPkr(amount)}</span>
+            {t("amount", { amount: formatPkr(amount) })}
           </p>
           <div className="flex justify-end gap-2 border-t pt-3">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancel
+              {tForms("cancel")}
             </Button>
             <Button onClick={submit} disabled={isPending || description.trim().length < 2}>
-              {isPending ? "Saving…" : "Add entry"}
+              {isPending ? tCommon("saving") : tForms("addEntry")}
             </Button>
           </div>
         </div>
@@ -343,6 +343,10 @@ function MeasurementForm({ contractId }: { contractId: string }) {
 
 function MaterialForm({ contractId }: { contractId: string }) {
   const router = useRouter();
+  const t = useTranslations("contracts");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
@@ -370,7 +374,7 @@ function MaterialForm({ contractId }: { contractId: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Material added.");
+      toast.success(tToasts("materialAdded"));
       setName("");
       setUnit("");
       setOrdered("");
@@ -386,51 +390,51 @@ function MaterialForm({ contractId }: { contractId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="outline" className="h-7 text-xs rounded-md" onClick={() => setOpen(true)}>
         <Plus className="size-3.5" />
-        Add material
+        {tForms("addMaterial")}
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add material</DialogTitle>
-          <DialogDescription>Track supplies ordered and received against this contract.</DialogDescription>
+          <DialogTitle>{t("addMaterialTitle")}</DialogTitle>
+          <DialogDescription>{t("addMaterialHint")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="mat-name">Material</Label>
-              <Input id="mat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Cement" />
+              <Label htmlFor="mat-name">{t("colMaterial")}</Label>
+              <Input id="mat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("materialPlaceholder")} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mat-unit">Unit</Label>
-              <Input id="mat-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="bag / ton / ft" />
+              <Label htmlFor="mat-unit">{tCommon("unit")}</Label>
+              <Input id="mat-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={t("unitPlaceholder")} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="mat-ord">Ordered</Label>
+              <Label htmlFor="mat-ord">{t("colOrdered")}</Label>
               <Input id="mat-ord" type="number" min="0" step="any" value={ordered} onChange={(e) => setOrdered(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mat-rec">Received</Label>
+              <Label htmlFor="mat-rec">{t("colReceived")}</Label>
               <Input id="mat-rec" type="number" min="0" step="any" value={received} onChange={(e) => setReceived(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mat-rate">Rate (PKR)</Label>
+              <Label htmlFor="mat-rate">{t("ratePkr")}</Label>
               <Input id="mat-rate" type="number" min="0" step="any" value={rate} onChange={(e) => setRate(e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="mat-notes">Notes</Label>
-            <Input id="mat-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+              <Label htmlFor="mat-notes">{tCommon("notes")}</Label>
+            <Input id="mat-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tCommon("optional")} />
           </div>
           <p className="text-sm text-muted-foreground">
-            Value: <span className="font-semibold text-foreground">{formatPkr(value)}</span>
+            {t("value", { amount: formatPkr(value) })}
           </p>
           <div className="flex justify-end gap-2 border-t pt-3">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancel
+              {tForms("cancel")}
             </Button>
             <Button onClick={submit} disabled={isPending || name.trim().length < 2}>
-              {isPending ? "Saving…" : "Add material"}
+              {isPending ? tCommon("saving") : tForms("addMaterial")}
             </Button>
           </div>
         </div>

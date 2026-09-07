@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Download, FileUp, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { importCustomers } from "@/lib/actions/customers";
 import { csvRowsToObjects, exportToCsv, parseCsv } from "@/lib/csv";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,11 @@ function isValid(row: Row) {
 
 export function CustomerImportDialog() {
   const router = useRouter();
+  const t = useTranslations("customers");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tStage = useTranslations("labels.customerStage");
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [fileName, setFileName] = useState("");
@@ -101,13 +107,13 @@ export function CustomerImportDialog() {
       const text = await file.text();
       const matrix = parseCsv(text);
       if (matrix.length < 2) {
-        setParseError("The file has no data rows (need a header row plus at least one record).");
+        setParseError(t("parseNoRows"));
         setRows([]);
         return;
       }
       const objs = csvRowsToObjects(matrix, ALIASES);
       if (!objs.some((o) => "full_name" in o) || !objs.some((o) => "phone" in o)) {
-        setParseError('Could not find "name" and "phone" columns. Download the template for the expected headers.');
+        setParseError(t("parseColumns"));
       }
       setRows(objs);
       setFileName(file.name);
