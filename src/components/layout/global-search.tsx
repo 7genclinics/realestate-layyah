@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, Loader2, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ import { cn } from "@/lib/utils";
 
 export function GlobalSearch() {
   const router = useRouter();
+  const t = useTranslations("search");
+  const tHeader = useTranslations("header");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [groups, setGroups] = useState<SearchGroup[]>([]);
@@ -114,10 +117,10 @@ export function GlobalSearch() {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex h-8 items-center gap-2 rounded-[8px] border border-input bg-transparent px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-        title="Search (Ctrl / ⌘ K)"
+        title={tHeader("searchTitle")}
       >
         <Search className="size-4" />
-        <span className="hidden sm:inline">Search…</span>
+        <span className="hidden sm:inline">{tHeader("search")}</span>
         <kbd className="hidden rounded border bg-muted px-1 font-sans text-[10px] font-medium sm:inline">
           ⌘K
         </kbd>
@@ -128,9 +131,9 @@ export function GlobalSearch() {
           showCloseButton={false}
           className="top-[14%] max-w-lg translate-y-0 gap-0 p-0 sm:max-w-lg"
         >
-          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogTitle className="sr-only">{t("title")}</DialogTitle>
           <DialogDescription className="sr-only">
-            Search across customers, inventory, parties and leads.
+            {t("description")}
           </DialogDescription>
 
           <div className="flex items-center gap-2 border-b px-3">
@@ -141,7 +144,7 @@ export function GlobalSearch() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Search customers, plots, parties, leads…"
+              placeholder={t("placeholder")}
               className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             {loading ? (
@@ -152,17 +155,17 @@ export function GlobalSearch() {
           <div className="max-h-[50vh] overflow-y-auto p-1.5">
             {q.length < 2 ? (
               <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                Type at least 2 characters to search.
+                {t("hint")}
               </p>
             ) : !loading && flat.length === 0 ? (
               <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                No matches for &ldquo;{q}&rdquo;.
+                {t("noMatches", { query: q })}
               </p>
             ) : (
               groups.map((group) => (
                 <div key={group.group} className="mb-1">
                   <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group.group}
+                    {t.has(group.group) ? t(group.group) : group.group}
                   </p>
                   {group.items.map((hit) => {
                     cursor += 1;
@@ -181,7 +184,9 @@ export function GlobalSearch() {
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-foreground">
-                            {hit.label}
+                            {group.group === "inventory"
+                              ? t("plot", { plotNo: hit.label })
+                              : hit.label}
                           </span>
                           {hit.sub ? (
                             <span className="block truncate text-xs text-muted-foreground">

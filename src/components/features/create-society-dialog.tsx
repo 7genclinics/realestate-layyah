@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createSociety } from "@/lib/actions/societies";
 import { SOCIETY_STATUS_LABELS } from "@/lib/constants";
@@ -27,6 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function CreateSocietyDialog() {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("societies");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("labels.societyStatus");
   const {
     register,
     handleSubmit,
@@ -50,49 +56,49 @@ export function CreateSocietyDialog() {
       return;
     }
 
-    toast.success("Society created");
+    toast.success(tToasts("societyCreated"));
     reset();
     setOpen(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>Add society</DialogTrigger>
+      <DialogTrigger render={<Button />}>{tForms("addSociety")}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New society / project</DialogTitle>
+          <DialogTitle>{t("newTitle")}</DialogTitle>
           <DialogDescription>
-            Master record for a housing society or development project.
+            {t("newHint")}
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-2">
-            <Label htmlFor="name">Society name</Label>
-            <Input id="name" placeholder="Mohkam Housing Society" {...register("name")} />
+            <Label htmlFor="name">{t("name")}</Label>
+            <Input id="name" placeholder={t("namePlaceholder")} {...register("name")} />
             {errors.name ? (
               <p className="text-xs text-destructive">{errors.name.message}</p>
             ) : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input id="location" placeholder="City / area" {...register("location")} />
+            <Label htmlFor="location">{t("location")}</Label>
+            <Input id="location" placeholder={t("locationPlaceholder")} {...register("location")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{tCommon("status")}</Label>
             <select
               id="status"
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
               {...register("status")}
             >
-              {Object.entries(SOCIETY_STATUS_LABELS).map(([value, label]) => (
+              {Object.keys(SOCIETY_STATUS_LABELS).map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {tStatus(value)}
                 </option>
               ))}
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{tCommon("notes")}</Label>
             <Textarea id="notes" rows={3} {...register("notes")} />
           </div>
           <DialogFooter showCloseButton={false}>
@@ -101,11 +107,11 @@ export function CreateSocietyDialog() {
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {tForms("cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-              Save
+              {tForms("save")}
             </Button>
           </DialogFooter>
         </form>

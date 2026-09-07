@@ -32,6 +32,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   updateMyPassword,
   updateMyProfile,
@@ -71,6 +72,11 @@ export function SettingsConsole({
   allProfiles,
   systemSettings,
 }: SettingsConsoleProps) {
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
+  const tToasts = useTranslations("toasts");
+  const tRoles = useTranslations("labels.roles");
+  const tArea = useTranslations("labels.areaUnit");
   const [activeTab, setActiveTab] = useState<
     "profile" | "security" | "users" | "preferences" | "notifications"
   >("profile");
@@ -88,7 +94,7 @@ export function SettingsConsole({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image file size must be less than 5MB.");
+      toast.error(tToasts("imageTooLarge"));
       return;
     }
 
@@ -97,7 +103,7 @@ export function SettingsConsole({
     reader.onloadend = () => {
       const result = reader.result as string;
       setAvatarPreview(result);
-      toast.success("Photo selected! Click 'Save Profile Changes' to upload to Supabase & sync header.");
+      toast.success(tToasts("photoSelected"));
     };
     reader.readAsDataURL(file);
   };
@@ -108,7 +114,7 @@ export function SettingsConsole({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    toast.info("Photo removed. Save changes to apply.");
+    toast.info(tToasts("photoRemoved"));
   };
 
   const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -134,7 +140,7 @@ export function SettingsConsole({
         setAvatarPreview(result.avatarUrl);
       }
       setAvatarFile(null);
-      toast.success("Profile & circular avatar synchronized successfully across system!");
+      toast.success(tToasts("profileSynced"));
     }
   };
 
@@ -148,7 +154,7 @@ export function SettingsConsole({
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("Password updated successfully");
+      toast.success(tToasts("passwordUpdated"));
       (e.target as HTMLFormElement).reset();
     }
   };
@@ -163,18 +169,18 @@ export function SettingsConsole({
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("System configurations saved successfully");
+      toast.success(tToasts("settingsSaved"));
     }
   };
 
   const handleRoleChange = async (userId: string, newRole: AppRole) => {
     await updateUserRole(userId, newRole);
-    toast.success(`User role updated to ${ROLE_LABELS[newRole]}`);
+    toast.success(tToasts("roleUpdated", { role: tRoles(newRole) }));
   };
 
   const handleStatusToggle = async (userId: string, currentStatus: boolean) => {
     await toggleUserStatus(userId, !currentStatus);
-    toast.success(`User status ${!currentStatus ? "activated" : "suspended"}`);
+    toast.success(!currentStatus ? tToasts("userActivated") : tToasts("userSuspended"));
   };
 
   return (
@@ -182,10 +188,10 @@ export function SettingsConsole({
       {/* Header */}
       <div className="border-b pb-6">
         <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-          System Settings &amp; Preferences
+          {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your personal profile, avatar photo, security credentials, user roles, and society configuration.
+          {t("subtitle")}
         </p>
       </div>
 
@@ -196,32 +202,32 @@ export function SettingsConsole({
             active={activeTab === "profile"}
             onClick={() => setActiveTab("profile")}
             icon={User}
-            label="My Profile & Avatar"
+            label={t("tabProfile")}
           />
           <TabButton
             active={activeTab === "security"}
             onClick={() => setActiveTab("security")}
             icon={Lock}
-            label="Security &amp; Passwords"
+            label={t("tabSecurity")}
           />
           <TabButton
             active={activeTab === "users"}
             onClick={() => setActiveTab("users")}
             icon={Users}
-            label="Team &amp; Role Permissions"
+            label={t("tabUsers")}
             count={allProfiles.length}
           />
           <TabButton
             active={activeTab === "preferences"}
             onClick={() => setActiveTab("preferences")}
             icon={Building2}
-            label="Society OS Config"
+            label={t("tabPreferences")}
           />
           <TabButton
             active={activeTab === "notifications"}
             onClick={() => setActiveTab("notifications")}
             icon={Bell}
-            label="Notification Triggers"
+            label={t("tabNotifications")}
           />
         </div>
       </div>
@@ -232,10 +238,10 @@ export function SettingsConsole({
           <div className="border-b pb-4">
             <div className="flex items-center gap-2">
               <User className="size-5 text-primary" />
-              <h2 className="font-semibold text-base">Personal Account &amp; Profile Picture</h2>
+              <h2 className="font-semibold text-base">{t("profileTitle")}</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Upload your profile photo and update contact details synced with the dashboard header.
+              {t("profileHint")}
             </p>
           </div>
 
@@ -246,7 +252,7 @@ export function SettingsConsole({
               <div
                 className="relative group cursor-pointer shrink-0 select-none"
                 onClick={() => fileInputRef.current?.click()}
-                title="Click to change profile picture"
+                title={t("changePhoto")}
               >
                 <Avatar className="size-24 rounded-full border-2 border-primary/30 ring-4 ring-primary/10 shadow-md overflow-hidden transition-transform duration-200 group-hover:scale-105">
                   {avatarPreview ? (
@@ -257,14 +263,14 @@ export function SettingsConsole({
                     />
                   ) : null}
                   <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary rounded-full">
-                    {initials(currentProfile.full_name || "User") || "U"}
+                    {initials(currentProfile.full_name || tCommon("user")) || "U"}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Smart Hover Dark Overlay with Camera Icon */}
                 <div className="absolute inset-0 rounded-full bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center text-white text-center p-1 cursor-pointer">
                   <Camera className="size-6 mb-1 text-white animate-pulse" />
-                  <span className="text-[10px] font-bold tracking-tight uppercase">Change</span>
+                  <span className="text-[10px] font-bold tracking-tight uppercase">{tCommon("change")}</span>
                 </div>
 
                 {/* Corner Camera Badge */}
@@ -275,9 +281,9 @@ export function SettingsConsole({
 
               <div className="space-y-2 text-center sm:text-left">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Profile Avatar Picture</p>
+                  <p className="text-sm font-semibold text-foreground">{t("avatarTitle")}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Hover on circle or click to upload. Stored in Supabase and displayed in header.
+                    {t("avatarHint")}
                   </p>
                 </div>
 
@@ -297,7 +303,7 @@ export function SettingsConsole({
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="size-3.5 mr-1.5" />
-                    Upload Image
+                    {t("uploadImage")}
                   </Button>
 
                   {avatarPreview && (
@@ -309,7 +315,7 @@ export function SettingsConsole({
                       onClick={handleRemoveAvatar}
                     >
                       <Trash2 className="size-3.5 mr-1.5" />
-                      Remove
+                      {tCommon("remove")}
                     </Button>
                   )}
                 </div>
@@ -317,19 +323,19 @@ export function SettingsConsole({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name *</Label>
+              <Label htmlFor="full_name">{t("fullName")}</Label>
               <Input
                 id="full_name"
                 name="full_name"
                 defaultValue={currentProfile.full_name || ""}
                 required
                 className="rounded-[8px]"
-                placeholder="e.g. Saim Sultan"
+                placeholder={t("fullNamePlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Registered Account Email</Label>
+              <Label htmlFor="email">{t("registeredEmail")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -337,35 +343,35 @@ export function SettingsConsole({
                 value={currentEmail || "—"}
                 className="rounded-[8px] bg-muted/40 text-muted-foreground font-mono text-xs cursor-not-allowed"
               />
-              <p className="text-[11px] text-muted-foreground">Email is verified via Supabase Authentication.</p>
+              <p className="text-[11px] text-muted-foreground">{t("emailVerified")}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Contact Phone Number</Label>
+              <Label htmlFor="phone">{t("contactPhone")}</Label>
               <Input
                 id="phone"
                 name="phone"
                 defaultValue={currentProfile.phone || ""}
                 className="rounded-[8px]"
-                placeholder="e.g. +92 300 1234567"
+                placeholder={t("phonePlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Assigned Role &amp; Access Level</Label>
+              <Label>{t("assignedRole")}</Label>
               <div className="flex items-center gap-2 pt-1">
                 <Badge variant="secondary" className="rounded-md font-semibold text-xs px-2.5 py-1">
                   <ShieldCheck className="size-3.5 mr-1.5 text-primary" />
-                  {ROLE_LABELS[currentProfile.role as AppRole] || currentProfile.role}
+                  {tRoles(currentProfile.role as AppRole) || currentProfile.role}
                 </Badge>
-                <span className="text-xs text-muted-foreground">Managed by Society Super Admin</span>
+                <span className="text-xs text-muted-foreground">{t("managedByOwner")}</span>
               </div>
             </div>
 
             <div className="pt-2">
               <Button type="submit" disabled={isSavingProfile}>
                 <Save className="size-4 mr-2" />
-                {isSavingProfile ? "Saving Profile..." : "Save Profile Changes"}
+                {isSavingProfile ? t("savingProfile") : t("saveProfile")}
               </Button>
             </div>
           </form>
@@ -378,16 +384,16 @@ export function SettingsConsole({
           <div className="border-b pb-4">
             <div className="flex items-center gap-2">
               <KeyRound className="size-5 text-primary" />
-              <h2 className="font-semibold text-base">Change Password &amp; Account Security</h2>
+              <h2 className="font-semibold text-base">{t("securityTitle")}</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Ensure your account uses a secure password of at least 6 characters.
+              {t("securityHint")}
             </p>
           </div>
 
           <form onSubmit={handlePasswordSubmit} className="space-y-5 max-w-xl">
             <div className="space-y-2">
-              <Label htmlFor="new_password">New Password *</Label>
+              <Label htmlFor="new_password">{t("newPassword")}</Label>
               <Input
                 id="new_password"
                 name="new_password"
@@ -395,12 +401,12 @@ export function SettingsConsole({
                 required
                 minLength={6}
                 className="rounded-[8px]"
-                placeholder="Enter new strong password"
+                placeholder={t("newPasswordPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirm_password">Confirm New Password *</Label>
+              <Label htmlFor="confirm_password">{t("confirmPassword")}</Label>
               <Input
                 id="confirm_password"
                 name="confirm_password"
@@ -408,23 +414,23 @@ export function SettingsConsole({
                 required
                 minLength={6}
                 className="rounded-[8px]"
-                placeholder="Re-enter new password"
+                placeholder={t("confirmPasswordPlaceholder")}
               />
             </div>
 
             <div className="rounded-[8px] bg-muted/40 p-3.5 space-y-1 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Password Security Guidelines:</p>
+              <p className="font-semibold text-foreground">{t("passwordGuidelines")}</p>
               <ul className="list-disc list-inside space-y-0.5 text-[11px]">
-                <li>Minimum 6 characters length.</li>
-                <li>Use a combination of letters, numbers, and symbols.</li>
-                <li>Never share your credentials with unauthorized personnel.</li>
+                <li>{t("passwordMin")}</li>
+                <li>{t("passwordMix")}</li>
+                <li>{t("passwordShare")}</li>
               </ul>
             </div>
 
             <div className="pt-2">
               <Button type="submit" disabled={isSavingPassword}>
                 <Lock className="size-4 mr-2" />
-                {isSavingPassword ? "Updating Password..." : "Update Password"}
+                {isSavingPassword ? t("updatingPassword") : t("updatePassword")}
               </Button>
             </div>
           </form>
@@ -437,20 +443,20 @@ export function SettingsConsole({
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">System Users &amp; Role Permissions</h2>
+              <h2 className="font-semibold text-sm">{t("usersTitle")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{allProfiles.length} registered accounts</span>
+            <span className="text-xs text-muted-foreground">{t("registeredAccounts", { count: allProfiles.length })}</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-muted/30 text-xs uppercase font-medium text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">User Profile</th>
-                  <th className="px-5 py-3">Phone</th>
-                  <th className="px-5 py-3">Current Role</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Assign Role</th>
+                  <th className="px-5 py-3">{t("colUser")}</th>
+                  <th className="px-5 py-3">{t("colPhone")}</th>
+                  <th className="px-5 py-3">{t("colRole")}</th>
+                  <th className="px-5 py-3">{t("colStatus")}</th>
+                  <th className="px-5 py-3 text-right">{t("colAssign")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -462,24 +468,24 @@ export function SettingsConsole({
                           {user.avatar_url ? (
                             <AvatarImage
                               src={user.avatar_url}
-                              alt={user.full_name || "User"}
+                              alt={user.full_name || tCommon("user")}
                               className="object-cover size-full rounded-full"
                             />
                           ) : null}
                           <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary rounded-full">
-                            {initials(user.full_name || "User") || "U"}
+                            {initials(user.full_name || tCommon("user")) || "U"}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-semibold text-foreground">{user.full_name || "Unnamed User"}</div>
-                          <div className="font-mono text-[10px] text-muted-foreground">ID: {user.id.slice(0, 8)}...</div>
+                          <div className="font-semibold text-foreground">{user.full_name || tCommon("unnamedUser")}</div>
+                          <div className="font-mono text-[10px] text-muted-foreground">{tCommon("idShort", { id: user.id.slice(0, 8) })}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-muted-foreground">{user.phone || "—"}</td>
                     <td className="px-5 py-3.5">
                       <Badge variant="secondary" className="rounded-md font-normal text-xs">
-                        {ROLE_LABELS[user.role as AppRole] || user.role}
+                        {tRoles(user.role as AppRole) || user.role}
                       </Badge>
                     </td>
                     <td className="px-5 py-3.5">
@@ -490,11 +496,11 @@ export function SettingsConsole({
                       >
                         {user.is_active ? (
                           <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle className="size-3.5 mr-1" /> Active
+                            <CheckCircle className="size-3.5 mr-1" /> {tCommon("active")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center text-rose-600 dark:text-rose-400">
-                            <ShieldAlert className="size-3.5 mr-1" /> Suspended
+                            <ShieldAlert className="size-3.5 mr-1" /> {tCommon("suspended")}
                           </span>
                         )}
                       </button>
@@ -505,9 +511,9 @@ export function SettingsConsole({
                         onChange={(e) => handleRoleChange(user.id, e.target.value as AppRole)}
                         className="rounded-[6px] border border-input bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                       >
-                        {Object.entries(ROLE_LABELS).map(([roleKey, roleLabel]) => (
+                        {Object.keys(ROLE_LABELS).map((roleKey) => (
                           <option key={roleKey} value={roleKey}>
-                            {roleLabel}
+                            {tRoles(roleKey)}
                           </option>
                         ))}
                       </select>
@@ -526,17 +532,17 @@ export function SettingsConsole({
           <div className="border-b pb-4">
             <div className="flex items-center gap-2">
               <Building2 className="size-5 text-primary" />
-              <h2 className="font-semibold text-base">Society Management &amp; Real Estate Defaults</h2>
+              <h2 className="font-semibold text-base">{t("prefsTitle")}</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Configure standard measurement units, financial currency, auto-code prefixes, and grace periods.
+              {t("prefsHint")}
             </p>
           </div>
 
           <form onSubmit={handlePreferencesSubmit} className="space-y-5 max-w-2xl">
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="society_name">Organization / Group Name</Label>
+                <Label htmlFor="society_name">{t("orgName")}</Label>
                 <Input
                   id="society_name"
                   name="society_name"
@@ -546,47 +552,47 @@ export function SettingsConsole({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="default_currency">Primary Operating Currency</Label>
+                <Label htmlFor="default_currency">{t("currency")}</Label>
                 <Input
                   id="default_currency"
                   name="default_currency"
-                  defaultValue="PKR (Pakistani Rupee)"
+                  defaultValue={t("currencyValue")}
                   disabled
                   className="rounded-[8px] bg-muted/40 text-muted-foreground cursor-not-allowed font-medium"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="default_area_unit">Default Area Unit</Label>
+                <Label htmlFor="default_area_unit">{t("defaultAreaUnit")}</Label>
                 <select
                   id="default_area_unit"
                   name="default_area_unit"
                   defaultValue={systemSettings.default_area_unit || "marla"}
                   className="h-9 w-full rounded-[8px] border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="marla">Marla</option>
-                  <option value="kanal">Kanal (1 Kanal = 20 Marla)</option>
-                  <option value="acre">Acre</option>
-                  <option value="sq_ft">Square Feet (Sq Ft)</option>
-                  <option value="sq_yd">Square Yards (Sq Yd)</option>
+                  <option value="marla">{tArea("marla")}</option>
+                  <option value="kanal">{t("kanalHint")}</option>
+                  <option value="acre">{tArea("acre")}</option>
+                  <option value="sq_ft">{t("sqFtHint")}</option>
+                  <option value="sq_yd">{t("sqYdHint")}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="marla_size_sqft">Standard Marla Conversion (Sq Ft)</Label>
+                <Label htmlFor="marla_size_sqft">{t("marlaConversion")}</Label>
                 <select
                   id="marla_size_sqft"
                   name="marla_size_sqft"
                   defaultValue={String(systemSettings.marla_size_sqft || "225")}
                   className="h-9 w-full rounded-[8px] border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="225">225 Sq Ft (Punjab / Lahore Standard)</option>
-                  <option value="272">272.25 Sq Ft (Revenue / Govt Standard)</option>
+                  <option value="225">{t("marlaPunjab")}</option>
+                  <option value="272">{t("marlaGovt")}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="receipt_prefix">Receipt Voucher Prefix</Label>
+                <Label htmlFor="receipt_prefix">{t("receiptPrefix")}</Label>
                 <Input
                   id="receipt_prefix"
                   name="receipt_prefix"
@@ -596,7 +602,7 @@ export function SettingsConsole({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="booking_prefix">Sale Booking Prefix</Label>
+                <Label htmlFor="booking_prefix">{t("bookingPrefix")}</Label>
                 <Input
                   id="booking_prefix"
                   name="booking_prefix"
@@ -606,7 +612,7 @@ export function SettingsConsole({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="grace_period_days">Installment Grace Period (Days)</Label>
+                <Label htmlFor="grace_period_days">{t("gracePeriod")}</Label>
                 <Input
                   id="grace_period_days"
                   name="grace_period_days"
@@ -614,14 +620,14 @@ export function SettingsConsole({
                   defaultValue={systemSettings.grace_period_days || 10}
                   className="rounded-[8px]"
                 />
-                <p className="text-[11px] text-muted-foreground">Days after due date before marking installment overdue</p>
+                <p className="text-[11px] text-muted-foreground">{t("graceHint")}</p>
               </div>
             </div>
 
             <div className="pt-3 border-t">
               <Button type="submit" disabled={isSavingPreferences}>
                 <Save className="size-4 mr-2" />
-                {isSavingPreferences ? "Saving Settings..." : "Save System Settings"}
+                {isSavingPreferences ? t("savingSettings") : t("saveSettings")}
               </Button>
             </div>
           </form>
@@ -634,42 +640,42 @@ export function SettingsConsole({
           <div className="border-b pb-4">
             <div className="flex items-center gap-2">
               <Bell className="size-5 text-primary" />
-              <h2 className="font-semibold text-base">Automated Notification &amp; Collection Triggers</h2>
+              <h2 className="font-semibold text-base">{t("notifTitle")}</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Configure automatic alerts for upcoming installment dates and overdue milestone collections.
+              {t("notifHint")}
             </p>
           </div>
 
           <div className="space-y-4 max-w-2xl">
             <div className="flex items-start justify-between p-4 rounded-[8px] border bg-muted/20">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Upcoming Installment SMS / WhatsApp Reminder</p>
+                <p className="text-sm font-semibold text-foreground">{t("smsTitle")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Send notification alert to customer 3 days prior to milestone due date.
+                  {t("smsHint")}
                 </p>
               </div>
-              <Badge variant="secondary" className="rounded-md text-xs">Enabled</Badge>
+              <Badge variant="secondary" className="rounded-md text-xs">{tCommon("enabled")}</Badge>
             </div>
 
             <div className="flex items-start justify-between p-4 rounded-[8px] border bg-muted/20">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Overdue Recovery Alert</p>
+                <p className="text-sm font-semibold text-foreground">{t("overdueTitle")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Notify CRM and recovery agents when an installment exceeds grace period.
+                  {t("overdueHint")}
                 </p>
               </div>
-              <Badge variant="secondary" className="rounded-md text-xs">Enabled</Badge>
+              <Badge variant="secondary" className="rounded-md text-xs">{tCommon("enabled")}</Badge>
             </div>
 
             <div className="flex items-start justify-between p-4 rounded-[8px] border bg-muted/20">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Daily Cash Book Closing Summary</p>
+                <p className="text-sm font-semibold text-foreground">{t("cashCloseTitle")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Compile daily receipts vs expenses and notify executive management.
+                  {t("cashCloseHint")}
                 </p>
               </div>
-              <Badge variant="secondary" className="rounded-md text-xs">Active</Badge>
+              <Badge variant="secondary" className="rounded-md text-xs">{tCommon("active")}</Badge>
             </div>
           </div>
         </div>

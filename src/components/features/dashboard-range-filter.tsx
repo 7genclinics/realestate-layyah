@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CalendarRange, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
-  { key: "today", label: "Today" },
-  { key: "7d", label: "7 Days" },
-  { key: "14d", label: "14 Days" },
-  { key: "month", label: "This Month" },
+  { key: "today", labelKey: "rangeToday" },
+  { key: "7d", labelKey: "range7d" },
+  { key: "14d", labelKey: "range14d" },
+  { key: "month", labelKey: "rangeMonth" },
 ] as const;
 
 const pillBase =
@@ -38,6 +39,7 @@ export function DashboardRangeFilter({
   const [showCustom, setShowCustom] = useState(selected === "custom");
   const [customFrom, setCustomFrom] = useState(from ?? "");
   const [customTo, setCustomTo] = useState(to ?? "");
+  const t = useTranslations("dashboard");
 
   function go(href: string) {
     startTransition(() => router.push(href));
@@ -75,7 +77,7 @@ export function DashboardRangeFilter({
               selected === preset.key && !showCustom ? pillActive : pillIdle,
             )}
           >
-            {preset.label}
+            {t(preset.labelKey)}
           </button>
         ))}
         <button
@@ -87,7 +89,7 @@ export function DashboardRangeFilter({
             selected === "custom" || showCustom ? pillActive : pillIdle,
           )}
         >
-          Custom
+          {t("rangeCustom")}
         </button>
       </div>
 
@@ -99,7 +101,7 @@ export function DashboardRangeFilter({
             max={customTo || undefined}
             onChange={(event) => setCustomFrom(event.target.value)}
             className="h-6 bg-transparent text-xs text-foreground focus:outline-none"
-            aria-label="From date"
+            aria-label={t("fromDate")}
           />
           <span className="text-xs text-muted-foreground">→</span>
           <input
@@ -108,7 +110,7 @@ export function DashboardRangeFilter({
             min={customFrom || undefined}
             onChange={(event) => setCustomTo(event.target.value)}
             className="h-6 bg-transparent text-xs text-foreground focus:outline-none"
-            aria-label="To date"
+            aria-label={t("toDate")}
           />
           <button
             type="button"
@@ -116,7 +118,7 @@ export function DashboardRangeFilter({
             disabled={isPending || !customFrom || !customTo}
             className={cn(pillBase, pillActive, "disabled:opacity-40")}
           >
-            Apply
+            {t("apply")}
           </button>
         </div>
       ) : null}

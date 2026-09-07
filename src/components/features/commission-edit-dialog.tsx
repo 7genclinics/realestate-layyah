@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { updateAgentCommission } from "@/lib/actions/agents";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,9 @@ export function CommissionEditDialog({
   dealLabel,
 }: CommissionEditDialogProps) {
   const router = useRouter();
+  const t = useTranslations("agents");
+  const tForms = useTranslations("forms");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(commissionAmount));
   const [remarks, setRemarks] = useState(notes ?? "");
@@ -49,7 +53,7 @@ export function CommissionEditDialog({
   function handleSave() {
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) {
-      toast.error("Enter a valid commission amount.");
+      toast.error(t("invalidAmount"));
       return;
     }
 
@@ -66,9 +70,7 @@ export function CommissionEditDialog({
       }
 
       toast.success(
-        status === "approved"
-          ? "Commission updated and sent back for approval."
-          : "Commission updated.",
+        status === "approved" ? t("updatedPending") : t("updated"),
       );
       close();
       router.refresh();
@@ -85,11 +87,11 @@ export function CommissionEditDialog({
         variant="outline"
         size="icon-xs"
         className="size-7 rounded-md border-border/70 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors"
-        title="Edit commission"
+        title={t("editCommission")}
         onClick={() => setOpen(true)}
       >
         <Pencil className="size-3.5" />
-        <span className="sr-only">Edit commission</span>
+        <span className="sr-only">{t("editCommission")}</span>
       </Button>
 
       <Dialog
@@ -101,17 +103,15 @@ export function CommissionEditDialog({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit commission</DialogTitle>
+            <DialogTitle>{t("editCommissionTitle")}</DialogTitle>
             <DialogDescription>
-              Update the commission amount for <strong>{dealLabel}</strong>.
-              {status === "approved" ? (
-                <> Saving will reset this voucher to pending for re-approval.</>
-              ) : null}
+              {t("editCommissionHint", { deal: dealLabel })}
+              {status === "approved" ? <> {t("editResetsApproval")}</> : null}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor={`commission-amount-${id}`}>Commission amount (PKR)</Label>
+              <Label htmlFor={`commission-amount-${id}`}>{t("commissionAmountPkr")}</Label>
               <Input
                 id={`commission-amount-${id}`}
                 type="number"
@@ -119,25 +119,25 @@ export function CommissionEditDialog({
                 min="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 50000"
+                placeholder={t("commissionPlaceholder")}
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor={`commission-notes-${id}`}>Notes &amp; deal remarks</Label>
+              <Label htmlFor={`commission-notes-${id}`}>{t("notesRemarks")}</Label>
               <Input
                 id={`commission-notes-${id}`}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder="e.g. 1.5% commission on Plot #45-B"
+                placeholder={t("notesPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close} disabled={isPending}>
-              Cancel
+              {tForms("cancel")}
             </Button>
             <Button onClick={handleSave} disabled={isPending}>
-              {isPending ? "Saving…" : "Save changes"}
+              {isPending ? tCommon("saving") : t("saveChanges")}
             </Button>
           </DialogFooter>
         </DialogContent>

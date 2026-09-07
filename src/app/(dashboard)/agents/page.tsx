@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Plus, ExternalLink, Briefcase, Users, DollarSign, Wallet } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getAgents } from "@/lib/agents";
 import { formatPkr } from "@/lib/format";
-import { AGENT_TYPE_LABELS, AGENT_STATUS_LABELS } from "@/lib/constants";
 import { deleteAgent } from "@/lib/actions/agents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ export default async function AgentsPage({
 }) {
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
+  const locale = await getLocale();
+  const t = await getTranslations("agents");
+  const tTypes = await getTranslations("labels.agentType");
+  const tStatus = await getTranslations("labels.agentStatus");
+  const tCommon = await getTranslations("common");
 
   const { data: agents, total } = await getAgents({ page, pageSize: PAGE_SIZE });
 
@@ -40,20 +45,20 @@ export default async function AgentsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Agents &amp; Brokers
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manage local &amp; overseas brokers, commission disbursements, and payout histories.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" render={<Link href="/agents/portal" />}>
             <ExternalLink className="size-4" />
-            Agent Portal
+            {t("portal")}
           </Button>
           <Button render={<Link href="/agents/new" />}>
             <Plus className="size-4" />
-            Add Agent
+            {t("addAgent")}
           </Button>
         </div>
       </div>
@@ -61,23 +66,27 @@ export default async function AgentsPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Registered Agents"
+          title={t("totalRegistered")}
           value={total}
-          hint={`${overseasCount} overseas broker${overseasCount === 1 ? "" : "s"}`}
+          hint={
+            overseasCount === 1
+              ? t("overseasBrokerOne", { count: overseasCount })
+              : t("overseasBrokers", { count: overseasCount })
+          }
           icon={Users}
           variant="sky"
         />
         <StatCard
-          title="Total Commission Earned"
-          value={formatPkr(totalCommissions)}
-          hint={`${formatPkr(totalPaid)} already disbursed`}
+          title={t("totalCommissionEarned")}
+          value={formatPkr(totalCommissions, locale)}
+          hint={t("alreadyDisbursed", { amount: formatPkr(totalPaid, locale) })}
           icon={DollarSign}
           variant="primary"
         />
         <StatCard
-          title="Outstanding Payable"
-          value={formatPkr(totalUnpaid)}
-          hint="Pending broker commission vouchers"
+          title={t("outstandingPayable")}
+          value={formatPkr(totalUnpaid, locale)}
+          hint={t("pendingVouchers")}
           icon={Wallet}
           variant="warning"
           href="/cash-book"
@@ -89,21 +98,21 @@ export default async function AgentsPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Briefcase className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Brokers &amp; Agency Directory</h2>
+            <h2 className="font-semibold text-sm">{t("directory")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{total} total brokers</span>
+          <span className="text-xs text-muted-foreground">{t("totalBrokers", { total })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Agency / Contact</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Commission Rate</TableHead>
-              <TableHead>Total Earned</TableHead>
-              <TableHead>Balance Payable</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("agencyContact")}</TableHead>
+              <TableHead>{t("type")}</TableHead>
+              <TableHead>{t("commissionRate")}</TableHead>
+              <TableHead>{t("totalEarned")}</TableHead>
+              <TableHead>{t("balancePayable")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -119,22 +128,22 @@ export default async function AgentsPage({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{agent.agency_name || "Independent"}</div>
+                    <div className="font-medium">{agent.agency_name || tCommon("independent")}</div>
                     <div className="text-xs text-muted-foreground">{agent.phone}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="rounded-md font-normal">
-                      {AGENT_TYPE_LABELS[agent.agent_type as keyof typeof AGENT_TYPE_LABELS] ?? agent.agent_type}
+                      {tTypes(agent.agent_type)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium">{Number(agent.commission_rate ?? 0)}%</TableCell>
-                  <TableCell className="font-semibold">{formatPkr(agent.total_commission)}</TableCell>
+                  <TableCell className="font-semibold">{formatPkr(agent.total_commission, locale)}</TableCell>
                   <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
-                    {formatPkr(agent.balance_payable)}
+                    {formatPkr(agent.balance_payable, locale)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="rounded-md">
-                      {AGENT_STATUS_LABELS[agent.status as keyof typeof AGENT_STATUS_LABELS] ?? agent.status}
+                      {tStatus(agent.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -143,7 +152,7 @@ export default async function AgentsPage({
                       viewHref={`/agents/${agent.id}`}
                       editHref={`/agents/${agent.id}/edit`}
                       deleteAction={deleteAgent}
-                      confirmMessage={`Delete broker "${agent.name}"? All commissions and payouts will also be removed.`}
+                      confirmMessage={t("deleteConfirm", { name: agent.name })}
                     />
                   </TableCell>
                 </TableRow>
@@ -151,7 +160,7 @@ export default async function AgentsPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                  No agents registered yet. Click &quot;Add Agent&quot; to register brokers.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

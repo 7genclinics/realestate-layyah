@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 
 interface TablePaginationProps {
@@ -17,12 +18,14 @@ function buildHref(page: number, params: Record<string, string | undefined>): st
   return `?${qs}`;
 }
 
-export function TablePagination({
+export async function TablePagination({
   page,
   total,
   pageSize = 20,
   params = {},
 }: TablePaginationProps) {
+  const t = await getTranslations("pagination");
+  const tCommon = await getTranslations("common");
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
 
@@ -34,7 +37,7 @@ export function TablePagination({
   return (
     <div className="flex items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
       <span>
-        {start}–{end} of {total} records
+        {t("records", { start, end, total })}
       </span>
       <div className="flex items-center gap-1">
         <Button
@@ -45,7 +48,7 @@ export function TablePagination({
           render={hasPrev ? <Link href={buildHref(page - 1, params)} /> : undefined}
         >
           <ChevronLeft className="size-3.5" />
-          Prev
+          {tCommon("prev")}
         </Button>
         <span className="px-2 text-xs">
           {page} / {totalPages}
@@ -57,7 +60,7 @@ export function TablePagination({
           disabled={!hasNext}
           render={hasNext ? <Link href={buildHref(page + 1, params)} /> : undefined}
         >
-          Next
+          {tCommon("next")}
           <ChevronRight className="size-3.5" />
         </Button>
       </div>

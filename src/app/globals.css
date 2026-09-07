@@ -155,3 +155,12 @@
     width: 100% !important;
   }
 }
+
+html[lang="ur"] {
+  --font-sans: var(--font-urdu), var(--font-poppins);
+  --font-heading: var(--font-urdu), var(--font-syne);
+}
+
+html[lang="ur"] body {
+  font-family: var(--font-urdu), var(--font-poppins), sans-serif;
+}

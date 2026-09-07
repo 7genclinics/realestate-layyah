@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Plus, Receipt, DollarSign, CreditCard, Banknote, Printer } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
-import { PAYMENT_MODE_LABELS } from "@/lib/constants";
 import { formatDate, formatPkr } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ import {
 export default async function ReceiptsPage() {
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.receipts");
+  const tPay = await getTranslations("labels.paymentMode");
+  const tCommon = await getTranslations("common");
 
   const { data: receipts, error } = await supabase
     .from("receipts")
@@ -39,15 +43,15 @@ export default async function ReceiptsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Receipts &amp; Payments</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Customer payment receipts, installment recoveries, token collections and printable e-vouchers.
+            {t("subtitle")}
           </p>
         </div>
         {canManageCrm(profile.role) ? (
           <Button render={<Link href="/receipts/new" />}>
             <Plus className="size-4" />
-            Receive Payment
+            {t("receivePayment")}
           </Button>
         ) : null}
       </div>
@@ -55,24 +59,24 @@ export default async function ReceiptsPage() {
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Collections"
-          value={formatPkr(totalCollections)}
-          hint={`${list.length} posted customer receipts`}
+          title={t("totalCollections")}
+          value={formatPkr(totalCollections, locale)}
+          hint={t("postedHint", { count: list.length })}
           icon={Receipt}
           variant="success"
         />
         <StatCard
-          title="Cash Receipts"
-          value={formatPkr(cashReceipts)}
-          hint="Direct cash drawer receipts"
+          title={t("cashReceipts")}
+          value={formatPkr(cashReceipts, locale)}
+          hint={t("cashHint")}
           icon={DollarSign}
           variant="sky"
           href="/cash-book"
         />
         <StatCard
-          title="Bank / Online Receipts"
-          value={formatPkr(bankReceipts)}
-          hint="Bank transfers & cheque clearances"
+          title={t("bankReceipts")}
+          value={formatPkr(bankReceipts, locale)}
+          hint={t("bankHint")}
           icon={CreditCard}
           variant="primary"
           href="/cash-book"
@@ -83,20 +87,20 @@ export default async function ReceiptsPage() {
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Receipt className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Customer Receipt Log</h2>
+            <h2 className="font-semibold text-sm">{t("receiptLog")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{list.length} receipts</span>
+          <span className="text-xs text-muted-foreground">{t("count", { count: list.length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Receipt No</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Sale / Plot No</TableHead>
-              <TableHead>Payment Mode</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("receiptNo")}</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{t("salePlot")}</TableHead>
+              <TableHead>{t("paymentMode")}</TableHead>
+              <TableHead>{tCommon("amount")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -125,7 +129,7 @@ export default async function ReceiptsPage() {
                         {receipt.code}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(receipt.payment_date)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(receipt.payment_date, locale)}</TableCell>
                     <TableCell className="font-medium text-foreground">
                       {customer ? (
                         <Link
@@ -135,7 +139,7 @@ export default async function ReceiptsPage() {
                           {customer.full_name}
                         </Link>
                       ) : (
-                        "—"
+                        {tCommon("dash")}
                       )}
                     </TableCell>
                     <TableCell>
@@ -145,16 +149,16 @@ export default async function ReceiptsPage() {
                           <span className="ml-1.5 font-mono text-xs text-muted-foreground">({sale.code})</span>
                         </div>
                       ) : (
-                        "—"
+                        {tCommon("dash")}
                       )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PAYMENT_MODE_LABELS[receipt.payment_mode]}
+                        {tPay(receipt.payment_mode)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      {formatPkr(receipt.amount)}
+                      {formatPkr(receipt.amount, locale)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -164,7 +168,7 @@ export default async function ReceiptsPage() {
                         render={<Link href={`/receipts/${receipt.id}/print`} />}
                       >
                         <Printer className="size-3 mr-1" />
-                        Print
+                        {tCommon("print")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -173,7 +177,7 @@ export default async function ReceiptsPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No payment receipts recorded yet.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

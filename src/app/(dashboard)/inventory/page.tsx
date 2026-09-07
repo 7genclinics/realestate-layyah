@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { Plus, MapPin, Building, CheckCircle2, Clock, Ban } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageInventory } from "@/lib/permissions";
-import {
-  AREA_UNIT_LABELS,
-  PROPERTY_STATUS_LABELS,
-  PROPERTY_TYPE_LABELS,
-} from "@/lib/constants";
+import { PROPERTY_STATUS_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import type { PropertyStatus, PropertyType } from "@/lib/database.types";
 import { formatNumber, formatPkr } from "@/lib/format";
 import { deleteProperty } from "@/lib/actions/properties";
@@ -39,6 +36,12 @@ export default async function InventoryPage({
   const filters = await searchParams;
   const page = Math.max(1, parseInt(filters.page ?? "1", 10));
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.inventory");
+  const tStatus = await getTranslations("labels.propertyStatus");
+  const tType = await getTranslations("labels.propertyType");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tCommon = await getTranslations("common");
 
   const canEdit = canManageInventory(profile.role);
 
@@ -81,16 +84,16 @@ export default async function InventoryPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Property Inventory
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Live availability for residential plots, commercial shops &amp; units with strict double-booking protection.
+            {t("subtitle")}
           </p>
         </div>
         {canEdit ? (
           <Button render={<Link href="/inventory/new" />}>
             <Plus className="size-4" />
-            Add Property Unit
+            {t("addUnit")}
           </Button>
         ) : null}
       </div>
@@ -98,32 +101,32 @@ export default async function InventoryPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Units"
+          title={t("totalUnits")}
           value={totalCount}
-          hint="All registered society plots & shops"
+          hint={t("totalHint")}
           icon={Building}
           variant="sky"
         />
         <StatCard
-          title="Available for Sale"
+          title={t("available")}
           value={availableCount}
-          hint="Open for instant booking"
+          hint={t("availableHint")}
           icon={CheckCircle2}
           variant="success"
           href="/inventory?status=available"
         />
         <StatCard
-          title="Booked / Sold"
+          title={t("bookedSold")}
           value={bookedCount}
-          hint="Under active installment/sale contracts"
+          hint={t("bookedHint")}
           icon={Clock}
           variant="primary"
           href="/inventory?status=booked"
         />
         <StatCard
-          title="On Hold / Token"
+          title={t("onHold")}
           value={holdCount}
-          hint="Reserved temporarily"
+          hint={t("holdHint")}
           icon={Ban}
           variant="warning"
           href="/inventory?status=hold"
@@ -132,9 +135,9 @@ export default async function InventoryPage({
 
       <form className="flex flex-wrap items-end gap-3 rounded-[10px] border bg-card shadow-xs p-4">
         <label className="space-y-1 text-sm">
-          <span className="text-xs font-medium text-muted-foreground">Filter by Society</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("filterSociety")}</span>
           <select name="society" defaultValue={filters.society ?? ""} className={selectClassName}>
-            <option value="">All Societies</option>
+            <option value="">{t("allSocieties")}</option>
             {(societies ?? []).map((society) => (
               <option key={society.id} value={society.id}>
                 {society.name}
@@ -143,29 +146,29 @@ export default async function InventoryPage({
           </select>
         </label>
         <label className="space-y-1 text-sm">
-          <span className="text-xs font-medium text-muted-foreground">Unit Status</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("unitStatus")}</span>
           <select name="status" defaultValue={filters.status ?? ""} className={selectClassName}>
-            <option value="">All Statuses</option>
-            {Object.entries(PROPERTY_STATUS_LABELS).map(([value, label]) => (
+            <option value="">{t("allStatuses")}</option>
+            {Object.keys(PROPERTY_STATUS_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tStatus(value)}
               </option>
             ))}
           </select>
         </label>
         <label className="space-y-1 text-sm">
-          <span className="text-xs font-medium text-muted-foreground">Property Type</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("propertyType")}</span>
           <select name="type" defaultValue={filters.type ?? ""} className={selectClassName}>
-            <option value="">All Types</option>
-            {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+            <option value="">{t("allTypes")}</option>
+            {Object.keys(PROPERTY_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tType(value)}
               </option>
             ))}
           </select>
         </label>
         <Button type="submit" variant="outline" size="sm" className="h-9">
-          Filter Inventory
+          {t("filterInventory")}
         </Button>
       </form>
 
@@ -173,21 +176,21 @@ export default async function InventoryPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <MapPin className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Inventory Master List</h2>
+            <h2 className="font-semibold text-sm">{t("masterList")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{totalCount} total units</span>
+          <span className="text-xs text-muted-foreground">{t("unitsCount", { count: totalCount })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Plot / Shop No</TableHead>
-              <TableHead>Society &amp; Block</TableHead>
-              <TableHead>Property Type</TableHead>
-              <TableHead>Area</TableHead>
-              <TableHead>Asking Price</TableHead>
-              <TableHead>Status</TableHead>
-              {canEdit && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead>{tCommon("code")}</TableHead>
+              <TableHead>{t("plotShop")}</TableHead>
+              <TableHead>{t("societyBlock")}</TableHead>
+              <TableHead>{t("propertyType")}</TableHead>
+              <TableHead>{t("area")}</TableHead>
+              <TableHead>{t("askingPrice")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              {canEdit && <TableHead className="text-right">{tCommon("actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,19 +229,19 @@ export default async function InventoryPage({
                     </TableCell>
                     <TableCell>
                       <Link href="/societies" className="hover:underline underline-offset-4 text-foreground font-medium">
-                        {society?.name ?? "—"}
+                        {society?.name ?? tCommon("dash")}
                       </Link>
                       {block?.name ? <span className="text-xs text-muted-foreground ml-1 font-normal">· {block.name}</span> : ""}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PROPERTY_TYPE_LABELS[property.property_type]}
+                        {tType(property.property_type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatNumber(property.area)} {AREA_UNIT_LABELS[property.area_unit]}
+                      {formatNumber(property.area, locale)} {tUnit(property.area_unit)}
                     </TableCell>
-                    <TableCell className="font-semibold text-primary">{formatPkr(property.asking_price)}</TableCell>
+                    <TableCell className="font-semibold text-primary">{formatPkr(property.asking_price, locale)}</TableCell>
                     <TableCell>
                       <PropertyStatusBadge status={property.status} />
                     </TableCell>
@@ -249,7 +252,7 @@ export default async function InventoryPage({
                           viewHref={`/inventory/${property.id}`}
                           editHref={`/inventory/${property.id}/edit`}
                           deleteAction={deleteProperty}
-                          confirmMessage={`Delete property "${property.plot_no}"? This cannot be undone.`}
+                          confirmMessage={t("deleteConfirm", { plot: property.plot_no })}
                         />
                       </TableCell>
                     )}
@@ -262,7 +265,7 @@ export default async function InventoryPage({
                   colSpan={canEdit ? 8 : 7}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No properties match these filters. Click &quot;Add Property Unit&quot; to list inventory.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

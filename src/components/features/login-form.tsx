@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/client";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ export function LoginForm({
   errorMessage?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("auth");
+  const tBrand = useTranslations("brand");
   const [formError, setFormError] = useState(errorMessage);
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -51,16 +54,16 @@ export function LoginForm({
           <Building2 className="size-5" />
         </div>
         <div>
-          <h1 className="font-heading text-lg font-semibold">Mohkam</h1>
+          <h1 className="font-heading text-lg font-semibold">{tBrand("name")}</h1>
           <p className="text-sm text-muted-foreground">
-            Real Estate Society Management
+            {t("societyManagement")}
           </p>
         </div>
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <Input
             id="email"
             type="email"
@@ -74,7 +77,7 @@ export function LoginForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("password")}</Label>
           <div className="relative">
             <Input
               id="password"
@@ -87,7 +90,7 @@ export function LoginForm({
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
               className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               aria-pressed={showPassword}
             >
               {showPassword ? (
@@ -114,17 +117,16 @@ export function LoginForm({
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin" />
-              Signing in
+              {t("signingIn")}
             </>
           ) : (
-            "Sign in"
+            t("signIn")
           )}
         </Button>
       </form>
 
       <p className="mt-6 text-xs text-muted-foreground">
-        Access is invite-only. Create the first owner account in the Supabase
-        Auth dashboard, then sign in here.
+        {t("inviteOnly")}
       </p>
     </div>
   );

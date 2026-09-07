@@ -1,6 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toCsv } from "@/lib/csv";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +14,8 @@ export function CsvDownloadButton({
   headers: string[];
   rows: Array<Array<string | number | null | undefined>>;
 }) {
+  const t = useTranslations("common");
+
   function download() {
     const csv = toCsv(headers, rows);
     const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
@@ -27,7 +30,7 @@ export function CsvDownloadButton({
   return (
     <Button type="button" variant="outline" onClick={download}>
       <Download className="size-4" />
-      Excel / CSV
+      {t("excelCsv")}
     </Button>
   );
 }

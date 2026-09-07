@@ -3,12 +3,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { changePropertyStatus } from "@/lib/actions/properties";
-import {
-  PROPERTY_STATUS_LABELS,
-  PROPERTY_STATUS_TRANSITIONS,
-} from "@/lib/constants";
+import { PROPERTY_STATUS_TRANSITIONS } from "@/lib/constants";
 import type { PropertyStatus } from "@/lib/database.types";
 import {
   propertyStatusSchema,
@@ -28,6 +26,10 @@ export function ChangePropertyStatusForm({
   propertyId: string;
   currentStatus: PropertyStatus;
 }) {
+  const t = useTranslations("inventory");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tStatus = useTranslations("labels.propertyStatus");
   const nextStatuses = PROPERTY_STATUS_TRANSITIONS[currentStatus];
   const {
     register,
@@ -50,7 +52,7 @@ export function ChangePropertyStatusForm({
   if (nextStatuses.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        This unit is transferred and cannot change status.
+        {t("transferredLocked")}
       </p>
     );
   }
@@ -63,18 +65,18 @@ export function ChangePropertyStatusForm({
       return;
     }
 
-    toast.success("Status updated");
+    toast.success(tToasts("statusUpdated"));
   }
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <input type="hidden" {...register("property_id")} />
       <div className="space-y-2">
-        <Label htmlFor="status">New status</Label>
+        <Label htmlFor="status">{t("newStatus")}</Label>
         <select id="status" className={selectClassName} {...register("status")}>
           {nextStatuses.map((status) => (
             <option key={status} value={status}>
-              {PROPERTY_STATUS_LABELS[status]}
+              {tStatus(status)}
             </option>
           ))}
         </select>
@@ -82,10 +84,10 @@ export function ChangePropertyStatusForm({
       {nextStatus === "hold" ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="hold_party_name">Held for</Label>
+            <Label htmlFor="hold_party_name">{t("heldFor")}</Label>
             <Input
               id="hold_party_name"
-              placeholder="Customer or agent name"
+              placeholder={t("heldPlaceholder")}
               {...register("hold_party_name")}
             />
             {errors.hold_party_name ? (
@@ -95,18 +97,18 @@ export function ChangePropertyStatusForm({
             ) : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hold_until">Hold expiry</Label>
+            <Label htmlFor="hold_until">{t("holdExpiry")}</Label>
             <Input id="hold_until" type="date" {...register("hold_until")} />
           </div>
         </>
       ) : null}
       <div className="space-y-2">
-        <Label htmlFor="reason">Reason</Label>
-        <Input id="reason" placeholder="Required for audit history" {...register("reason")} />
+        <Label htmlFor="reason">{t("reason")}</Label>
+        <Input id="reason" placeholder={t("reasonPlaceholder")} {...register("reason")} />
       </div>
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-        Update status
+        {tForms("updateStatus")}
       </Button>
     </form>
   );

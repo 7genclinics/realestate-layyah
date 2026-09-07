@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canApproveCommissions, canManageAgents } from "@/lib/permissions";
@@ -132,8 +133,9 @@ export async function recordAgentCommission(formData: FormData): Promise<void> {
 
 export async function updateAgentCommission(formData: FormData): Promise<{ error: string | null }> {
   const { profile } = await requireProfile();
+  const t = await getTranslations("toasts");
   if (!canManageAgents(profile.role)) {
-    return { error: "You do not have permission to edit commissions." };
+    return { error: t("noPermissionEditCommission") };
   }
 
   const supabase = await createClient();
@@ -143,7 +145,7 @@ export async function updateAgentCommission(formData: FormData): Promise<{ error
   const notes = (formData.get("notes") as string) || null;
 
   if (!id || !commission_amount || commission_amount <= 0) {
-    return { error: "A valid commission amount is required." };
+    return { error: t("couldNotSaveCommission") };
   }
 
   const { data: existing, error: fetchError } = await supabase
@@ -157,11 +159,11 @@ export async function updateAgentCommission(formData: FormData): Promise<{ error
   }
 
   if (!existing) {
-    return { error: "Commission not found." };
+    return { error: t("commissionNotFound") };
   }
 
   if (existing.status === "paid" || existing.status === "cancelled") {
-    return { error: `Cannot edit a ${existing.status} commission.` };
+    return { error: t("cannotEditCommission", { status: existing.status }) };
   }
 
   const updatePayload: {

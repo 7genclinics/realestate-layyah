@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createPartyPayment } from "@/lib/actions/parties";
 import { CASH_ACCOUNT_TYPE_LABELS, PAYMENT_MODE_LABELS } from "@/lib/constants";
@@ -51,6 +52,12 @@ export function PartyPaymentForm({
   defaultContractId?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tAccount = useTranslations("labels.cashAccountType");
+  const tMode = useTranslations("labels.paymentMode");
+  const tCommon = useTranslations("common");
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const {
     register,
@@ -87,11 +94,11 @@ export function PartyPaymentForm({
     const result = await createPartyPayment({ ...values, slip_path: upload.path });
 
     if (result.error || !result.partyId) {
-      toast.error(result.error ?? "Could not post payment");
+      toast.error(result.error ?? tToasts("couldNotPostPayment"));
       return;
     }
 
-    toast.success("Payment posted to cash book");
+    toast.success(tToasts("paymentPostedCash"));
     router.push(`/parties/${result.partyId}`);
     router.refresh();
   }
@@ -100,7 +107,7 @@ export function PartyPaymentForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="contract_id">Work order</Label>
+          <Label htmlFor="contract_id">{t("workOrder")}</Label>
           <select
             id="contract_id"
             className={selectClassName}
@@ -108,29 +115,29 @@ export function PartyPaymentForm({
           >
             {contracts.map((row) => (
               <option key={row.id} value={row.id}>
-                {row.code} · {row.title} · remaining {formatPkr(row.remaining_amount)}
+                {row.code} · {row.title} · {t("remaining", { amount: formatPkr(row.remaining_amount) })}
               </option>
             ))}
           </select>
           {contract ? (
             <p className="text-xs text-muted-foreground">
-              Remaining payable {formatPkr(contract.remaining_amount)}
+              {t("remainingPayable", { amount: formatPkr(contract.remaining_amount) })}
             </p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount (PKR)</Label>
+          <Label htmlFor="amount">{t("amountPkr")}</Label>
           <Input id="amount" type="number" step="1" {...register("amount")} />
           {errors.amount ? (
             <p className="text-xs text-destructive">{String(errors.amount.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_date">Date</Label>
+          <Label htmlFor="payment_date">{tCommon("date")}</Label>
           <Input id="payment_date" type="date" {...register("payment_date")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cash_account_id">Pay from account</Label>
+          <Label htmlFor="cash_account_id">{t("payFrom")}</Label>
           <select
             id="cash_account_id"
             className={selectClassName}
@@ -138,23 +145,23 @@ export function PartyPaymentForm({
           >
             {accounts.map((row) => (
               <option key={row.id} value={row.id}>
-                {row.code} · {row.name} ({CASH_ACCOUNT_TYPE_LABELS[row.account_type]})
+                {row.code} · {row.name} ({tAccount(row.account_type)})
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_mode">Payment mode</Label>
+          <Label htmlFor="payment_mode">{t("paymentMode")}</Label>
           <select id="payment_mode" className={selectClassName} {...register("payment_mode")}>
-            {Object.entries(PAYMENT_MODE_LABELS).map(([value, label]) => (
+            {Object.keys(PAYMENT_MODE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tMode(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reference_no">Reference no.</Label>
+          <Label htmlFor="reference_no">{t("referenceNo")}</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
         <PaymentSlipField
@@ -162,17 +169,17 @@ export function PartyPaymentForm({
           onFileChange={setSlipFile}
         />
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || !contracts.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Post payment
+          {tForms("postPayment")}
         </Button>
       </div>
     </form>

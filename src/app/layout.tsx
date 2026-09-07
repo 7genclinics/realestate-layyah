@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Poppins, Syne } from "next/font/google";
+import { Geist_Mono, Noto_Sans_Arabic, Poppins, Syne } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { AppProviders } from "@/providers/app-providers";
+import { localeDir, type Locale } from "@/i18n/config";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -21,23 +24,38 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Mohkam | Real Estate Project Management",
-    template: "%s | Mohkam",
-  },
-  description:
-    "Manage real estate projects, properties, tasks, and teams in one place.",
-};
+const notoUrdu = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-urdu",
+  display: "swap",
+});
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("brand");
+  return {
+    title: {
+      default: t("metaTitle"),
+      template: `%s | ${t("name")}`,
+    },
+    description: t("metaDescription"),
+  };
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = (await getLocale()) as Locale;
+  const dir = localeDir[locale];
+
   return (
     <html
-      lang="en"
-      className={`${poppins.variable} ${syne.variable} ${geistMono.variable} h-full antialiased`}
+      lang={locale}
+      dir={dir}
+      className={`${poppins.variable} ${syne.variable} ${geistMono.variable} ${notoUrdu.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppProviders>{children}</AppProviders>
+        <NextIntlClientProvider>
+          <AppProviders>{children}</AppProviders>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

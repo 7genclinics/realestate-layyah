@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -22,11 +23,12 @@ export function RowActions({
   confirmMessage,
 }: RowActionsProps) {
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("common");
 
   function handleDelete() {
     if (
       !window.confirm(
-        confirmMessage ?? "Are you sure you want to delete this record? This cannot be undone.",
+        confirmMessage ?? t("confirmDelete"),
       )
     )
       return;
@@ -36,7 +38,7 @@ export function RowActions({
       if (result && typeof result === "object" && result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Record deleted.");
+        toast.success(t("recordDeleted"));
       }
     });
   }
@@ -48,11 +50,11 @@ export function RowActions({
           variant="outline"
           size="icon-xs"
           className="size-7 rounded-md border-border/70 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors"
-          title="View Details"
+          title={t("viewDetails")}
           render={<Link href={viewHref} />}
         >
           <Eye className="size-3.5" />
-          <span className="sr-only">View</span>
+          <span className="sr-only">{t("view")}</span>
         </Button>
       )}
       {editHref && (
@@ -60,11 +62,11 @@ export function RowActions({
           variant="outline"
           size="icon-xs"
           className="size-7 rounded-md border-border/70 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors"
-          title="Edit Record"
+          title={t("editRecord")}
           render={<Link href={editHref} />}
         >
           <Pencil className="size-3.5" />
-          <span className="sr-only">Edit</span>
+          <span className="sr-only">{t("edit")}</span>
         </Button>
       )}
       {deleteAction && (
@@ -74,10 +76,10 @@ export function RowActions({
           onClick={handleDelete}
           disabled={isPending}
           className="size-7 rounded-md border-border/70 text-muted-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
-          title="Delete Record"
+          title={t("deleteRecord")}
         >
           <Trash2 className="size-3.5" />
-          <span className="sr-only">{isPending ? "Deleting…" : "Delete"}</span>
+          <span className="sr-only">{isPending ? t("deleting") : t("delete")}</span>
         </Button>
       )}
     </div>

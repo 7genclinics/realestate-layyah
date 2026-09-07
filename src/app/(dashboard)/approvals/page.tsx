@@ -12,6 +12,7 @@ import { approveLandParcel, approveLandExchange } from "@/lib/actions/land-bank"
 import { approveCommission, rejectCommission } from "@/lib/actions/agents";
 import { approveExpense, rejectExpense } from "@/lib/actions/development";
 import { formatPkr } from "@/lib/format";
+import { getLocale, getTranslations } from "next-intl/server";
 import { StatCard } from "@/components/ui/stat-card";
 import { ApprovalButtons } from "@/components/features/approval-buttons";
 import {
@@ -28,6 +29,9 @@ function one<T>(rel: T | T[] | null): T | null {
 
 export default async function ApprovalsPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("approvals");
+  const tCommon = await getTranslations("common");
 
   const canLand = canApproveLand(profile.role);
   const canCommission = canApproveCommissions(profile.role);
@@ -86,27 +90,27 @@ export default async function ApprovalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Approvals
+          {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Everything waiting for your sign-off, in one queue.
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Land acquisitions" value={parcelRows.length} icon={Landmark} variant="sky" />
-        <StatCard title="Land exchanges" value={exchangeRows.length} icon={ArrowRightLeft} variant="primary" />
-        <StatCard title="Agent commissions" value={commissionRows.length} icon={Briefcase} variant="warning" />
-        <StatCard title="Development expenses" value={expenseRows.length} icon={Hammer} variant="indigo" />
+        <StatCard title={t("landAcquisitions")} value={parcelRows.length} icon={Landmark} variant="sky" />
+        <StatCard title={t("landExchanges")} value={exchangeRows.length} icon={ArrowRightLeft} variant="primary" />
+        <StatCard title={t("agentCommissions")} value={commissionRows.length} icon={Briefcase} variant="warning" />
+        <StatCard title={t("developmentExpenses")} value={expenseRows.length} icon={Hammer} variant="indigo" />
       </div>
 
       {totalPending === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
             <ClipboardCheck className="size-10 text-muted-foreground/50" />
-            <p className="font-medium">You&apos;re all caught up</p>
+            <p className="font-medium">{t("allCaughtUp")}</p>
             <p className="text-sm text-muted-foreground">
-              Nothing is waiting for approval right now.
+              {t("nothingWaiting")}
             </p>
           </CardContent>
         </Card>
@@ -116,9 +120,9 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Landmark className="size-4 text-primary" /> Land acquisitions
+              <Landmark className="size-4 text-primary" /> {t("landAcquisitions")}
             </CardTitle>
-            <CardDescription>Approve to unlock payments against these parcels.</CardDescription>
+            <CardDescription>{t("approveParcels")}</CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
             {parcelRows.map((row) => (
@@ -128,7 +132,7 @@ export default async function ApprovalsPage() {
                     {row.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {one(row.societies)?.name ?? "—"} · {formatPkr(Number(row.purchase_value))}
+                    {one(row.societies)?.name ?? tCommon("dash")} · {formatPkr(Number(row.purchase_value), locale)}
                   </p>
                 </div>
                 <ApprovalButtons id={row.id} approveAction={approveLandParcel} />
@@ -142,7 +146,7 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <ArrowRightLeft className="size-4 text-primary" /> Land exchanges
+              <ArrowRightLeft className="size-4 text-primary" /> {t("landExchanges")}
             </CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
@@ -153,7 +157,7 @@ export default async function ApprovalsPage() {
                     {row.incoming_title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {one(row.societies)?.name ?? "—"} · incoming {formatPkr(Number(row.incoming_value))}
+                    {one(row.societies)?.name ?? tCommon("dash")} · {t("incoming", { amount: formatPkr(Number(row.incoming_value), locale) })}
                   </p>
                 </div>
                 <ApprovalButtons id={row.id} approveAction={approveLandExchange} />
@@ -167,16 +171,19 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Briefcase className="size-4 text-primary" /> Agent commissions
+              <Briefcase className="size-4 text-primary" /> {t("agentCommissions")}
             </CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
             {commissionRows.map((row) => (
               <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                 <div>
-                  <span className="font-medium">{one(row.agents)?.name ?? "Agent"}</span>
+                  <span className="font-medium">{one(row.agents)?.name ?? t("agentFallback")}</span>
                   <p className="text-xs text-muted-foreground">
-                    Plot {one(row.sales)?.plot_no ?? "—"} · {formatPkr(Number(row.commission_amount))}
+                    {t("plotLine", {
+                      plot: one(row.sales)?.plot_no ?? tCommon("dash"),
+                      amount: formatPkr(Number(row.commission_amount), locale),
+                    })}
                   </p>
                 </div>
                 <ApprovalButtons
@@ -194,7 +201,7 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Hammer className="size-4 text-primary" /> Development expenses
+              <Hammer className="size-4 text-primary" /> {t("developmentExpenses")}
             </CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
@@ -203,7 +210,7 @@ export default async function ApprovalsPage() {
                 <div>
                   <span className="font-medium">{row.description}</span>
                   <p className="text-xs text-muted-foreground">
-                    {one(row.development_projects)?.name ?? "—"} · {formatPkr(Number(row.amount))}
+                    {one(row.development_projects)?.name ?? tCommon("dash")} · {formatPkr(Number(row.amount), locale)}
                   </p>
                 </div>
                 <ApprovalButtons

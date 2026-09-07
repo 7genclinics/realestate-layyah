@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createLead, updateLead } from "@/lib/actions/leads";
 import {
@@ -33,6 +34,12 @@ export function LeadForm({
   agents: Option[];
 }) {
   const router = useRouter();
+  const t = useTranslations("leads");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tSource = useTranslations("labels.customerSource");
+  const tStatus = useTranslations("labels.leadStatus");
   const {
     register,
     handleSubmit,
@@ -59,11 +66,11 @@ export function LeadForm({
       : await createLead(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not save lead");
+      toast.error(result.error ?? tToasts("couldNotSaveLead"));
       return;
     }
 
-    toast.success(leadId ? "Lead updated" : "Lead created");
+    toast.success(leadId ? tToasts("leadUpdated") : tToasts("leadCreated"));
     router.push(`/leads/${result.id}`);
     router.refresh();
   }
@@ -72,82 +79,82 @@ export function LeadForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="full_name">Lead / prospect name *</Label>
+          <Label htmlFor="full_name">{t("name")}</Label>
           <Input id="full_name" {...register("full_name")} />
           {errors.full_name ? (
             <p className="text-xs text-destructive">{errors.full_name.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
+          <Label htmlFor="phone">{tCommon("phone")}</Label>
           <Input id="phone" {...register("phone")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="budget">Budget (PKR)</Label>
+          <Label htmlFor="budget">{t("budget")}</Label>
           <Input id="budget" type="number" step="1" {...register("budget")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="source">Source</Label>
+          <Label htmlFor="source">{t("source")}</Label>
           <select id="source" className={selectClassName} {...register("source")}>
-            {Object.entries(CUSTOMER_SOURCE_LABELS).map(([value, label]) => (
+            {Object.keys(CUSTOMER_SOURCE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tSource(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="status">Pipeline status</Label>
+          <Label htmlFor="status">{t("pipelineStatus")}</Label>
           <select id="status" className={selectClassName} {...register("status")}>
-            {Object.entries(LEAD_STATUS_LABELS).map(([value, label]) => (
+            {Object.keys(LEAD_STATUS_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tStatus(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="society_id">Interested society</Label>
+          <Label htmlFor="society_id">{t("interestedSociety")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
-            <option value="">— Any / unspecified —</option>
-            {societies.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            <option value="">{t("anyUnspecified")}</option>
+            {societies.map((soc) => (
+              <option key={soc.id} value={soc.id}>
+                {soc.name}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="agent_id">Referring agent</Label>
+          <Label htmlFor="agent_id">{t("referringAgent")}</Label>
           <select id="agent_id" className={selectClassName} {...register("agent_id")}>
-            <option value="">— None —</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
+            <option value="">{t("none")}</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="interest">Interest / requirement</Label>
+          <Label htmlFor="interest">{t("interest")}</Label>
           <Input
             id="interest"
-            placeholder="e.g. 5 marla corner plot, A block"
+            placeholder={t("interestPlaceholder")}
             {...register("interest")}
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={3} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          {leadId ? "Save changes" : "Create lead"}
+          {leadId ? tForms("saveLead") : tForms("createLead")}
         </Button>
       </div>
     </form>

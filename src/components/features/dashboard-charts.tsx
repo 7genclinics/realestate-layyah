@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import {
   Bar,
   BarChart,
@@ -33,23 +34,20 @@ export type InventorySlice = {
   fill: string;
 };
 
-const cashflowConfig = {
-  collections: { label: "Collections", color: "var(--chart-1)" },
-  expenses: { label: "Expenses", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const inventoryConfig = {
-  value: { label: "Units" },
-} satisfies ChartConfig;
-
 function MoneyTooltip({
   active,
   payload,
   label,
+  collectionsLabel,
+  expensesLabel,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string }>;
   label?: string;
+  collectionsLabel: string;
+  expensesLabel: string;
+  locale: string;
 }) {
   if (!active || !payload?.length) {
     return null;
@@ -69,10 +67,10 @@ function MoneyTooltip({
                 className="size-1.5 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
-              {item.name === "collections" ? "Collections" : "Expenses"}
+              {item.name === "collections" ? collectionsLabel : expensesLabel}
             </span>
             <span className="tabular-nums">
-              {formatPkr(Number(item.value ?? 0))}
+              {formatPkr(Number(item.value ?? 0), locale)}
             </span>
           </div>
         ))}
@@ -90,18 +88,27 @@ export function DashboardCharts({
   inventory: InventorySlice[];
   cashflowLabel?: string;
 }) {
+  const t = useTranslations("dashboard");
+  const locale = useLocale();
   const hasCashflow = cashflow.some(
     (row) => row.collections > 0 || row.expenses > 0,
   );
   const inventoryTotal = inventory.reduce((sum, row) => sum + row.value, 0);
   const pieData =
     inventoryTotal > 0 ? inventory.filter((row) => row.value > 0) : inventory;
+  const cashflowConfig = {
+    collections: { label: t("collections"), color: "var(--chart-1)" },
+    expenses: { label: t("expenses"), color: "var(--chart-2)" },
+  } satisfies ChartConfig;
+  const inventoryConfig = {
+    value: { label: t("unitsLabel") },
+  } satisfies ChartConfig;
 
   return (
     <div className="grid gap-4 xl:grid-cols-5">
       <section className="overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white xl:col-span-3">
         <div className="border-b border-sky-100/80 px-5 py-4">
-          <h2 className="text-base font-semibold">Collections vs expenses</h2>
+          <h2 className="text-base font-semibold">{t("collectionsVsExpenses")}</h2>
           <p className="text-sm text-muted-foreground">{cashflowLabel}</p>
         </div>
         <div className="relative px-2 py-4">
@@ -121,9 +128,17 @@ export function DashboardCharts({
                 tickLine={false}
                 axisLine={false}
                 width={52}
-                tickFormatter={(value) => formatCompactPkr(Number(value))}
+                tickFormatter={(value) => formatCompactPkr(Number(value), locale)}
               />
-              <ChartTooltip content={<MoneyTooltip />} />
+              <ChartTooltip
+                content={
+                  <MoneyTooltip
+                    collectionsLabel={t("collections")}
+                    expensesLabel={t("expenses")}
+                    locale={locale}
+                  />
+                }
+              />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar
                 dataKey="collections"
@@ -141,7 +156,7 @@ export function DashboardCharts({
           </ChartContainer>
           {!hasCashflow ? (
             <p className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm text-muted-foreground">
-              No receipts or expenses in this period
+              {t("noCashflow")}
             </p>
           ) : null}
         </div>
@@ -149,8 +164,8 @@ export function DashboardCharts({
 
       <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-white xl:col-span-2">
         <div className="border-b border-emerald-100/80 px-5 py-4">
-          <h2 className="text-base font-semibold">Inventory mix</h2>
-          <p className="text-sm text-muted-foreground">By unit status</p>
+          <h2 className="text-base font-semibold">{t("inventoryMix")}</h2>
+          <p className="text-sm text-muted-foreground">{t("byUnitStatus")}</p>
         </div>
         <ChartContainer
           config={inventoryConfig}
@@ -180,7 +195,7 @@ export function DashboardCharts({
                   <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-sm">
                     <p className="font-medium">{String(item.name)}</p>
                     <p className="text-muted-foreground">
-                      {Number(item.value)} units
+                      {t("unitsCount", { count: Number(item.value) })}
                     </p>
                   </div>
                 );
@@ -196,7 +211,7 @@ export function DashboardCharts({
                 style={{ backgroundColor: slice.fill }}
               />
               <span className="text-muted-foreground">{slice.label}</span>
-              <span className="ml-auto tabular-nums">{slice.value}</span>
+              <span className="ms-auto tabular-nums">{slice.value}</span>
             </div>
           ))}
         </div>

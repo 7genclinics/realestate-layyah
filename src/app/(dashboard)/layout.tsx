@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { getMyNotifications } from "@/lib/notifications";
-import { ROLE_LABELS } from "@/lib/constants";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { HeaderUser } from "@/components/layout/header-user";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import {
   SidebarInset,
@@ -21,6 +22,8 @@ export default async function AppLayout({
 }) {
   const { profile, email, avatarUrl } = await requireProfile();
   const { items: notifications, unread } = await getMyNotifications();
+  const tRoles = await getTranslations("labels.roles");
+  const tCommon = await getTranslations("common");
 
   return (
     <SidebarProvider>
@@ -33,11 +36,12 @@ export default async function AppLayout({
 
           <div className="flex items-center gap-2">
             <GlobalSearch />
+            <LanguageSwitcher />
             <NotificationBell items={notifications} unread={unread} />
             <HeaderUser
-              name={profile.full_name || email || "User"}
+              name={profile.full_name || email || tCommon("user")}
               email={email}
-              roleLabel={ROLE_LABELS[profile.role]}
+              roleLabel={tRoles(profile.role)}
               avatarUrl={avatarUrl}
             />
           </div>

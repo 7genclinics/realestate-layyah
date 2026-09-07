@@ -1,13 +1,16 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
 
-export function AuthBackdrop({ children }: { children: ReactNode }) {
+export async function AuthBackdrop({ children }: { children: ReactNode }) {
+  const t = await getTranslations("auth");
+
   return (
     <main className="relative flex min-h-dvh w-full flex-1 items-center justify-center overflow-hidden p-6">
       <div className="pointer-events-none fixed inset-0 -z-10">
         <Image
           src="/society-bg.jpg"
-          alt="Faisal Mosque against the Margalla Hills in Islamabad, Pakistan"
+          alt={t("bgMosqueAlt")}
           fill
           preload
           quality={90}
@@ -21,7 +24,7 @@ export function AuthBackdrop({ children }: { children: ReactNode }) {
       </div>
       {children}
       <p className="pointer-events-none absolute bottom-5 left-5 hidden rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium tracking-wide text-white/90 backdrop-blur-md sm:block">
-        Layyah, Pakistan
+        {t("locationBadge")}
       </p>
     </main>
   );

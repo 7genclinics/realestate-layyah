@@ -10,6 +10,7 @@ import {
   startOfMonth,
   subDays,
 } from "date-fns";
+import { enUS, ur } from "date-fns/locale";
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -25,6 +26,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/server";
 import { deriveInstallmentStatus } from "@/lib/permissions";
 import {
@@ -32,7 +34,6 @@ import {
   summarizeRange,
   sumBalancesByAccountType,
 } from "@/lib/cash-book";
-import { PROPERTY_STATUS_LABELS } from "@/lib/constants";
 import type { PropertyStatus } from "@/lib/database.types";
 import { formatPkr } from "@/lib/format";
 import { getGracePeriodDays } from "@/lib/settings";
@@ -87,14 +88,14 @@ function flowTrend(
   current: number,
   previous: number,
   suffix: string,
-  opts?: { lowerIsBetter?: boolean },
+  opts?: { lowerIsBetter?: boolean; neu?: string; flat?: string },
 ): StatCardProps["trend"] {
   if (previous <= 0) {
     if (current <= 0) return undefined;
-    return { value: "▲ new", isPositive: !opts?.lowerIsBetter };
+    return { value: opts?.neu ?? "▲ new", isPositive: !opts?.lowerIsBetter };
   }
   const pct = Math.round(((current - previous) / previous) * 100);
-  if (pct === 0) return { value: "— flat", isPositive: true };
+  if (pct === 0) return { value: opts?.flat ?? "— flat", isPositive: true };
   const up = pct > 0;
   return {
     value: `${up ? "▲" : "▼"} ${Math.abs(pct)}% ${suffix}`,
@@ -115,6 +116,10 @@ export default async function DashboardPage({
   searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("dashboard");
+  const tStatus = await getTranslations("labels.propertyStatus");
+  const dateLocale = locale === "ur" ? ur : enUS;
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
 
@@ -185,25 +190,25 @@ export default async function DashboardPage({
 
   const rangeLabel =
     resolvedKey === "today"
-      ? "Today"
+      ? t("rangeToday")
       : resolvedKey === "7d"
-        ? "Last 7 days"
+        ? t("last7days")
         : resolvedKey === "14d"
-          ? "Last 14 days"
+          ? t("last14days")
           : resolvedKey === "month"
-            ? format(now, "MMMM yyyy")
-            : `${format(rangeStart, "d MMM")} – ${format(rangeEnd, "d MMM yyyy")}`;
+            ? format(now, "MMMM yyyy", { locale: dateLocale })
+            : `${format(rangeStart, "d MMM", { locale: dateLocale })} – ${format(rangeEnd, "d MMM yyyy", { locale: dateLocale })}`;
 
   const trendSuffix =
     resolvedKey === "today"
-      ? "vs yesterday"
+      ? t("vsYesterday")
       : resolvedKey === "month"
-        ? "MoM"
+        ? t("mom")
         : resolvedKey === "7d"
-          ? "vs prev 7d"
+          ? t("vsPrev7d")
           : resolvedKey === "14d"
-            ? "vs prev 14d"
-            : "vs prev period";
+            ? t("vsPrev14d")
+            : t("vsPrevPeriod");
 
   const [
     { count: societyCount },
@@ -347,7 +352,7 @@ export default async function DashboardPage({
 
     return {
       date,
-      label: format(day, "dd MMM"),
+      label: format(day, "dd MMM", { locale: dateLocale }),
       collections,
       expenses: daySummary.expense,
     };
@@ -355,7 +360,7 @@ export default async function DashboardPage({
 
   const inventory: InventorySlice[] = SNAPSHOT_STATUSES.map((status) => ({
     key: status,
-    label: PROPERTY_STATUS_LABELS[status],
+    label: tStatus(status),
     value: statusCounts[status],
     fill: INVENTORY_COLORS[status],
   }));
@@ -382,77 +387,88 @@ export default async function DashboardPage({
     .reduce((sum, row) => sum + Number(row.net_salary ?? 0), 0);
 
   // Flow metrics for the selected range (filterable; carry a period trend badge).
+  const trendLabels = { neu: t("trendNew"), flat: t("trendFlat") };
+
   const flowTiles: StatCardProps[] = [
     {
-      title: "Collections",
-      value: formatPkr(rangeCollections),
+      title: t("collections"),
+      value: formatPkr(rangeCollections, locale),
       hint: rangeIncludesToday
-        ? `${rangeReceipts.length} receipts · ${formatPkr(todayCollections)} today`
-        : `${rangeReceipts.length} receipts`,
+        ? t("receiptsToday", {
+            count: rangeReceipts.length,
+            amount: formatPkr(todayCollections, locale),
+          })
+        : t("receiptsCount", { count: rangeReceipts.length }),
       href: "/receipts",
       icon: TrendingUp,
       variant: "success",
-      trend: flowTrend(rangeCollections, prevCollections, trendSuffix),
+      trend: flowTrend(rangeCollections, prevCollections, trendSuffix, trendLabels),
     },
     {
-      title: "Expenses",
-      value: formatPkr(rangeExpenses),
-      hint: "Posted cash-book expenses",
+      title: t("expenses"),
+      value: formatPkr(rangeExpenses, locale),
+      hint: t("postedExpensesHint"),
       href: "/cash-book",
       icon: TrendingDown,
       variant: "danger",
-      trend: flowTrend(rangeExpenses, prevExpenses, trendSuffix, { lowerIsBetter: true }),
+      trend: flowTrend(rangeExpenses, prevExpenses, trendSuffix, {
+        ...trendLabels,
+        lowerIsBetter: true,
+      }),
     },
     {
-      title: "New Sales",
-      value: formatPkr(rangeSaleValue),
-      hint: `${rangeSales.length} sale${rangeSales.length === 1 ? "" : "s"} booked`,
+      title: t("newSales"),
+      value: formatPkr(rangeSaleValue, locale),
+      hint:
+        rangeSales.length === 1
+          ? t("saleBookedOne", { count: rangeSales.length })
+          : t("salesBooked", { count: rangeSales.length }),
       href: "/reports/sales",
       icon: Handshake,
       variant: "primary",
-      trend: flowTrend(rangeSaleValue, prevSaleValue, trendSuffix),
+      trend: flowTrend(rangeSaleValue, prevSaleValue, trendSuffix, trendLabels),
     },
     {
-      title: "Net Cash Flow",
-      value: formatPkr(rangeNet),
-      hint: "Collections − expenses",
+      title: t("netCashFlow"),
+      value: formatPkr(rangeNet, locale),
+      hint: t("netCashHint"),
       href: "/reports/cash-book",
       icon: ArrowLeftRight,
       variant: rangeNet >= 0 ? "success" : "danger",
-      trend: flowTrend(rangeNet, prevNet, trendSuffix),
+      trend: flowTrend(rangeNet, prevNet, trendSuffix, trendLabels),
     },
   ];
 
   // Live position — point-in-time snapshots that ignore the month filter.
   const liveTiles: StatCardProps[] = [
     {
-      title: "Cash in Hand",
-      value: formatPkr(cashTotal),
-      hint: "Posted cash accounts",
+      title: t("cashInHand"),
+      value: formatPkr(cashTotal, locale),
+      hint: t("postedCashAccounts"),
       href: "/cash-book",
       icon: Wallet,
       variant: "sky",
     },
     {
-      title: "Bank Balance",
-      value: formatPkr(bankTotal),
-      hint: "Configured bank accounts",
+      title: t("bankBalance"),
+      value: formatPkr(bankTotal, locale),
+      hint: t("configuredBankAccounts"),
       href: "/cash-book",
       icon: Banknote,
       variant: "primary",
     },
     {
-      title: "Overdue Installments",
+      title: t("overdueInstallments"),
       value: String(overdueCount),
-      hint: `${formatPkr(overdueAmount)} outstanding`,
+      hint: t("outstandingAmount", { amount: formatPkr(overdueAmount, locale) }),
       href: "/reports/installments?window=overdue",
       icon: AlertTriangle,
       variant: "warning",
     },
     {
-      title: "Due in 7 Days",
+      title: t("dueIn7Days"),
       value: String(dueSoonCount),
-      hint: "Upcoming installment milestones",
+      hint: t("upcomingMilestones"),
       href: "/installments",
       icon: CalendarClock,
       variant: "indigo",
@@ -461,25 +477,25 @@ export default async function DashboardPage({
 
   const financials: StatCardProps[] = [
     {
-      title: "Party Payable",
-      value: formatPkr(partyPayable),
-      hint: "Outstanding on active contracts",
+      title: t("partyPayable"),
+      value: formatPkr(partyPayable, locale),
+      hint: t("outstandingContracts"),
       href: "/reports/parties",
       icon: HardHat,
       variant: "warning",
     },
     {
-      title: "Commission Payable",
-      value: formatPkr(commissionPayable),
-      hint: "Agent commissions unpaid",
+      title: t("commissionPayable"),
+      value: formatPkr(commissionPayable, locale),
+      hint: t("agentCommissionsUnpaid"),
       href: "/agents",
       icon: Handshake,
       variant: "indigo",
     },
     {
-      title: "Salaries Due",
-      value: formatPkr(salariesDue),
-      hint: "Payroll awaiting disbursement",
+      title: t("salariesDue"),
+      value: formatPkr(salariesDue, locale),
+      hint: t("payrollAwaiting"),
       href: "/staff",
       icon: Coins,
       variant: "danger",
@@ -489,21 +505,28 @@ export default async function DashboardPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Dashboard"
-        description={`${format(now, "EEEE, d MMMM yyyy")} · ${societyCount ?? 0} societ${(societyCount ?? 0) === 1 ? "y" : "ies"} · ${unitCount} units · Receivable ${formatPkr(receivable)}`}
+        title={t("title")}
+        description={t("description", {
+          date: format(now, "EEEE, d MMMM yyyy", { locale: dateLocale }),
+          societies: societyCount ?? 0,
+          societyWord:
+            (societyCount ?? 0) === 1 ? t("societyOne") : t("societyOther"),
+          units: unitCount,
+          receivable: formatPkr(receivable, locale),
+        })}
         actions={
           <>
             <Button variant="outline" size="sm" render={<Link href="/customers/new" />}>
               <Users />
-              Add customer
+              {t("addCustomer")}
             </Button>
             <Button variant="outline" size="sm" render={<Link href="/inventory/new" />}>
               <Plus />
-              Add property
+              {t("addProperty")}
             </Button>
             <Button size="sm" render={<Link href="/receipts/new" />}>
               <Receipt />
-              Receive payment
+              {t("receivePayment")}
             </Button>
           </>
         }
@@ -512,10 +535,10 @@ export default async function DashboardPage({
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {rangeLabel} performance
+            {t("performance", { range: rangeLabel })}
             {isMonthToDate ? (
-              <span className="ml-2 font-normal normal-case text-muted-foreground/70">
-                month to date
+              <span className="ms-2 font-normal normal-case text-muted-foreground/70">
+                {t("monthToDate")}
               </span>
             ) : null}
           </h2>
@@ -534,7 +557,7 @@ export default async function DashboardPage({
 
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Live position
+            {t("livePosition")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {liveTiles.map((tile) => (
@@ -545,7 +568,7 @@ export default async function DashboardPage({
 
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Payables
+            {t("payables")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {financials.map((tile) => (
@@ -557,19 +580,19 @@ export default async function DashboardPage({
       <DashboardCharts
         cashflow={cashflow}
         inventory={inventory}
-        cashflowLabel={isMonthToDate ? `${rangeLabel} · to date` : rangeLabel}
+        cashflowLabel={isMonthToDate ? t("toDate", { range: rangeLabel }) : rangeLabel}
       />
 
       <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-slate-50 via-white to-sky-50/40">
         <div className="flex items-center justify-between gap-3 border-b border-sky-100/80 px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold">Inventory snapshot</h2>
+            <h2 className="text-base font-semibold">{t("inventorySnapshot")}</h2>
             <p className="text-sm text-muted-foreground">
-              Units by current status
+              {t("unitsByStatus")}
             </p>
           </div>
           <Button variant="outline" size="sm" render={<Link href="/inventory" />}>
-            View inventory
+            {t("viewInventory")}
           </Button>
         </div>
         <div className="grid gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -583,7 +606,7 @@ export default async function DashboardPage({
               )}
             >
               <p className="text-xs text-muted-foreground">
-                {PROPERTY_STATUS_LABELS[status]}
+                {tStatus(status)}
               </p>
               <p className="mt-2 text-xl font-semibold tabular-nums">
                 {statusCounts[status]}

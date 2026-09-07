@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Ban, CalendarClock, MoreHorizontal, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   clearInstallmentOverride,
@@ -45,6 +46,8 @@ export function InstallmentActions({
   statusOverride,
   canWaive,
 }: InstallmentActionsProps) {
+  const t = useTranslations("forms");
+  const tCommon = useTranslations("common");
   const [mode, setMode] = useState<"reschedule" | "waive" | null>(null);
   const [newDate, setNewDate] = useState(dueDate);
   const [note, setNote] = useState("");
@@ -67,7 +70,7 @@ export function InstallmentActions({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success(`Installment ${periodLabel} rescheduled.`);
+        toast.success(t("installmentRescheduled", { period: periodLabel }));
         close();
       }
     });
@@ -75,7 +78,7 @@ export function InstallmentActions({
 
   function handleWaive() {
     if (!reason.trim()) {
-      toast.error("A reason is required to waive an installment.");
+      toast.error(t("reasonRequired"));
       return;
     }
     startTransition(async () => {
@@ -83,20 +86,20 @@ export function InstallmentActions({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success(`Installment ${periodLabel} waived.`);
+        toast.success(t("installmentWaived", { period: periodLabel }));
         close();
       }
     });
   }
 
   function handleClear() {
-    if (!window.confirm("Clear this override and restore the installment?")) return;
+    if (!window.confirm(t("clearOverrideConfirm"))) return;
     startTransition(async () => {
       const result = await clearInstallmentOverride(id);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Override cleared.");
+        toast.success(t("overrideCleared"));
       }
     });
   }
@@ -110,12 +113,12 @@ export function InstallmentActions({
               variant="outline"
               size="icon-xs"
               className="size-7 rounded-md border-border/70 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-              title="Manage installment"
+              title={t("manageInstallment")}
             />
           }
         >
           <MoreHorizontal className="size-3.5" />
-          <span className="sr-only">Manage installment</span>
+          <span className="sr-only">{t("manageInstallment")}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
           <DropdownMenuItem
@@ -123,7 +126,7 @@ export function InstallmentActions({
             onClick={() => setMode("reschedule")}
           >
             <CalendarClock className="size-4" />
-            Reschedule
+            {t("reschedule")}
           </DropdownMenuItem>
           {canWaive ? (
             <DropdownMenuItem
@@ -131,7 +134,7 @@ export function InstallmentActions({
               onClick={() => setMode("waive")}
             >
               <Ban className="size-4" />
-              Waive balance
+              {t("waiveBalance")}
             </DropdownMenuItem>
           ) : null}
           {hasOverride && canWaive ? (
@@ -139,7 +142,7 @@ export function InstallmentActions({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleClear}>
                 <RotateCcw className="size-4" />
-                Clear override
+                {t("clearOverride")}
               </DropdownMenuItem>
             </>
           ) : null}

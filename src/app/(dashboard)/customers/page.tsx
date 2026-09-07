@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Users, UserCheck, UserPlus, Phone } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -32,6 +33,9 @@ export default async function CustomersPage({
   const { q, page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const supabase = await createClient();
+  const t = await getTranslations("customers");
+  const tStage = await getTranslations("labels.customerStage");
+  const tCommon = await getTranslations("common");
 
   let baseQuery = supabase
     .from("customers")
@@ -73,9 +77,9 @@ export default async function CustomersPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Customers &amp; CRM</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Customer directory, buyer profiles, CNIC records, and installment bookings ledger.
+            {t("subtitle")}
           </p>
         </div>
         {canEdit ? (
@@ -83,33 +87,32 @@ export default async function CustomersPage({
             <CustomerImportDialog />
             <Button render={<Link href="/customers/new" />}>
               <Plus className="size-4" />
-              Add Customer
+              {t("addCustomer")}
             </Button>
           </div>
         ) : null}
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Customers"
+          title={t("total")}
           value={totalCount}
-          hint="Registered buyers & prospects"
+          hint={t("registeredHint")}
           icon={Users}
           variant="sky"
         />
         <StatCard
-          title="Active Buyers / Owners"
+          title={t("activeBuyers")}
           value={bookedCount}
-          hint="Plots booked & installment schedules"
+          hint={t("activeBuyersHint")}
           icon={UserCheck}
           variant="primary"
           href="/installments"
         />
         <StatCard
-          title="Active Leads &amp; Inquiries"
+          title={t("activeLeads")}
           value={leadCount}
-          hint="In communication for new plots"
+          hint={t("activeLeadsHint")}
           icon={UserPlus}
           variant="warning"
         />
@@ -119,11 +122,11 @@ export default async function CustomersPage({
         <Input
           name="q"
           defaultValue={q}
-          placeholder="Search name, phone, CNIC or ID code"
+          placeholder={t("searchPlaceholderLong")}
           className="max-w-sm"
         />
         <Button type="submit" variant="outline">
-          Search
+          {tCommon("search")}
         </Button>
       </form>
 
@@ -131,19 +134,19 @@ export default async function CustomersPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Phone className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Customer Master List</h2>
+            <h2 className="font-semibold text-sm">{t("masterList")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{totalCount} customers</span>
+          <span className="text-xs text-muted-foreground">{t("customersCount", { count: totalCount })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer Code</TableHead>
-              <TableHead>Full Name</TableHead>
-              <TableHead>Phone Number</TableHead>
-              <TableHead>CNIC / National ID</TableHead>
-              <TableHead>Stage</TableHead>
-              {canEdit && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead>{t("customerCode")}</TableHead>
+              <TableHead>{t("fullName")}</TableHead>
+              <TableHead>{t("phoneNumber")}</TableHead>
+              <TableHead>{t("cnic")}</TableHead>
+              <TableHead>{t("stage")}</TableHead>
+              {canEdit && <TableHead className="text-right">{tCommon("actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,10 +176,10 @@ export default async function CustomersPage({
                     </Link>
                   </TableCell>
                   <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{customer.id_number || "—"}</TableCell>
+                  <TableCell>{customer.id_number || tCommon("dash")}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="rounded-md font-normal">
-                      {CUSTOMER_STAGE_LABELS[customer.stage]}
+                      {tStage(customer.stage as keyof typeof CUSTOMER_STAGE_LABELS)}
                     </Badge>
                   </TableCell>
                   {canEdit && (
@@ -186,7 +189,7 @@ export default async function CustomersPage({
                         viewHref={`/customers/${customer.id}`}
                         editHref={`/customers/${customer.id}/edit`}
                         deleteAction={deleteCustomer}
-                        confirmMessage={`Delete customer "${customer.full_name}"?`}
+                        confirmMessage={t("deleteConfirm", { name: customer.full_name })}
                       />
                     </TableCell>
                   )}
@@ -198,7 +201,7 @@ export default async function CustomersPage({
                   colSpan={canEdit ? 6 : 5}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No customers found. Click &quot;Add Customer&quot; to create a profile.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

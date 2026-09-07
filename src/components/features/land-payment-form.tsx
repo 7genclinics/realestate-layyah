@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createLandPayment } from "@/lib/actions/land-bank";
 import { CASH_ACCOUNT_TYPE_LABELS, PAYMENT_MODE_LABELS } from "@/lib/constants";
@@ -42,6 +43,12 @@ export function LandPaymentForm({
   }[];
 }) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tAccount = useTranslations("labels.cashAccountType");
+  const tMode = useTranslations("labels.paymentMode");
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const {
     register,
@@ -74,11 +81,11 @@ export function LandPaymentForm({
     const result = await createLandPayment({ ...values, slip_path: upload.path });
 
     if (result.error || !result.landId) {
-      toast.error(result.error ?? "Could not post payment");
+      toast.error(result.error ?? tToasts("couldNotPostPayment"));
       return;
     }
 
-    toast.success("Payment posted to cash book");
+    toast.success(tToasts("paymentPostedCash"));
     router.push(`/land-bank/${result.landId}`);
     router.refresh();
   }
@@ -89,22 +96,22 @@ export function LandPaymentForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <input type="hidden" {...register("land_parcel_id")} />
       <p className="text-sm text-muted-foreground">
-        Remaining payable {formatPkr(remainingAmount)}
+        {t("remainingPayable", { amount: formatPkr(remainingAmount) })}
       </p>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount (PKR)</Label>
+          <Label htmlFor="amount">{t("amountPkr")}</Label>
           <Input id="amount" type="number" step="1" {...register("amount")} />
           {errors.amount ? (
             <p className="text-xs text-destructive">{String(errors.amount.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_date">Date</Label>
+          <Label htmlFor="payment_date">{tCommon("date")}</Label>
           <Input id="payment_date" type="date" {...register("payment_date")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cash_account_id">Pay from account</Label>
+          <Label htmlFor="cash_account_id">{t("payFrom")}</Label>
           <select
             id="cash_account_id"
             className={selectClassName}
@@ -112,23 +119,23 @@ export function LandPaymentForm({
           >
             {accounts.map((row) => (
               <option key={row.id} value={row.id}>
-                {row.code} · {row.name} ({CASH_ACCOUNT_TYPE_LABELS[row.account_type]})
+                {row.code} · {row.name} ({tAccount(row.account_type)})
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_mode">Payment mode</Label>
+          <Label htmlFor="payment_mode">{t("paymentMode")}</Label>
           <select id="payment_mode" className={selectClassName} {...register("payment_mode")}>
-            {Object.entries(PAYMENT_MODE_LABELS).map(([value, label]) => (
+            {Object.keys(PAYMENT_MODE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tMode(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reference_no">Reference no.</Label>
+          <Label htmlFor="reference_no">{t("referenceNo")}</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
         <PaymentSlipField
@@ -136,17 +143,17 @@ export function LandPaymentForm({
           onFileChange={setSlipFile}
         />
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || remainingAmount <= 0}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Post payment
+          {tForms("postPayment")}
         </Button>
       </div>
     </form>

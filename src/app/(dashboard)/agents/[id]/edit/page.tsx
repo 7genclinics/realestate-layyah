@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAgents } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -14,6 +15,10 @@ export default async function EditAgentPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("agents");
+  const tTypes = await getTranslations("labels.agentType");
+  const tStatus = await getTranslations("labels.agentStatus");
+  const tCommon = await getTranslations("common");
 
   if (!canManageAgents(profile.role)) {
     redirect(`/agents/${id}`);
@@ -41,14 +46,14 @@ export default async function EditAgentPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Edit Agent / Broker
+            {t("editBrokerTitle")}
           </h1>
           <p className="text-sm text-slate-500">
-            Update contact and commission details for {agent.name}.
+            {t("editSubtitle", { name: agent.name })}
           </p>
         </div>
         <Button render={<Link href={`/agents/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
 
@@ -56,31 +61,31 @@ export default async function EditAgentPage({
         <form action={updateAction} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Agent Full Name *</label>
+              <label className={labelClass}>{t("fullName")}</label>
               <input type="text" name="name" required defaultValue={agent.name} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Phone / WhatsApp Number *</label>
+              <label className={labelClass}>{t("phoneWhatsapp")}</label>
               <input type="text" name="phone" required defaultValue={agent.phone} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Agency Name</label>
+              <label className={labelClass}>{t("agencyName")}</label>
               <input type="text" name="agency_name" defaultValue={agent.agency_name ?? ""} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Email Address</label>
+              <label className={labelClass}>{t("emailAddress")}</label>
               <input type="email" name="email" defaultValue={agent.email ?? ""} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Agent Type *</label>
+              <label className={labelClass}>{t("agentType")}</label>
               <select name="agent_type" required defaultValue={agent.agent_type} className={inputClass}>
-                {Object.entries(AGENT_TYPE_LABELS).map(([typeKey, typeLabel]) => (
-                  <option key={typeKey} value={typeKey}>{typeLabel}</option>
+                {Object.keys(AGENT_TYPE_LABELS).map((typeKey) => (
+                  <option key={typeKey} value={typeKey}>{tTypes(typeKey)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Default Commission Rate (%)</label>
+              <label className={labelClass}>{t("defaultRate")}</label>
               <input
                 type="number"
                 name="commission_rate"
@@ -90,10 +95,10 @@ export default async function EditAgentPage({
               />
             </div>
             <div>
-              <label className={labelClass}>Status</label>
+              <label className={labelClass}>{t("status")}</label>
               <select name="status" defaultValue={agent.status} className={inputClass}>
-                {Object.entries(AGENT_STATUS_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {Object.keys(AGENT_STATUS_LABELS).map((key) => (
+                  <option key={key} value={key}>{tStatus(key)}</option>
                 ))}
               </select>
             </div>
@@ -101,7 +106,7 @@ export default async function EditAgentPage({
 
           <div className="pt-4">
             <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
-              Update Agent Record
+              {t("updateRecord")}
             </Button>
           </div>
         </form>

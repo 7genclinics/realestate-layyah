@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Target, Flame, Trophy, PhoneCall } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { canManageLeads } from "@/lib/permissions";
@@ -52,6 +53,11 @@ export default async function LeadsPage({
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.leads");
+  const tSource = await getTranslations("labels.customerSource");
+  const tStatus = await getTranslations("labels.leadStatus");
+  const tCommon = await getTranslations("common");
 
   const [{ count }, { data: leads }, { data: allStatuses }] = await Promise.all([
     supabase.from("leads").select("id", { count: "exact", head: true }),
@@ -79,45 +85,44 @@ export default async function LeadsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Leads &amp; Pipeline
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track enquiries from first contact through to booking. Convert won
-            leads into customers in one click.
+            {t("subtitle")}
           </p>
         </div>
         <Button render={<Link href="/leads/new" />}>
           <Plus className="size-4" />
-          Add Lead
+          {t("addLead")}
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total Leads"
+          title={t("totalLeads")}
           value={count ?? 0}
-          hint="All enquiries recorded"
+          hint={t("totalHint")}
           icon={Target}
           variant="sky"
         />
         <StatCard
-          title="Open Pipeline"
+          title={t("openPipeline")}
           value={openCount}
-          hint="Not yet won or lost"
+          hint={t("openHint")}
           icon={PhoneCall}
           variant="primary"
         />
         <StatCard
-          title="Hot Leads"
+          title={t("hotLeads")}
           value={hotCount}
-          hint="Interested or negotiating"
+          hint={t("hotHint")}
           icon={Flame}
           variant="warning"
         />
         <StatCard
-          title="Converted (Won)"
+          title={t("converted")}
           value={wonCount}
-          hint="Turned into customers"
+          hint={t("convertedHint")}
           icon={Trophy}
           variant="success"
         />
@@ -127,20 +132,20 @@ export default async function LeadsPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Target className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Lead Directory</h2>
+            <h2 className="font-semibold text-sm">{t("directory")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{count ?? 0} total</span>
+          <span className="text-xs text-muted-foreground">{t("totalCount", { count: count ?? 0 })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Interest</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tCommon("name")}</TableHead>
+              <TableHead>{t("contact")}</TableHead>
+              <TableHead>{t("source")}</TableHead>
+              <TableHead>{t("interest")}</TableHead>
+              <TableHead>{t("budget")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -159,31 +164,27 @@ export default async function LeadsPage({
                         {lead.full_name}
                       </Link>
                       <div className="text-xs text-muted-foreground">
-                        {formatDate(lead.created_at)}
+                        {formatDate(lead.created_at, locale)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{lead.phone || "—"}</TableCell>
+                    <TableCell className="text-sm">{lead.phone || tCommon("dash")}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {CUSTOMER_SOURCE_LABELS[
-                          lead.source as keyof typeof CUSTOMER_SOURCE_LABELS
-                        ] ?? lead.source}
+                        {tSource(lead.source as keyof typeof CUSTOMER_SOURCE_LABELS)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {lead.interest || society?.name || "—"}
+                      {lead.interest || society?.name || tCommon("dash")}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {lead.budget ? formatPkr(Number(lead.budget)) : "—"}
+                      {lead.budget ? formatPkr(Number(lead.budget), locale) : tCommon("dash")}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={STATUS_VARIANT[lead.status] ?? "outline"}
                         className="rounded-md"
                       >
-                        {LEAD_STATUS_LABELS[
-                          lead.status as keyof typeof LEAD_STATUS_LABELS
-                        ] ?? lead.status}
+                        {tStatus(lead.status as keyof typeof LEAD_STATUS_LABELS)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -192,7 +193,7 @@ export default async function LeadsPage({
                         viewHref={`/leads/${lead.id}`}
                         editHref={`/leads/${lead.id}/edit`}
                         deleteAction={deleteLead}
-                        confirmMessage={`Delete lead "${lead.full_name}"?`}
+                        confirmMessage={t("deleteConfirm", { name: lead.full_name })}
                       />
                     </TableCell>
                   </TableRow>
@@ -201,8 +202,7 @@ export default async function LeadsPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No leads yet. Click &quot;Add Lead&quot; to start building your
-                  pipeline.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import type { CashAccountType } from "@/lib/database.types";
 import { transactionSignedAmount } from "@/lib/cash-book";
@@ -29,6 +30,12 @@ export default async function CashTransactionDetailPage({
   const { id } = await params;
   await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.cashBook");
+  const tAcct = await getTranslations("labels.cashAccountType");
+  const tTx = await getTranslations("labels.cashTransactionType");
+  const tPay = await getTranslations("labels.paymentMode");
+  const tCommon = await getTranslations("common");
 
   const { data: row, error } = await supabase
     .from("cash_transactions")
@@ -83,45 +90,54 @@ export default async function CashTransactionDetailPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-mono text-xs text-muted-foreground">{row.code}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Cash voucher</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("voucherTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            {formatDate(row.transaction_date)} ·{" "}
-            {CASH_TRANSACTION_TYPE_LABELS[row.transaction_type]}
+            {formatDate(row.transaction_date, locale)} ·{" "}
+            {tTx(row.transaction_type as keyof typeof CASH_TRANSACTION_TYPE_LABELS)}
           </p>
         </div>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{formatPkr(Math.abs(signed))}</CardTitle>
+          <CardTitle>{formatPkr(Math.abs(signed), locale)}</CardTitle>
           <CardDescription>
-            {signed >= 0 ? "Inflow" : "Outflow"} on {account?.name ?? "account"}
+            {t("onAccount", {
+              direction: signed >= 0 ? t("inflow") : t("outflow"),
+              account: account?.name ?? t("accountFallback"),
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Detail label="Account">
+          <Detail label={t("accountLabel")}>
             {account
-              ? `${account.code} · ${account.name} (${CASH_ACCOUNT_TYPE_LABELS[account.account_type as CashAccountType]})`
-              : "—"}
+              ? t("accountLine", {
+                  code: account.code,
+                  name: account.name,
+                  type: tAcct(account.account_type as CashAccountType),
+                })
+              : tCommon("dash")}
           </Detail>
-          <Detail label="Category">{category?.name ?? "—"}</Detail>
-          <Detail label="Project">{society?.name ?? "—"}</Detail>
-          <Detail label="Payment mode">
-            {row.payment_mode ? PAYMENT_MODE_LABELS[row.payment_mode] : "—"}
+          <Detail label={t("category")}>{category?.name ?? tCommon("dash")}</Detail>
+          <Detail label={t("project")}>{society?.name ?? tCommon("dash")}</Detail>
+          <Detail label={t("paymentMode")}>
+            {row.payment_mode
+              ? tPay(row.payment_mode as keyof typeof PAYMENT_MODE_LABELS)
+              : tCommon("dash")}
           </Detail>
-          <Detail label="Payee / payer">{row.counterparty_name || "—"}</Detail>
-          <Detail label="Reference">{row.reference_no || "—"}</Detail>
-          <Detail label="Entered by">{enteredBy?.full_name ?? "—"}</Detail>
-          <Detail label="Status">
+          <Detail label={t("payeePayer")}>{row.counterparty_name || tCommon("dash")}</Detail>
+          <Detail label={tCommon("reference")}>{row.reference_no || tCommon("dash")}</Detail>
+          <Detail label={t("enteredBy")}>{enteredBy?.full_name ?? tCommon("dash")}</Detail>
+          <Detail label={tCommon("status")}>
             <Badge variant="secondary">{row.status}</Badge>
           </Detail>
-          <Detail label="Description">{row.description}</Detail>
-          <Detail label="Notes">{row.notes || "—"}</Detail>
+          <Detail label={tCommon("description")}>{row.description}</Detail>
+          <Detail label={tCommon("notes")}>{row.notes || tCommon("dash")}</Detail>
           {receipt ? (
-            <Detail label="Linked receipt">
+            <Detail label={t("linkedReceiptLabel")}>
               <Link
                 href={`/receipts/${row.receipt_id}`}
                 className="underline-offset-4 hover:underline"

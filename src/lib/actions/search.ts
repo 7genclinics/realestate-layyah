@@ -60,7 +60,7 @@ export async function searchEverything(rawQuery: string): Promise<SearchGroup[]>
 
   if (customers.data?.length) {
     groups.push({
-      group: "Customers",
+      group: "customers",
       items: customers.data.map((c) => ({
         id: c.id,
         label: c.full_name,
@@ -72,10 +72,10 @@ export async function searchEverything(rawQuery: string): Promise<SearchGroup[]>
 
   if (properties.data?.length) {
     groups.push({
-      group: "Inventory",
+      group: "inventory",
       items: properties.data.map((p) => ({
         id: p.id,
-        label: `Plot ${p.plot_no}`,
+        label: p.plot_no,
         sub: [p.code, p.status].filter(Boolean).join(" · "),
         href: `/inventory/${p.id}`,
       })),
@@ -84,7 +84,7 @@ export async function searchEverything(rawQuery: string): Promise<SearchGroup[]>
 
   if (parties.data?.length) {
     groups.push({
-      group: "Parties",
+      group: "parties",
       items: parties.data.map((p) => ({
         id: p.id,
         label: p.name,
@@ -96,7 +96,7 @@ export async function searchEverything(rawQuery: string): Promise<SearchGroup[]>
 
   if (leads.data?.length) {
     groups.push({
-      group: "Leads",
+      group: "leads",
       items: leads.data.map((l) => ({
         id: l.id,
         label: l.full_name,

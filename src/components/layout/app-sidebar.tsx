@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   BookOpen,
   Briefcase,
@@ -61,28 +62,30 @@ const ICONS = {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const tBrand = useTranslations("brand");
+  const tCommon = useTranslations("common");
   const liveItems = NAV_ITEMS.filter((item) => !("disabled" in item && item.disabled));
   const laterItems = NAV_ITEMS.filter((item) => "disabled" in item && item.disabled);
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
+    <Sidebar collapsible="icon" className="border-e">
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2.5 px-2 py-1.5">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary/10 text-primary">
             <Building2 className="size-4" />
           </div>
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold tracking-tight">Mohkam</p>
+            <p className="truncate text-sm font-semibold tracking-tight">{tBrand("name")}</p>
             <p className="truncate text-xs text-muted-foreground">
-              Society Management
+              {tBrand("tagline")}
             </p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup label="Operations" items={liveItems} pathname={pathname} />
+        <NavGroup label={tCommon("operations")} items={liveItems} pathname={pathname} />
         {laterItems.length ? (
-          <NavGroup label="Coming next" items={laterItems} pathname={pathname} />
+          <NavGroup label={tCommon("comingNext")} items={laterItems} pathname={pathname} />
         ) : null}
       </SidebarContent>
     </Sidebar>
@@ -99,6 +102,8 @@ function NavGroup({
   pathname: string;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
 
   return (
     <SidebarGroup>
@@ -110,13 +115,14 @@ function NavGroup({
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             const disabled = "disabled" in item && Boolean((item as { disabled?: boolean }).disabled);
+            const title = tNav(item.navKey);
 
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   isActive={isActive}
                   disabled={disabled}
-                  tooltip={disabled ? "Coming in a later step" : item.title}
+                  tooltip={disabled ? tCommon("comingLater") : title}
                   className={
                     isActive
                       ? "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary rounded-[8px]"
@@ -130,7 +136,7 @@ function NavGroup({
                   render={disabled ? undefined : <Link href={item.href} />}
                 >
                   <Icon className="size-4 shrink-0" />
-                  <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
+                  <span className="group-data-[collapsible=icon]:hidden">{title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );

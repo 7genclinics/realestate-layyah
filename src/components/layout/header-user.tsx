@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings, ShieldCheck, User } from "lucide-react";
+import { LogOut, Settings, ShieldCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { signOut } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,9 @@ export function HeaderUser({
   roleLabel: string;
   avatarUrl?: string;
 }) {
+  const t = useTranslations("header");
+  const tCommon = useTranslations("common");
+
   return (
     <div className="flex items-center gap-2">
       {/* Profile Details Dropdown */}
@@ -52,10 +56,10 @@ export function HeaderUser({
               <AvatarImage src={avatarUrl} alt={name} className="object-cover size-full rounded-full" />
             ) : null}
             <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary rounded-full">
-              {initials(name) || "U"}
+              {initials(name) || tCommon("user").slice(0, 1)}
             </AvatarFallback>
           </Avatar>
-          <div className="hidden text-left sm:block">
+          <div className="hidden text-start sm:block">
             <p className="text-xs font-semibold leading-none text-foreground">{name}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">{roleLabel}</p>
           </div>
@@ -68,7 +72,7 @@ export function HeaderUser({
                   <AvatarImage src={avatarUrl} alt={name} className="object-cover size-full rounded-full" />
                 ) : null}
                 <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary rounded-full">
-                  {initials(name) || "U"}
+                  {initials(name) || tCommon("user").slice(0, 1)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
@@ -94,7 +98,7 @@ export function HeaderUser({
               className="cursor-pointer rounded-md text-xs py-2"
             >
               <Settings className="size-4 mr-2 text-muted-foreground" />
-              Account Settings
+              {t("accountSettings")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
 
@@ -106,7 +110,7 @@ export function HeaderUser({
               className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive rounded-md text-xs py-2"
             >
               <LogOut className="size-4 mr-2" />
-              Sign Out
+              {t("signOut")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
@@ -117,11 +121,11 @@ export function HeaderUser({
         variant="ghost"
         size="icon"
         onClick={() => signOut()}
-        title="Sign Out"
+        title={t("signOut")}
         className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-[8px]"
       >
         <LogOut className="size-4" />
-        <span className="sr-only">Sign Out</span>
+        <span className="sr-only">{t("signOut")}</span>
       </Button>
     </div>
   );

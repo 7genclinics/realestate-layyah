@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +13,8 @@ export function ApprovalButtons({
   id,
   approveAction,
   rejectAction,
-  approveLabel = "Approve",
-  rejectLabel = "Reject",
+  approveLabel,
+  rejectLabel,
 }: {
   id: string;
   approveAction: ApprovalAction;
@@ -22,6 +23,7 @@ export function ApprovalButtons({
   rejectLabel?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("common");
   const [isPending, startTransition] = useTransition();
 
   function run(action: ApprovalAction, successMessage: string) {
@@ -40,7 +42,7 @@ export function ApprovalButtons({
     <div className="inline-flex items-center gap-1.5">
       <Button
         size="sm"
-        onClick={() => run(approveAction, "Approved")}
+        onClick={() => run(approveAction, t("approved"))}
         disabled={isPending}
         className="h-8"
       >
@@ -49,18 +51,18 @@ export function ApprovalButtons({
         ) : (
           <Check className="size-3.5" />
         )}
-        {approveLabel}
+        {approveLabel ?? t("approve")}
       </Button>
       {rejectAction ? (
         <Button
           size="sm"
           variant="outline"
-          onClick={() => run(rejectAction, "Rejected")}
+          onClick={() => run(rejectAction, t("rejected"))}
           disabled={isPending}
           className="h-8 text-destructive hover:bg-destructive/10"
         >
           <X className="size-3.5" />
-          {rejectLabel}
+          {rejectLabel ?? t("reject")}
         </Button>
       ) : null}
     </div>

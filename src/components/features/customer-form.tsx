@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createCustomer, updateCustomer } from "@/lib/actions/customers";
 import {
@@ -39,6 +40,13 @@ export function CustomerForm({
 } = {}) {
   const router = useRouter();
   const isEdit = Boolean(customerId);
+  const t = useTranslations("customers");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tRelation = useTranslations("labels.customerRelation");
+  const tIdType = useTranslations("labels.idType");
+  const tSource = useTranslations("labels.customerSource");
+  const tStage = useTranslations("labels.customerStage");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const {
     register,
@@ -69,9 +77,11 @@ export function CustomerForm({
       : await createCustomer(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not save customer");
+      toast.error(result.error ?? tToasts("couldNotSaveCustomer"));
       return;
     }
+
+    const entityLabel = isEdit ? tToasts("customerUpdated") : tToasts("customerCreated");
 
     if (attachments.length) {
       const upload = await uploadPendingAttachments(
@@ -81,15 +91,22 @@ export function CustomerForm({
       );
       if (upload.failed) {
         toast.warning(
-          `Customer saved, but ${upload.failed} attachment${upload.failed > 1 ? "s" : ""} failed to upload${upload.firstError ? `: ${upload.firstError}` : "."}`,
+          tToasts("attachmentsFailed", {
+            entity: entityLabel,
+            count: upload.failed,
+            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+          }),
         );
       } else {
         toast.success(
-          `${isEdit ? "Customer updated" : "Customer created"} · ${upload.uploaded} document${upload.uploaded > 1 ? "s" : ""} attached`,
+          tToasts("attachmentsOk", {
+            entity: entityLabel,
+            count: upload.uploaded,
+          }),
         );
       }
     } else {
-      toast.success(isEdit ? "Customer updated" : "Customer created");
+      toast.success(entityLabel);
     }
 
     router.push(`/customers/${result.id}`);
@@ -100,81 +117,81 @@ export function CustomerForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="full_name">Full name</Label>
+          <Label htmlFor="full_name">{t("fullName")}</Label>
           <Input id="full_name" {...register("full_name")} />
           {errors.full_name ? (
             <p className="text-xs text-destructive">{errors.full_name.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="relation">Relation</Label>
+          <Label htmlFor="relation">{t("relation")}</Label>
           <select id="relation" className={selectClassName} {...register("relation")}>
-            {Object.entries(CUSTOMER_RELATION_LABELS).map(([value, label]) => (
+            {Object.keys(CUSTOMER_RELATION_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tRelation(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="guardian_name">Guardian name</Label>
+          <Label htmlFor="guardian_name">{t("guardianName")}</Label>
           <Input id="guardian_name" {...register("guardian_name")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="id_type">ID type</Label>
+          <Label htmlFor="id_type">{t("idType")}</Label>
           <select id="id_type" className={selectClassName} {...register("id_type")}>
-            {Object.entries(ID_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(ID_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tIdType(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="id_number">CNIC / passport</Label>
+          <Label htmlFor="id_number">{t("cnicPassport")}</Label>
           <Input id="id_number" {...register("id_number")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Primary phone</Label>
+          <Label htmlFor="phone">{t("primaryPhone")}</Label>
           <Input id="phone" {...register("phone")} />
           {errors.phone ? (
             <p className="text-xs text-destructive">{errors.phone.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone_secondary">Secondary phone</Label>
+          <Label htmlFor="phone_secondary">{t("secondaryPhone")}</Label>
           <Input id="phone_secondary" {...register("phone_secondary")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="source">Source</Label>
+          <Label htmlFor="source">{t("source")}</Label>
           <select id="source" className={selectClassName} {...register("source")}>
-            {Object.entries(CUSTOMER_SOURCE_LABELS).map(([value, label]) => (
+            {Object.keys(CUSTOMER_SOURCE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tSource(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="stage">Stage</Label>
+          <Label htmlFor="stage">{t("stage")}</Label>
           <select id="stage" className={selectClassName} {...register("stage")}>
-            {Object.entries(CUSTOMER_STAGE_LABELS).map(([value, label]) => (
+            {Object.keys(CUSTOMER_STAGE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tStage(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="caste">Caste</Label>
+          <Label htmlFor="caste">{t("caste")}</Label>
           <Input id="caste" {...register("caste")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="address">Address</Label>
+          <Label htmlFor="address">{t("address")}</Label>
           <Textarea id="address" rows={2} {...register("address")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{t("notes")}</Label>
           <Textarea id="notes" rows={3} {...register("notes")} />
         </div>
       </section>
@@ -184,16 +201,16 @@ export function CustomerForm({
         onChange={setAttachments}
         defaultType="identity"
         disabled={isSubmitting}
-        description="Attach the customer's CNIC, agreement or other files (JPG, PNG, PDF · max 10 MB)."
+        description={t("attachHint")}
       />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          {isEdit ? "Update customer" : "Save customer"}
+          {isEdit ? tForms("updateCustomer") : tForms("saveCustomer")}
         </Button>
       </div>
     </form>

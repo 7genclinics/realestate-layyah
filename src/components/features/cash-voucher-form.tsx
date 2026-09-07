@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createCashVoucher } from "@/lib/actions/cash-book";
 import {
@@ -55,6 +56,14 @@ export function CashVoucherForm({
   defaultType?: "income" | "expense";
 }) {
   const router = useRouter();
+  const t = useTranslations("cash");
+  const tPay = useTranslations("payments");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tAccount = useTranslations("labels.cashAccountType");
+  const tMode = useTranslations("labels.paymentMode");
+  const tTxn = useTranslations("labels.cashTransactionType");
   const {
     register,
     handleSubmit,
@@ -86,11 +95,11 @@ export function CashVoucherForm({
     const result = await createCashVoucher(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not post voucher");
+      toast.error(result.error ?? tToasts("couldNotPostVoucher"));
       return;
     }
 
-    toast.success("Voucher posted");
+    toast.success(tToasts("voucherPosted"));
     router.push(`/cash-book/${result.id}`);
     router.refresh();
   }
@@ -99,24 +108,24 @@ export function CashVoucherForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="transaction_type">Type</Label>
+          <Label htmlFor="transaction_type">{tCommon("type")}</Label>
           <select
             id="transaction_type"
             className={selectClassName}
             {...register("transaction_type")}
           >
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
+            <option value="income">{tTxn("income")}</option>
+            <option value="expense">{tTxn("expense")}</option>
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="category_id">Category</Label>
+          <Label htmlFor="category_id">{t("category")}</Label>
           <select
             id="category_id"
             className={selectClassName}
             {...register("category_id")}
           >
-            <option value="">Select category</option>
+            <option value="">{t("selectCategory")}</option>
             {filteredCategories.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.group_name ? `${row.group_name} · ` : ""}
@@ -131,7 +140,7 @@ export function CashVoucherForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cash_account_id">Cash / bank account</Label>
+          <Label htmlFor="cash_account_id">{t("cashBankAccount")}</Label>
           <select
             id="cash_account_id"
             className={selectClassName}
@@ -140,15 +149,15 @@ export function CashVoucherForm({
             {accounts.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.name} (
-                {CASH_ACCOUNT_TYPE_LABELS[row.account_type]})
+                {tAccount(row.account_type)})
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="society_id">Project / society</Label>
+          <Label htmlFor="society_id">{t("projectSociety")}</Label>
           <select id="society_id" className={selectClassName} {...register("society_id")}>
-            <option value="">All / not linked</option>
+            <option value="">{t("allNotLinked")}</option>
             {societies.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code} · {row.name}
@@ -157,14 +166,14 @@ export function CashVoucherForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount (PKR)</Label>
+          <Label htmlFor="amount">{tPay("amountPkr")}</Label>
           <Input id="amount" type="number" step="1" {...register("amount")} />
           {errors.amount ? (
             <p className="text-xs text-destructive">{String(errors.amount.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="transaction_date">Date</Label>
+          <Label htmlFor="transaction_date">{tCommon("date")}</Label>
           <Input
             id="transaction_date"
             type="date"
@@ -172,21 +181,21 @@ export function CashVoucherForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_mode">Payment mode</Label>
+          <Label htmlFor="payment_mode">{tPay("paymentMode")}</Label>
           <select id="payment_mode" className={selectClassName} {...register("payment_mode")}>
-            {Object.entries(PAYMENT_MODE_LABELS).map(([value, label]) => (
+            {Object.keys(PAYMENT_MODE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tMode(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="counterparty_name">Payee / payer</Label>
+          <Label htmlFor="counterparty_name">{t("payeePayer")}</Label>
           <Input id="counterparty_name" {...register("counterparty_name")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{tCommon("description")}</Label>
           <Input id="description" {...register("description")} />
           {errors.description ? (
             <p className="text-xs text-destructive">
@@ -195,21 +204,21 @@ export function CashVoucherForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reference_no">Reference no.</Label>
+          <Label htmlFor="reference_no">{tPay("referenceNo")}</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || !accounts.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Post voucher
+          {tForms("postVoucher")}
         </Button>
       </div>
     </form>

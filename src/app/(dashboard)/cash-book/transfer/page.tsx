@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -14,16 +15,18 @@ import {
 
 export default async function CashTransferPage() {
   const { profile } = await requireProfile();
+  const t = await getTranslations("pages.cashBook");
+  const tCommon = await getTranslations("common");
 
   if (!canManageAccounts(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Transfer</h1>
+        <h1 className="text-2xl font-semibold">{t("transferTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only accounts staff, managers and owners can post transfers.
+          {t("transferNoPermission")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -39,12 +42,12 @@ export default async function CashTransferPage() {
   if (!accounts || accounts.length < 2) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Transfer</h1>
+        <h1 className="text-2xl font-semibold">{t("transferTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          At least two active accounts are required for a transfer.
+          {t("needTwoAccounts")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -54,17 +57,17 @@ export default async function CashTransferPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Cash / bank transfer
+          {t("transferCashBank")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Moves funds between accounts without counting as income or expense.
+          {t("transferHint")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Transfer details</CardTitle>
+          <CardTitle>{t("transferDetails")}</CardTitle>
           <CardDescription>
-            Creates paired out/in vouchers linked together.
+            {t("transferPaired")}
           </CardDescription>
         </CardHeader>
         <CardContent>

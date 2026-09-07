@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Lock, LogIn, Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/client";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 
@@ -13,6 +14,7 @@ type SignIn2Props = {
 };
 
 const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
+  const t = useTranslations("auth");
   const [formError, setFormError] = useState(errorMessage);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,13 +44,13 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
           error.message.includes("Invalid login credentials") ||
           error.message.includes("invalid_credentials")
         ) {
-          setFormError("Incorrect email or password. Please try again.");
+          setFormError(t("incorrectCredentials"));
         } else if (error.message.includes("Email not confirmed")) {
-          setFormError("Please verify your email address before signing in.");
+          setFormError(t("verifyEmail"));
         } else if (error.message.includes("Too many requests")) {
-          setFormError("Too many attempts. Please wait a moment and try again.");
+          setFormError(t("tooMany"));
         } else {
-          setFormError("Sign in failed. Please check your credentials and try again.");
+          setFormError(t("signInFailed"));
         }
         setLoading(false);
         return;
@@ -57,13 +59,14 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
       window.location.href = nextPath;
     } catch {
       // Never expose raw SDK or network errors to the user
-      setFormError("Unable to connect. Please check your internet and try again.");
+      setFormError(t("unableToConnect"));
       setLoading(false);
     }
   }
 
   const displayError =
-    formError ?? errors.email?.message ?? errors.password?.message;
+    formError ??
+    (errors.email ? t("invalidEmail") : errors.password ? t("passwordMin") : undefined);
 
   return (
     <div className="w-full max-w-sm rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-white to-white p-8 shadow-sm">
@@ -71,10 +74,10 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
         <LogIn className="h-5 w-5" />
       </div>
       <h2 className="font-heading mb-2 text-center text-2xl font-semibold">
-        Sign in with email
+        {t("signInTitle")}
       </h2>
       <p className="mb-6 text-center text-sm text-gray-500">
-        Manage societies, properties, bookings, and customers in one place.
+        {t("signInSubtitle")}
       </p>
 
       <form className="w-full" onSubmit={handleSubmit(onSubmit)}>
@@ -86,7 +89,7 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
             <input
               type="email"
               autoComplete="email"
-              placeholder="Email"
+              placeholder={t("email")}
               disabled={isPending}
               className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-3 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:opacity-60"
               {...register("email")}
@@ -99,7 +102,7 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
             <input
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              placeholder="Password"
+              placeholder={t("password")}
               disabled={isPending}
               className="w-full rounded-xl border border-input bg-muted/40 py-2 pr-10 pl-10 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:opacity-60"
               {...register("password")}
@@ -114,7 +117,7 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
                 setShowPassword((visible) => !visible);
               }}
               className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700 focus:outline-none disabled:opacity-50"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               aria-pressed={showPassword}
             >
               {showPassword ? (
@@ -126,7 +129,7 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
           </div>
           <div className="flex w-full items-start justify-between gap-2">
             {displayError ? (
-              <div className="text-left text-sm text-red-500">{displayError}</div>
+              <div className="text-start text-sm text-red-500">{displayError}</div>
             ) : (
               <span />
             )}
@@ -134,7 +137,7 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
               type="button"
               className="text-xs font-medium hover:underline"
             >
-              Forgot password?
+              {t("forgotPassword")}
             </button>
           </div>
         </div>
@@ -147,10 +150,10 @@ const SignIn2 = ({ nextPath = "/dashboard", errorMessage }: SignIn2Props) => {
           {isPending ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Signing in...
+              {t("signingIn")}
             </span>
           ) : (
-            "Get Started"
+            t("getStarted")
           )}
         </button>
       </form>

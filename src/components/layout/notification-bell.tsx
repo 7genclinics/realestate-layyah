@@ -4,6 +4,8 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { Bell, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { enUS, ur } from "date-fns/locale";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   markAllNotificationsRead,
@@ -70,9 +72,12 @@ function entityHref(entityType: string | null, entityId: string | null): string 
   }
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, locale: string): string {
   try {
-    return formatDistanceToNow(new Date(iso), { addSuffix: true });
+    return formatDistanceToNow(new Date(iso), {
+      addSuffix: true,
+      locale: locale === "ur" ? ur : enUS,
+    });
   } catch {
     return "";
   }
@@ -86,6 +91,8 @@ export function NotificationBell({
   unread: number;
 }) {
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("notifications");
+  const locale = useLocale();
 
   function handleRead(id: string, isRead: boolean) {
     if (isRead) return;
@@ -100,7 +107,7 @@ export function NotificationBell({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("All notifications marked read.");
+        toast.success(t("markedRead"));
       }
     });
   }
@@ -113,21 +120,21 @@ export function NotificationBell({
             variant="ghost"
             size="icon"
             className="relative size-8 rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted/80"
-            title="Notifications"
+            title={t("title")}
           />
         }
       >
         <Bell className="size-4" />
         {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-4 text-white">
+          <span className="absolute -end-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-4 text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
-        <span className="sr-only">Notifications</span>
+        <span className="sr-only">{t("title")}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 rounded-[10px] p-0 shadow-lg">
         <div className="flex items-center justify-between border-b px-3 py-2.5">
-          <p className="text-sm font-semibold">Notifications</p>
+          <p className="text-sm font-semibold">{t("title")}</p>
           {unread > 0 ? (
             <button
               type="button"
@@ -136,14 +143,14 @@ export function NotificationBell({
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
             >
               <Check className="size-3" />
-              Mark all read
+              {t("markAllRead")}
             </button>
           ) : null}
         </div>
         <div className="max-h-96 overflow-y-auto py-1">
           {items.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-              You&apos;re all caught up.
+              {t("allCaughtUp")}
             </div>
           ) : (
             items.map((n) => {
@@ -166,7 +173,7 @@ export function NotificationBell({
                       </p>
                     ) : null}
                     <p className="mt-1 text-[10px] text-muted-foreground/80">
-                      {timeAgo(n.created_at)}
+                      {timeAgo(n.created_at, locale)}
                     </p>
                   </div>
                 </div>

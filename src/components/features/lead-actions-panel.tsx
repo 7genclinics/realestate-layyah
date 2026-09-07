@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   addLeadNote,
@@ -27,6 +28,11 @@ export function LeadActionsPanel({
   converted: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("leads");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("labels.leadStatus");
+  const tActivity = useTranslations("labels.activityType");
   const [status, setStatus] = useState(currentStatus);
   const [activityType, setActivityType] = useState("note");
   const [note, setNote] = useState("");
@@ -40,7 +46,7 @@ export function LeadActionsPanel({
         toast.error(result.error);
         return;
       }
-      toast.success("Pipeline stage updated");
+      toast.success(tToasts("pipelineUpdated"));
       router.refresh();
     });
   }
@@ -56,7 +62,7 @@ export function LeadActionsPanel({
         toast.error(result.error);
         return;
       }
-      toast.success("Activity logged");
+      toast.success(tToasts("activityLogged"));
       setNote("");
       router.refresh();
     });
@@ -66,10 +72,10 @@ export function LeadActionsPanel({
     startConvert(async () => {
       const result = await convertLeadToCustomer(leadId);
       if (result.error || !result.customerId) {
-        toast.error(result.error ?? "Could not convert lead");
+        toast.error(result.error ?? tToasts("couldNotConvertLead"));
         return;
       }
-      toast.success("Lead converted to customer");
+      toast.success(tToasts("leadConverted"));
       router.push(`/customers/${result.customerId}`);
       router.refresh();
     });
@@ -78,7 +84,7 @@ export function LeadActionsPanel({
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="status">Pipeline stage</Label>
+        <Label htmlFor="status">{t("pipelineStage")}</Label>
         <div className="flex gap-2">
           <select
             id="status"
@@ -86,9 +92,9 @@ export function LeadActionsPanel({
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            {Object.entries(LEAD_STATUS_LABELS).map(([value, label]) => (
+            {Object.keys(LEAD_STATUS_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tStatus(value)}
               </option>
             ))}
           </select>
@@ -98,30 +104,30 @@ export function LeadActionsPanel({
             onClick={saveStatus}
             disabled={isPending || status === currentStatus}
           >
-            Update
+            {tCommon("update")}
           </Button>
         </div>
       </div>
 
       <div className="space-y-2 border-t pt-4">
-        <Label htmlFor="activity_type">Log an activity</Label>
+        <Label htmlFor="activity_type">{t("logActivity")}</Label>
         <select
           id="activity_type"
           className={selectClassName}
           value={activityType}
           onChange={(e) => setActivityType(e.target.value)}
         >
-          {Object.entries(ACTIVITY_TYPE_LABELS)
-            .filter(([value]) => value !== "status_change")
-            .map(([value, label]) => (
+          {Object.keys(ACTIVITY_TYPE_LABELS)
+            .filter((value) => value !== "status_change")
+            .map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tActivity(value)}
               </option>
             ))}
         </select>
         <Textarea
           rows={3}
-          placeholder="What happened? (call summary, visit notes…)"
+          placeholder={t("notePlaceholder")}
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
@@ -132,7 +138,7 @@ export function LeadActionsPanel({
           className="w-full"
         >
           {isPending ? <Loader2 className="animate-spin size-4" /> : null}
-          Log activity
+          {t("logButton")}
         </Button>
       </div>
 
@@ -150,15 +156,15 @@ export function LeadActionsPanel({
             ) : (
               <UserPlus className="size-4" />
             )}
-            Convert to customer
+            {t("convert")}
           </Button>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Creates a customer record and marks this lead as won.
+            {t("convertHint")}
           </p>
         </div>
       ) : (
         <div className="border-t pt-4 text-xs text-muted-foreground">
-          This lead has already been converted to a customer.
+          {t("alreadyConverted")}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
-import { PROPERTY_STATUS_LABELS } from "@/lib/constants";
 import type { PropertyStatus } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +14,10 @@ const STYLES: Record<PropertyStatus, string> = {
 };
 
 export function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
+  const t = useTranslations("labels.propertyStatus");
   return (
     <Badge variant="outline" className={cn("font-medium", STYLES[status])}>
-      {PROPERTY_STATUS_LABELS[status]}
+      {t(status)}
     </Badge>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,16 +21,18 @@ export default async function NewCashVoucherPage({
   const { profile } = await requireProfile();
   const params = await searchParams;
   const defaultType = params.type === "income" ? "income" : "expense";
+  const t = await getTranslations("pages.cashBook");
+  const tCommon = await getTranslations("common");
 
   if (!canManageAccounts(profile.role)) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New voucher</h1>
+        <h1 className="text-2xl font-semibold">{t("newVoucher")}</h1>
         <p className="text-sm text-muted-foreground">
-          Only accounts staff, managers and owners can post cash book entries.
+          {t("noPermission")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -56,12 +59,12 @@ export default async function NewCashVoucherPage({
   if (!accounts?.length) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">New voucher</h1>
+        <h1 className="text-2xl font-semibold">{t("newVoucher")}</h1>
         <p className="text-sm text-muted-foreground">
-          Configure at least one cash or bank account first.
+          {t("needAccount")}
         </p>
         <Button render={<Link href="/cash-book" />} variant="outline">
-          Back
+          {tCommon("back")}
         </Button>
       </div>
     );
@@ -71,18 +74,17 @@ export default async function NewCashVoucherPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {defaultType === "income" ? "New income" : "New expense"}
+          {defaultType === "income" ? t("newIncomeTitle") : t("newExpenseTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Posts a voucher to the daily cash book and updates account balances.
+          {t("voucherHint")}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Voucher details</CardTitle>
+          <CardTitle>{t("voucherDetails")}</CardTitle>
           <CardDescription>
-            Customer receipts from the Receive Payment screen are posted
-            automatically.
+            {t("voucherAuto")}
           </CardDescription>
         </CardHeader>
         <CardContent>

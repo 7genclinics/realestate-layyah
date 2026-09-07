@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { format } from "date-fns";
 import { FileText, Paperclip, Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { uploadDocument } from "@/lib/actions/documents";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/constants";
@@ -100,6 +101,11 @@ export function FormAttachments({
   description?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("attachments");
+  const tDocs = useTranslations("documents");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tTypes = useTranslations("labels.documentType");
 
   function handleFilesPicked(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -111,15 +117,15 @@ export function FormAttachments({
           file.type as (typeof ALLOWED_DOCUMENT_MIME)[number],
         )
       ) {
-        toast.error(`${file.name}: only JPG, PNG, WEBP and PDF are allowed.`);
+        toast.error(tToasts("fileType", { name: file.name }));
         continue;
       }
       if (file.size === 0) {
-        toast.error(`${file.name}: file is empty.`);
+        toast.error(tToasts("fileEmpty", { name: file.name }));
         continue;
       }
       if (file.size > MAX_DOCUMENT_BYTES) {
-        toast.error(`${file.name}: must be 10 MB or smaller.`);
+        toast.error(tToasts("fileTooLarge", { name: file.name }));
         continue;
       }
       accepted.push({
@@ -153,13 +159,12 @@ export function FormAttachments({
         <div className="space-y-1">
           <p className="flex items-center gap-2 text-sm font-medium">
             <Paperclip className="size-4 text-muted-foreground" />
-            Attachments
-            <span className="font-normal text-muted-foreground">(optional)</span>
+            {t("title")}
+            <span className="font-normal text-muted-foreground">{t("optional")}</span>
           </p>
           <p className="text-xs text-muted-foreground">
-            {description ??
-              "Attach CNIC, agreements or other files (JPG, PNG, PDF · max 10 MB)."}{" "}
-            Uploaded when you save.
+            {description ?? t("defaultHint")}{" "}
+            {t("uploadedOnSave")}
           </p>
         </div>
         <Button
@@ -170,7 +175,7 @@ export function FormAttachments({
           disabled={disabled}
         >
           <Plus className="size-4" />
-          Add files
+          {tForms("addFiles")}
         </Button>
       </div>
 
@@ -192,7 +197,7 @@ export function FormAttachments({
                 {formatBytes(item.file.size)}
               </span>
               <label className="sr-only" htmlFor={`doc-type-${item.key}`}>
-                Document type for {item.file.name}
+                {tDocs("docTypeFor", { name: item.file.name })}
               </label>
               <select
                 id={`doc-type-${item.key}`}
@@ -203,9 +208,9 @@ export function FormAttachments({
                   updateType(item.key, event.target.value as DocumentType)
                 }
               >
-                {Object.entries(DOCUMENT_TYPE_LABELS).map(([val, label]) => (
+                {Object.keys(DOCUMENT_TYPE_LABELS).map((val) => (
                   <option key={val} value={val}>
-                    {label}
+                    {tTypes(val)}
                   </option>
                 ))}
               </select>
@@ -214,7 +219,7 @@ export function FormAttachments({
                 onClick={() => remove(item.key)}
                 disabled={disabled}
                 className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-                aria-label={`Remove ${item.file.name}`}
+                aria-label={tDocs("removeFile", { name: item.file.name })}
               >
                 <X className="size-4" />
               </button>

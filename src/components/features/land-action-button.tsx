@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   addLandToInventory,
@@ -24,6 +25,8 @@ export function LandActionButton({
   variant?: "default" | "outline";
 }) {
   const router = useRouter();
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
   const [pending, setPending] = useState(false);
 
   async function run() {
@@ -45,10 +48,10 @@ export function LandActionButton({
 
     toast.success(
       action === "add-inventory"
-        ? "Added to inventory"
+        ? tToasts("addedToInventory")
         : action === "complete-exchange"
-          ? "Exchange completed"
-          : "Approved",
+          ? tToasts("exchangeCompleted")
+          : tCommon("approved"),
     );
 
     if (action === "add-inventory" && "propertyId" in result && result.propertyId) {

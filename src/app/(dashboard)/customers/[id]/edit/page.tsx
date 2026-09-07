@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -20,6 +21,8 @@ export default async function EditCustomerPage({
 }) {
   const { profile } = await requireProfile();
   const { id } = await params;
+  const t = await getTranslations("customers");
+  const tCommon = await getTranslations("common");
 
   if (!canManageCrm(profile.role)) {
     redirect(`/customers/${id}`);
@@ -42,20 +45,20 @@ export default async function EditCustomerPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit customer</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            Update identity and contact details for {customer.full_name}.
+            {t("editSubtitle", { name: customer.full_name })}
           </p>
         </div>
         <Button render={<Link href={`/customers/${id}`} />} variant="outline">
-          Cancel
+          {tCommon("cancel")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Customer profile</CardTitle>
+          <CardTitle>{t("profileTitle")}</CardTitle>
           <CardDescription>
-            Changes here update the master record used on receipts and agreements.
+            {t("editHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>

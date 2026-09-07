@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Building2, MapPin, Layers, CheckCircle2 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/server";
 import { SOCIETY_STATUS_LABELS } from "@/lib/constants";
 import { deleteSociety } from "@/lib/actions/societies";
@@ -27,6 +28,9 @@ export default async function SocietiesPage({
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const supabase = await createClient();
+  const t = await getTranslations("pages.societies");
+  const tStatus = await getTranslations("labels.societyStatus");
+  const tCommon = await getTranslations("common");
 
   const [{ count }, { data: societies, error }, { data: allSocieties }, { count: totalPlots }] = await Promise.all([
     supabase.from("societies").select("id", { count: "exact", head: true }).is("deleted_at", null),
@@ -49,10 +53,10 @@ export default async function SocietiesPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Societies &amp; Projects
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Master society records, housing schemes, blocks, phases and operational project settings.
+            {t("subtitle")}
           </p>
         </div>
         <CreateSocietyDialog />
@@ -61,24 +65,24 @@ export default async function SocietiesPage({
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total Housing Projects"
+          title={t("totalProjects")}
           value={totalCount}
-          hint={`${totalPlots ?? 0} total plot inventory units`}
+          hint={t("totalPlotsHint", { count: totalPlots ?? 0 })}
           icon={Building2}
           variant="sky"
           href="/inventory"
         />
         <StatCard
-          title="Active Projects"
+          title={t("activeProjects")}
           value={activeCount}
-          hint="Open for bookings & development"
+          hint={t("activeHint")}
           icon={CheckCircle2}
           variant="primary"
         />
         <StatCard
-          title="Planning / Future Schemes"
+          title={t("planningSchemes")}
           value={planningCount}
-          hint="Under planning & land acquisition"
+          hint={t("planningHint")}
           icon={Layers}
           variant="warning"
           href="/land-bank"
@@ -89,19 +93,19 @@ export default async function SocietiesPage({
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <MapPin className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Societies Master Registry</h2>
+            <h2 className="font-semibold text-sm">{t("registry")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{totalCount} societies</span>
+          <span className="text-xs text-muted-foreground">{t("count", { count: totalCount })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Project Code</TableHead>
-              <TableHead>Society Name</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("projectCode")}</TableHead>
+              <TableHead>{t("societyName")}</TableHead>
+              <TableHead>{t("location")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              <TableHead>{t("currency")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -123,10 +127,10 @@ export default async function SocietiesPage({
                       {society.name}
                     </Link>
                   </TableCell>
-                  <TableCell>{society.location || "—"}</TableCell>
+                  <TableCell>{society.location || tCommon("dash")}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="rounded-md font-normal">
-                      {SOCIETY_STATUS_LABELS[society.status]}
+                      {tStatus(society.status as keyof typeof SOCIETY_STATUS_LABELS)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">{society.currency}</TableCell>
@@ -135,7 +139,7 @@ export default async function SocietiesPage({
                       id={society.id}
                       viewHref={`/inventory?society=${society.id}`}
                       deleteAction={deleteSociety}
-                      confirmMessage={`Delete society "${society.name}"? This will remove all associated blocks and data.`}
+                      confirmMessage={t("deleteConfirm", { name: society.name })}
                     />
                   </TableCell>
                 </TableRow>
@@ -143,7 +147,7 @@ export default async function SocietiesPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  No societies yet. Click &quot;Add Society&quot; to begin inventory and sales.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

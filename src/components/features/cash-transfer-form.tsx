@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createCashTransfer } from "@/lib/actions/cash-book";
 import { CASH_ACCOUNT_TYPE_LABELS } from "@/lib/constants";
@@ -29,6 +30,11 @@ type AccountOption = {
 
 export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
   const router = useRouter();
+  const t = useTranslations("cash");
+  const tPay = useTranslations("payments");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
   const {
     register,
     handleSubmit,
@@ -40,7 +46,7 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
       to_account_id: accounts[1]?.id ?? accounts[0]?.id ?? "",
       amount: undefined,
       transaction_date: format(new Date(), "yyyy-MM-dd"),
-      description: "Cash to bank transfer",
+      description: t("defaultTransferDesc"),
       reference_no: "",
       notes: "",
     },
@@ -50,11 +56,11 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
     const result = await createCashTransfer(values);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not post transfer");
+      toast.error(result.error ?? tToasts("couldNotPostTransfer"));
       return;
     }
 
-    toast.success("Transfer posted");
+    toast.success(tToasts("transferPosted"));
     router.push("/cash-book");
     router.refresh();
   }
@@ -63,7 +69,7 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="from_account_id">From account</Label>
+          <Label htmlFor="from_account_id">{t("fromAccount")}</Label>
           <select
             id="from_account_id"
             className={selectClassName}
@@ -77,7 +83,7 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="to_account_id">To account</Label>
+          <Label htmlFor="to_account_id">{t("toAccount")}</Label>
           <select
             id="to_account_id"
             className={selectClassName}
@@ -96,14 +102,14 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount (PKR)</Label>
+          <Label htmlFor="amount">{tPay("amountPkr")}</Label>
           <Input id="amount" type="number" step="1" {...register("amount")} />
           {errors.amount ? (
             <p className="text-xs text-destructive">{String(errors.amount.message)}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="transaction_date">Date</Label>
+          <Label htmlFor="transaction_date">{tCommon("date")}</Label>
           <Input
             id="transaction_date"
             type="date"
@@ -111,25 +117,25 @@ export function CashTransferForm({ accounts }: { accounts: AccountOption[] }) {
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{tCommon("description")}</Label>
           <Input id="description" {...register("description")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reference_no">Reference no.</Label>
+          <Label htmlFor="reference_no">{tPay("referenceNo")}</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || accounts.length < 2}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Post transfer
+          {tForms("postTransfer")}
         </Button>
       </div>
     </form>

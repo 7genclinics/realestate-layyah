@@ -1,15 +1,21 @@
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/server";
 import { canManageAgents } from "@/lib/permissions";
 import { formatPkr } from "@/lib/format";
-import { PROPERTY_TYPE_LABELS, PROPERTY_STATUS_LABELS } from "@/lib/constants";
+import { PROPERTY_TYPE_LABELS, AREA_UNIT_LABELS } from "@/lib/constants";
 import { AgentShareButton } from "@/components/features/agent-share-button";
 
 export default async function AgentPortalPage() {
   const { profile } = await requireProfile();
+  const locale = await getLocale();
+  const t = await getTranslations("agents");
+  const tStatus = await getTranslations("labels.propertyStatus");
+  const tType = await getTranslations("labels.propertyType");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tCommon = await getTranslations("common");
 
-  // The portal is for agents themselves plus the sales desk that manages them.
   if (!canManageAgents(profile.role) && profile.role !== "agent") {
     redirect("/dashboard");
   }
@@ -33,38 +39,35 @@ export default async function AgentPortalPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Agent Property Inventory Listing
+            {t("portalListingTitle")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Sanitized shareable inventory for local and overseas sales agents.
+            {t("portalListingSubtitle")}
           </p>
         </div>
         <div className="flex gap-2">
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-            {availableProperties.length} Available Plots
+            {t("availablePlots", { count: availableProperties.length })}
           </span>
         </div>
       </div>
 
       {availableProperties.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/20 p-10 text-center text-sm text-muted-foreground">
-          No plots are currently flagged as visible to agents. Mark inventory as
-          “Agent visible” from the plot detail page to list it here.
+          {t("portalEmpty")}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {availableProperties.map((prop) => {
             const societyName =
-              (prop.societies as { name?: string } | null)?.name || "Society";
-            const typeLabel =
-              PROPERTY_TYPE_LABELS[
-                prop.property_type as keyof typeof PROPERTY_TYPE_LABELS
-              ] || prop.property_type;
+              (prop.societies as { name?: string } | null)?.name || tCommon("society");
+            const typeLabel = tType(prop.property_type as keyof typeof PROPERTY_TYPE_LABELS);
+            const unitLabel = tUnit(prop.area_unit as keyof typeof AREA_UNIT_LABELS);
             const shareText = [
-              `${societyName} — Plot #${prop.plot_no}`,
-              `${prop.area} ${prop.area_unit} · ${typeLabel}`,
-              prop.facing ? `Facing: ${prop.facing}` : null,
-              prop.asking_price ? `Price: ${formatPkr(prop.asking_price)}` : null,
+              t("societyPlot", { society: societyName, plot: prop.plot_no }),
+              t("areaType", { area: prop.area, unit: unitLabel, type: typeLabel }),
+              prop.facing ? t("facing", { facing: prop.facing }) : null,
+              prop.asking_price ? t("sharePrice", { amount: formatPkr(prop.asking_price, locale) }) : null,
               prop.agent_notes || null,
             ]
               .filter(Boolean)
@@ -86,24 +89,22 @@ export default async function AgentPortalPage() {
                         : "bg-amber-50 text-amber-700"
                     }`}
                   >
-                    {PROPERTY_STATUS_LABELS[
-                      prop.status as keyof typeof PROPERTY_STATUS_LABELS
-                    ] || prop.status}
+                    {tStatus(prop.status)}
                   </span>
                 </div>
 
                 <div>
                   <p className="text-xl font-bold text-foreground">
-                    Plot #{prop.plot_no}
+                    {t("plotNo", { plot: prop.plot_no })}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {prop.area} {prop.area_unit} · {typeLabel}
+                    {t("areaType", { area: prop.area, unit: unitLabel, type: typeLabel })}
                   </p>
                 </div>
 
                 {prop.facing ? (
                   <p className="text-xs text-muted-foreground bg-muted/40 p-2 rounded border">
-                    Facing: {prop.facing}
+                    {t("facing", { facing: prop.facing })}
                   </p>
                 ) : null}
 
@@ -113,9 +114,9 @@ export default async function AgentPortalPage() {
 
                 <div className="pt-2 border-t flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Asking Price</p>
+                    <p className="text-xs text-muted-foreground">{t("askingPrice")}</p>
                     <p className="text-lg font-bold text-foreground">
-                      {prop.asking_price ? formatPkr(prop.asking_price) : "On request"}
+                      {prop.asking_price ? formatPkr(prop.asking_price, locale) : t("onRequest")}
                     </p>
                   </div>
                   <AgentShareButton text={shareText} />

@@ -1,16 +1,20 @@
+import { getTranslations } from "next-intl/server";
 import { createAgent } from "@/lib/actions/agents";
 import { AGENT_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
-export default function NewAgentPage() {
+export default async function NewAgentPage() {
+  const t = await getTranslations("agents");
+  const tTypes = await getTranslations("labels.agentType");
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Register New Agent / Broker
+          {t("registerTitle")}
         </h1>
         <p className="text-sm text-slate-500">
-          Add an independent broker or agency partner to assign deals and calculate commissions.
+          {t("registerSubtitle")}
         </p>
       </div>
 
@@ -19,78 +23,78 @@ export default function NewAgentPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Agent Full Name *
+                {t("fullName")}
               </label>
               <input
                 type="text"
                 name="name"
                 required
-                placeholder="e.g. Tariq Mehmood"
+                placeholder={t("namePlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Phone / WhatsApp Number *
+                {t("phoneWhatsapp")}
               </label>
               <input
                 type="text"
                 name="phone"
                 required
-                placeholder="e.g. +92 300 1234567"
+                placeholder={t("phonePlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Agency Name
+                {t("agencyName")}
               </label>
               <input
                 type="text"
                 name="agency_name"
-                placeholder="e.g. Royal Estate Agency"
+                placeholder={t("agencyPlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Email Address
+                {t("emailAddress")}
               </label>
               <input
                 type="email"
                 name="email"
-                placeholder="agent@example.com"
+                placeholder={t("emailPlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Agent Type *
+                {t("agentType")}
               </label>
               <select
                 name="agent_type"
                 required
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               >
-                {Object.entries(AGENT_TYPE_LABELS).map(([typeKey, typeLabel]) => (
-                  <option key={typeKey} value={typeKey}>{typeLabel}</option>
+                {Object.keys(AGENT_TYPE_LABELS).map((typeKey) => (
+                  <option key={typeKey} value={typeKey}>{tTypes(typeKey)}</option>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
-                Default Commission Rate (%)
+                {t("defaultRate")}
               </label>
               <input
                 type="number"
                 name="commission_rate"
                 step="0.1"
-                placeholder="e.g. 2.5"
+                placeholder={t("ratePlaceholder")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
               />
             </div>
@@ -98,7 +102,7 @@ export default function NewAgentPage() {
 
           <div className="pt-4">
             <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
-              Save Agent Record
+              {t("saveRecord")}
             </Button>
           </div>
         </form>

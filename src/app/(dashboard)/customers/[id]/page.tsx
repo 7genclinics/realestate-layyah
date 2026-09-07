@@ -6,18 +6,14 @@ import {
   Building2,
   CalendarClock,
   CheckCircle,
-  CreditCard,
-  FileText,
   Handshake,
-  LandPlot,
-  MapPin,
-  Phone,
   Plus,
   Printer,
   Receipt,
   User,
   Wallet,
 } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageCrm, canManageDocuments, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
@@ -56,6 +52,20 @@ export default async function CustomerDetailPage({
   const { id } = await params;
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("customers");
+  const tCommon = await getTranslations("common");
+  const tStage = await getTranslations("labels.customerStage");
+  const tRelation = await getTranslations("labels.customerRelation");
+  const tIdType = await getTranslations("labels.idType");
+  const tSource = await getTranslations("labels.customerSource");
+  const tPropType = await getTranslations("labels.propertyType");
+  const tUnit = await getTranslations("labels.areaUnit");
+  const tSale = await getTranslations("labels.saleStatus");
+  const tPayType = await getTranslations("labels.paymentType");
+  const tInst = await getTranslations("labels.installmentStatus");
+  const tPayMode = await getTranslations("labels.paymentMode");
+  const tCommission = await getTranslations("labels.commissionStatus");
 
   const { data: customer } = await supabase
     .from("customers")
@@ -67,7 +77,6 @@ export default async function CustomerDetailPage({
     notFound();
   }
 
-  // Fetch sales, receipts, documents, and related parties (if customer also acts as land seller)
   const [{ data: sales }, { data: receipts }, { data: documents }] =
     await Promise.all([
       supabase
@@ -109,7 +118,6 @@ export default async function CustomerDetailPage({
         .order("due_date")
     : { data: [] };
 
-  // Calculate totals
   const totalPurchasesValue = saleList.reduce((sum, s) => sum + Number(s.sale_amount || 0), 0);
   const totalPaid = (receipts ?? []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalRemainingBalance = saleList
@@ -144,7 +152,6 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="space-y-8">
-      {/* Header & Quick Action Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -153,7 +160,7 @@ export default async function CustomerDetailPage({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Back to Customers
+              {t("backToCustomers")}
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="font-mono text-xs font-semibold text-primary">{customer.code}</span>
@@ -163,11 +170,11 @@ export default async function CustomerDetailPage({
               {customer.full_name}
             </h1>
             <Badge variant="secondary" className="rounded-md font-normal">
-              {CUSTOMER_STAGE_LABELS[customer.stage]}
+              {tStage(customer.stage as keyof typeof CUSTOMER_STAGE_LABELS)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {CUSTOMER_RELATION_LABELS[customer.relation]}: {customer.guardian_name || "—"} · Phone: {customer.phone} {customer.phone_secondary ? `· Alt: ${customer.phone_secondary}` : ""} · CNIC: {customer.id_number || "Not on file"}
+            {tRelation(customer.relation as keyof typeof CUSTOMER_RELATION_LABELS)}: {customer.guardian_name || tCommon("dash")} · {t("phoneLine", { phone: customer.phone })} {customer.phone_secondary ? `· ${t("altPhone", { phone: customer.phone_secondary })}` : ""} · {t("cnicLine", { id: customer.id_number || t("notOnFile") })}
           </p>
         </div>
 
@@ -177,12 +184,12 @@ export default async function CustomerDetailPage({
               {openSale ? (
                 <Button render={<Link href={`/receipts/new?sale=${openSale.id}`} />}>
                   <Receipt className="size-4" />
-                  Receive Payment
+                  {t("receivePayment")}
                 </Button>
               ) : (
                 <Button render={<Link href="/receipts/new" />} variant="outline">
                   <Receipt className="size-4" />
-                  Receive Payment
+                  {t("receivePayment")}
                 </Button>
               )}
               <Button
@@ -190,98 +197,98 @@ export default async function CustomerDetailPage({
                 variant={openSale ? "outline" : "default"}
               >
                 <Plus className="size-4" />
-                Book New Plot
+                {t("bookNewPlot")}
               </Button>
             </>
           )}
         </div>
       </div>
 
-      {/* KPI 360-degree Financial Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total Plot Bookings"
-          value={formatPkr(totalPurchasesValue)}
-          hint={`${saleList.length} total property units booked`}
+          title={t("totalPlotBookings")}
+          value={formatPkr(totalPurchasesValue, locale)}
+          hint={t("unitsBooked", { count: saleList.length })}
           icon={Building2}
           variant="primary"
         />
         <StatCard
-          title="Total Paid to Date"
-          value={formatPkr(totalPaid)}
-          hint={`${(receipts ?? []).length} payment vouchers cleared`}
+          title={t("totalPaidToDate")}
+          value={formatPkr(totalPaid, locale)}
+          hint={t("vouchersCleared", { count: (receipts ?? []).length })}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
-          title="Remaining Balance"
-          value={formatPkr(totalRemainingBalance)}
-          hint="Total payable on active contracts"
+          title={t("remainingBalance")}
+          value={formatPkr(totalRemainingBalance, locale)}
+          hint={t("payableActive")}
           icon={Wallet}
           variant={totalRemainingBalance > 0 ? "warning" : "default"}
         />
         <StatCard
-          title="Overdue / Milestone Dues"
-          value={overdueCount > 0 ? formatPkr(overdueAmount) : nextDue ? formatDate(nextDue.due_date) : "All Cleared"}
-          hint={overdueCount > 0 ? `${overdueCount} overdue installments` : nextDue ? `Next: ${formatPkr(nextDue.scheduled_amount)}` : "No pending dues"}
+          title={t("overdueMilestone")}
+          value={overdueCount > 0 ? formatPkr(overdueAmount, locale) : nextDue ? formatDate(nextDue.due_date, locale) : t("allCleared")}
+          hint={overdueCount > 0 ? t("overdueInstallments", { count: overdueCount }) : nextDue ? t("nextAmount", { amount: formatPkr(nextDue.scheduled_amount, locale) }) : t("noPendingDues")}
           icon={CalendarClock}
           variant={overdueCount > 0 ? "danger" : "sky"}
         />
       </div>
 
-      {/* Customer Master Profile Card */}
       <div className="rounded-[10px] border bg-card p-6 shadow-xs">
         <div className="flex items-center justify-between border-b pb-3 mb-5">
           <div className="flex items-center gap-2">
             <User className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-base">Customer Master Profile</h2>
+            <h2 className="font-semibold text-base">{t("masterProfile")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground font-mono">ID: {customer.code}</span>
+          <span className="text-xs text-muted-foreground font-mono">{t("idLabel", { code: customer.code })}</span>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          <Detail label="Full Name">{customer.full_name}</Detail>
-          <Detail label="Relation & Guardian">
-            {CUSTOMER_RELATION_LABELS[customer.relation]}: {customer.guardian_name || "—"}
+          <Detail label={t("fullName")}>{customer.full_name}</Detail>
+          <Detail label={t("relationGuardian")}>
+            {tRelation(customer.relation as keyof typeof CUSTOMER_RELATION_LABELS)}: {customer.guardian_name || tCommon("dash")}
           </Detail>
-          <Detail label="Primary Phone">{customer.phone}</Detail>
-          <Detail label="Secondary Contact">{customer.phone_secondary || "—"}</Detail>
-          <Detail label="Identity Document">
-            {ID_TYPE_LABELS[customer.id_type]}: {customer.id_number || "Not provided"}
+          <Detail label={t("primaryPhone")}>{customer.phone}</Detail>
+          <Detail label={t("secondaryContact")}>{customer.phone_secondary || tCommon("dash")}</Detail>
+          <Detail label={t("identityDocument")}>
+            {t("idValue", {
+              type: tIdType(customer.id_type as keyof typeof ID_TYPE_LABELS),
+              number: customer.id_number || t("notProvided"),
+            })}
           </Detail>
-          <Detail label="Lead Source">{CUSTOMER_SOURCE_LABELS[customer.source]}</Detail>
-          <Detail label="Caste / Sub-caste">{customer.caste || "—"}</Detail>
-          <Detail label="Registered On">{formatDate(customer.created_at)}</Detail>
+          <Detail label={t("leadSource")}>{tSource(customer.source as keyof typeof CUSTOMER_SOURCE_LABELS)}</Detail>
+          <Detail label={t("caste")}>{customer.caste || tCommon("dash")}</Detail>
+          <Detail label={t("registeredOn")}>{formatDate(customer.created_at, locale)}</Detail>
           <div className="sm:col-span-2">
-            <Detail label="Permanent / Postal Address">{customer.address || "—"}</Detail>
+            <Detail label={t("postalAddress")}>{customer.address || tCommon("dash")}</Detail>
           </div>
           <div className="sm:col-span-2">
-            <Detail label="Internal Agent / CRM Notes">{customer.notes || "No special notes recorded."}</Detail>
+            <Detail label={t("crmNotes")}>{customer.notes || t("noSpecialNotes")}</Detail>
           </div>
         </div>
       </div>
 
-      {/* Section 1: Bookings & Plot Purchases */}
       <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Building2 className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Plot Bookings &amp; Sales Deals</h2>
+            <h2 className="font-semibold text-sm">{t("plotBookings")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{saleList.length} deals</span>
+          <span className="text-xs text-muted-foreground">{t("dealsCount", { count: saleList.length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Booking Code</TableHead>
-              <TableHead>Society &amp; Block</TableHead>
-              <TableHead>Plot / Unit No</TableHead>
-              <TableHead>Property Type</TableHead>
-              <TableHead>Area Size</TableHead>
-              <TableHead>Sale Price</TableHead>
-              <TableHead>Balance Due</TableHead>
-              <TableHead>Deal Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>{t("bookingCode")}</TableHead>
+              <TableHead>{t("societyBlock")}</TableHead>
+              <TableHead>{t("plotUnitNo")}</TableHead>
+              <TableHead>{t("propertyType")}</TableHead>
+              <TableHead>{t("areaSize")}</TableHead>
+              <TableHead>{t("salePrice")}</TableHead>
+              <TableHead>{t("balanceDue")}</TableHead>
+              <TableHead>{t("dealStatus")}</TableHead>
+              <TableHead className="text-right">{t("action")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -301,7 +308,7 @@ export default async function CustomerDetailPage({
                     <TableCell>
                       {sale.is_external ? (
                         <>
-                          <span className="font-medium">External</span>
+                          <span className="font-medium">{t("external")}</span>
                           {sale.external_location && (
                             <span className="text-xs text-muted-foreground ml-1">
                               · {sale.external_location}
@@ -310,9 +317,9 @@ export default async function CustomerDetailPage({
                         </>
                       ) : (
                         <>
-                          <span className="font-medium">{society?.name ?? "—"}</span>
+                          <span className="font-medium">{society?.name ?? tCommon("dash")}</span>
                           {block?.name && (
-                            <span className="text-xs text-muted-foreground ml-1">· Block {block.name}</span>
+                            <span className="text-xs text-muted-foreground ml-1">· {t("block", { name: block.name })}</span>
                           )}
                         </>
                       )}
@@ -322,20 +329,20 @@ export default async function CustomerDetailPage({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PROPERTY_TYPE_LABELS[sale.property_type as keyof typeof PROPERTY_TYPE_LABELS] ?? sale.property_type}
+                        {tPropType(sale.property_type as keyof typeof PROPERTY_TYPE_LABELS)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatNumber(sale.area)} {AREA_UNIT_LABELS[sale.area_unit as keyof typeof AREA_UNIT_LABELS] ?? sale.area_unit}
+                      {formatNumber(sale.area, locale)} {tUnit(sale.area_unit as keyof typeof AREA_UNIT_LABELS)}
                     </TableCell>
-                    <TableCell className="font-semibold">{formatPkr(sale.sale_amount)}</TableCell>
+                    <TableCell className="font-semibold">{formatPkr(sale.sale_amount, locale)}</TableCell>
                     <TableCell className="font-semibold text-amber-600 dark:text-amber-400">
-                      {formatPkr(sale.remaining_amount)}
+                      {formatPkr(sale.remaining_amount, locale)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="rounded-md">
-                        {SALE_STATUS_LABELS[sale.status as keyof typeof SALE_STATUS_LABELS] ?? sale.status} ·{" "}
-                        {PAYMENT_TYPE_LABELS[sale.payment_type as keyof typeof PAYMENT_TYPE_LABELS] ?? sale.payment_type}
+                        {tSale(sale.status as keyof typeof SALE_STATUS_LABELS)} ·{" "}
+                        {tPayType(sale.payment_type as keyof typeof PAYMENT_TYPE_LABELS)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -346,11 +353,11 @@ export default async function CustomerDetailPage({
                           className="h-7 text-xs rounded-md"
                           render={<Link href={`/receipts/new?sale=${sale.id}`} />}
                         >
-                          Receive
+                          {t("receive")}
                         </Button>
                       ) : (
                         <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          Paid in Full
+                          {t("paidInFull")}
                         </span>
                       )}
                     </TableCell>
@@ -360,7 +367,7 @@ export default async function CustomerDetailPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
-                  No property bookings registered for this customer yet.
+                  {t("emptyBookings")}
                 </TableCell>
               </TableRow>
             )}
@@ -368,26 +375,25 @@ export default async function CustomerDetailPage({
         </Table>
       </div>
 
-      {/* Section 2: Installment Milestones & Schedule */}
       <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <CalendarClock className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Installment Milestones &amp; EMI Plan</h2>
+            <h2 className="font-semibold text-sm">{t("emiPlan")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{installmentList.length} scheduled installments</span>
+          <span className="text-xs text-muted-foreground">{t("scheduledInstallments", { count: installmentList.length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Milestone #</TableHead>
-              <TableHead>Plot / Booking</TableHead>
-              <TableHead>Period Description</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Scheduled Amount</TableHead>
-              <TableHead>Received to Date</TableHead>
-              <TableHead>Status</TableHead>
-              {canEdit ? <TableHead className="text-right">Action</TableHead> : null}
+              <TableHead>{t("milestoneNo")}</TableHead>
+              <TableHead>{t("plotBooking")}</TableHead>
+              <TableHead>{t("periodDescription")}</TableHead>
+              <TableHead>{t("dueDate")}</TableHead>
+              <TableHead>{t("scheduledAmount")}</TableHead>
+              <TableHead>{t("receivedToDate")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              {canEdit ? <TableHead className="text-right">{t("action")}</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -403,21 +409,21 @@ export default async function CustomerDetailPage({
                       #{row.installment_no}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{row.sale?.plot_no ?? "—"}</div>
+                      <div className="font-medium">{row.sale?.plot_no ?? tCommon("dash")}</div>
                       <div className="font-mono text-xs text-muted-foreground">{row.sale?.code}</div>
                     </TableCell>
                     <TableCell>{row.period_label}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(row.due_date)}</TableCell>
-                    <TableCell className="font-semibold">{formatPkr(row.scheduled_amount)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(row.due_date, locale)}</TableCell>
+                    <TableCell className="font-semibold">{formatPkr(row.scheduled_amount, locale)}</TableCell>
                     <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      {formatPkr(row.received_amount)}
+                      {formatPkr(row.received_amount, locale)}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={row.status === "overdue" ? "destructive" : "secondary"}
                         className="rounded-md font-normal"
                       >
-                        {INSTALLMENT_STATUS_LABELS[row.status as keyof typeof INSTALLMENT_STATUS_LABELS] ?? row.status}
+                        {tInst(row.status as keyof typeof INSTALLMENT_STATUS_LABELS)}
                       </Badge>
                     </TableCell>
                     {canEdit ? (
@@ -433,10 +439,10 @@ export default async function CustomerDetailPage({
                               />
                             }
                           >
-                            Receive
+                            {t("receive")}
                           </Button>
                         ) : (
-                          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Cleared</span>
+                          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{t("cleared")}</span>
                         )}
                       </TableCell>
                     ) : null}
@@ -449,7 +455,7 @@ export default async function CustomerDetailPage({
                   colSpan={canEdit ? 8 : 7}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No installment schedules for this customer.
+                  {t("emptyInstallments")}
                 </TableCell>
               </TableRow>
             )}
@@ -457,24 +463,23 @@ export default async function CustomerDetailPage({
         </Table>
       </div>
 
-      {/* Section 3: Receipts & Payment History */}
       <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
             <Receipt className="size-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Customer Payment Receipts &amp; Vouchers</h2>
+            <h2 className="font-semibold text-sm">{t("paymentReceipts")}</h2>
           </div>
-          <span className="text-xs text-muted-foreground">{(receipts ?? []).length} receipts</span>
+          <span className="text-xs text-muted-foreground">{t("receiptsCount", { count: (receipts ?? []).length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Receipt No</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Linked Plot / Sale</TableHead>
-              <TableHead>Payment Mode</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead className="text-right">Print Voucher</TableHead>
+              <TableHead>{t("receiptNo")}</TableHead>
+              <TableHead>{tCommon("date")}</TableHead>
+              <TableHead>{t("linkedPlot")}</TableHead>
+              <TableHead>{t("paymentMode")}</TableHead>
+              <TableHead>{tCommon("amount")}</TableHead>
+              <TableHead className="text-right">{t("printVoucher")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -491,7 +496,7 @@ export default async function CustomerDetailPage({
                         {receipt.code}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(receipt.payment_date)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(receipt.payment_date, locale)}</TableCell>
                     <TableCell>
                       {sale?.plot_no ? (
                         <div>
@@ -499,16 +504,16 @@ export default async function CustomerDetailPage({
                           <span className="ml-1 text-xs text-muted-foreground font-mono">({sale.code})</span>
                         </div>
                       ) : (
-                        "—"
+                        tCommon("dash")
                       )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
-                        {PAYMENT_MODE_LABELS[receipt.payment_mode as keyof typeof PAYMENT_MODE_LABELS] ?? receipt.payment_mode}
+                        {tPayMode(receipt.payment_mode as keyof typeof PAYMENT_MODE_LABELS)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      {formatPkr(receipt.amount)}
+                      {formatPkr(receipt.amount, locale)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -518,7 +523,7 @@ export default async function CustomerDetailPage({
                         render={<Link href={`/receipts/${receipt.id}`} />}
                       >
                         <Printer className="size-3 mr-1" />
-                        Print
+                        {tCommon("print")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -527,7 +532,7 @@ export default async function CustomerDetailPage({
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No payment receipts issued yet.
+                  {t("emptyReceipts")}
                 </TableCell>
               </TableRow>
             )}
@@ -535,23 +540,22 @@ export default async function CustomerDetailPage({
         </Table>
       </div>
 
-      {/* Section 4: Broker Commissions on Customer Sales */}
       {saleList.some((s: any) => s.agent_commissions?.length > 0) && (
         <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
           <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2">
               <Handshake className="size-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm">Agent &amp; Broker Commission Records</h2>
+              <h2 className="font-semibold text-sm">{t("brokerCommissions")}</h2>
             </div>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Agent / Broker</TableHead>
-                <TableHead>Booking Deal</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Commission Amount</TableHead>
-                <TableHead>Payout Status</TableHead>
+                <TableHead>{t("agentBroker")}</TableHead>
+                <TableHead>{t("bookingDeal")}</TableHead>
+                <TableHead>{tCommon("phone")}</TableHead>
+                <TableHead>{t("commissionAmountCol")}</TableHead>
+                <TableHead>{t("payoutStatus")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -566,17 +570,17 @@ export default async function CustomerDetailPage({
                             {agent.name}
                           </Link>
                         ) : (
-                          "Broker"
+                          t("broker")
                         )}
                       </TableCell>
                       <TableCell>
                         {s.plot_no} ({s.code})
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{agent?.phone ?? "—"}</TableCell>
-                      <TableCell className="font-semibold">{formatPkr(c.commission_amount)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{agent?.phone ?? tCommon("dash")}</TableCell>
+                      <TableCell className="font-semibold">{formatPkr(c.commission_amount, locale)}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="rounded-md">
-                          {c.status}
+                          {tCommission(c.status)}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -588,7 +592,6 @@ export default async function CustomerDetailPage({
         </div>
       )}
 
-      {/* Section 5: Customer Legal Documents & Uploads */}
       <LinkedDocumentsCard
         entityType="customer"
         entityId={customer.id}

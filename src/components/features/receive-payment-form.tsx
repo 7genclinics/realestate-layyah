@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { receivePayment } from "@/lib/actions/receipts";
 import { amountToWords } from "@/lib/amount-to-words";
@@ -68,6 +69,11 @@ export function ReceivePaymentForm({
   defaultInstallmentId?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tForms = useTranslations("forms");
+  const tToasts = useTranslations("toasts");
+  const tCommon = useTranslations("common");
+  const tMode = useTranslations("labels.paymentMode");
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const {
     register,
@@ -140,11 +146,11 @@ export function ReceivePaymentForm({
     const result = await receivePayment({ ...values, slip_path: upload.path });
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Could not post payment");
+      toast.error(result.error ?? tToasts("couldNotPostPayment"));
       return;
     }
 
-    toast.success("Payment received");
+    toast.success(tToasts("paymentReceived"));
     router.push(`/receipts/${result.id}/print`);
     router.refresh();
   }
@@ -159,7 +165,7 @@ export function ReceivePaymentForm({
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="sale_id">Sale / booking</Label>
+          <Label htmlFor="sale_id">{t("saleBooking")}</Label>
           <select id="sale_id" className={selectClassName} {...register("sale_id")}>
             {sales.map((item) => {
               const rowCustomer = item.customers
@@ -170,21 +176,21 @@ export function ReceivePaymentForm({
 
               return (
                 <option key={item.id} value={item.id}>
-                  {item.code} · {item.plot_no} · {rowCustomer?.full_name ?? "Customer"}
+                  {item.code} · {item.plot_no} · {rowCustomer?.full_name ?? tCommon("customer")}
                 </option>
               );
             })}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="installment_id">Apply to installment</Label>
+          <Label htmlFor="installment_id">{t("applyInstallment")}</Label>
           <select
             id="installment_id"
             className={selectClassName}
             {...register("installment_id")}
           >
-            <option value="">Auto-allocate oldest open EMI</option>
-            <option value="custom">Custom / partial amount</option>
+            <option value="">{t("autoAllocate")}</option>
+            <option value="custom">{t("customPartial")}</option>
             {openInstallments.map((row) => {
               const open = roundMoney(
                 Number(row.scheduled_amount) - Number(row.received_amount),
@@ -192,7 +198,7 @@ export function ReceivePaymentForm({
 
               return (
                 <option key={row.id} value={row.id} disabled={open <= 0}>
-                  #{row.installment_no} {row.period_label} · open {formatPkr(open)}
+                  #{row.installment_no} {row.period_label} · {t("openAmount", { amount: formatPkr(open) })}
                 </option>
               );
             })}
@@ -200,23 +206,21 @@ export function ReceivePaymentForm({
         </div>
         {sale ? (
           <p className="text-sm text-muted-foreground sm:col-span-2">
-            {customer?.full_name} · remaining balance{" "}
-            <span className="font-medium text-foreground">
-              {formatPkr(sale.remaining_amount)}
-            </span>
+            {t("remainingBalance", {
+              name: customer?.full_name ?? "",
+              amount: formatPkr(sale.remaining_amount),
+            })}
           </p>
         ) : null}
         <div className="space-y-2">
-          <Label htmlFor="amount">Receiving amount (PKR)</Label>
+          <Label htmlFor="amount">{t("receivingAmount")}</Label>
           <Input id="amount" type="number" step="1" {...register("amount")} />
           {errors.amount ? (
             <p className="text-xs text-destructive">{String(errors.amount.message)}</p>
           ) : null}
           {isCustom ? (
             <p className="text-xs text-muted-foreground">
-              Partial payment — enter any amount the customer is paying now. It
-              clears the oldest open installment first and the remainder carries
-              to the next one automatically.
+              {t("partialHint")}
             </p>
           ) : null}
           {amountWords ? (
@@ -224,21 +228,21 @@ export function ReceivePaymentForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_date">Payment date</Label>
+          <Label htmlFor="payment_date">{t("paymentDate")}</Label>
           <Input id="payment_date" type="date" {...register("payment_date")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="payment_mode">Payment mode</Label>
+          <Label htmlFor="payment_mode">{t("paymentMode")}</Label>
           <select id="payment_mode" className={selectClassName} {...register("payment_mode")}>
-            {Object.entries(PAYMENT_MODE_LABELS).map(([value, label]) => (
+            {Object.keys(PAYMENT_MODE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {tMode(value)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cash_account_id">Deposit to account</Label>
+          <Label htmlFor="cash_account_id">{t("depositTo")}</Label>
           <select
             id="cash_account_id"
             className={selectClassName}
@@ -251,7 +255,7 @@ export function ReceivePaymentForm({
                 </option>
               ))
             ) : (
-              <option value="">No cash accounts — create one first</option>
+              <option value="">{t("noCashAccounts")}</option>
             )}
           </select>
           {errors.cash_account_id ? (
@@ -261,7 +265,7 @@ export function ReceivePaymentForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reference_no">Reference / cheque no.</Label>
+          <Label htmlFor="reference_no">{t("referenceCheque")}</Label>
           <Input id="reference_no" {...register("reference_no")} />
         </div>
         <PaymentSlipField
@@ -269,17 +273,17 @@ export function ReceivePaymentForm({
           onFileChange={setSlipFile}
         />
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">{tCommon("notes")}</Label>
           <Textarea id="notes" rows={2} {...register("notes")} />
         </div>
       </section>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
+          {tForms("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting || !sales.length || !accounts.length}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Post payment & print receipt
+          {tForms("postPaymentPrint")}
         </Button>
       </div>
     </form>

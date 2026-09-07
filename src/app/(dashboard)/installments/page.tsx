@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertTriangle, CalendarClock, CheckCircle, Receipt, ArrowRight } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireProfile } from "@/lib/auth";
 import { canManageAccounts, canManageCrm, deriveInstallmentStatus } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 import { roundMoney } from "@/lib/installments";
 import { getGracePeriodDays } from "@/lib/settings";
-import { INSTALLMENT_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatPkr } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,10 @@ export default async function InstallmentsPage({
   const { profile } = await requireProfile();
   const { filter = "due" } = await searchParams;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = await getTranslations("pages.installments");
+  const tInst = await getTranslations("labels.installmentStatus");
+  const tCommon = await getTranslations("common");
 
   const { data: rows, error } = await supabase
     .from("installments")
@@ -76,39 +80,39 @@ export default async function InstallmentsPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Installments &amp; Collections</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Monitor plot installment schedules, upcoming milestone dues, and overdue collection recoveries.
+            {t("subtitle")}
           </p>
         </div>
         <Button render={<Link href="/receipts/new" />}>
           <Receipt className="size-4" />
-          Receive Payment
+          {t("receivePayment")}
         </Button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Overdue Installments"
+          title={t("overdueTitle")}
           value={overdueItems.length}
-          hint={`${formatPkr(overdueTotal)} total recovery amount`}
+          hint={t("recoveryHint", { amount: formatPkr(overdueTotal, locale) })}
           icon={AlertTriangle}
           variant="danger"
           href="/installments?filter=overdue"
         />
         <StatCard
-          title="Due Milestones"
+          title={t("dueMilestones")}
           value={dueItems.length}
-          hint={`${formatPkr(dueTotal)} scheduled dues`}
+          hint={t("scheduledDues", { amount: formatPkr(dueTotal, locale) })}
           icon={CalendarClock}
           variant="warning"
           href="/installments?filter=due"
         />
         <StatCard
-          title="Paid Installments"
+          title={t("paidTitle")}
           value={paidItems.length}
-          hint="Fully cleared milestone payments"
+          hint={t("paidHint")}
           icon={CheckCircle}
           variant="success"
           href="/receipts"
@@ -118,34 +122,34 @@ export default async function InstallmentsPage({
       {/* Filter Tabs */}
       <div className="flex items-center gap-2">
         <FilterLink href="/installments?filter=due" active={filter === "due"}>
-          Due &amp; Overdue ({dueItems.length + overdueItems.length})
+          {t("dueOverdue", { count: dueItems.length + overdueItems.length })}
         </FilterLink>
         <FilterLink
           href="/installments?filter=overdue"
           active={filter === "overdue"}
         >
-          Overdue Only ({overdueItems.length})
+          {t("overdueOnly", { count: overdueItems.length })}
         </FilterLink>
         <FilterLink href="/installments?filter=all" active={filter === "all"}>
-          All Milestones ({items.length})
+          {t("allMilestones", { count: items.length })}
         </FilterLink>
       </div>
 
       <div className="overflow-hidden rounded-[10px] border bg-card shadow-xs">
         <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/20">
-          <h2 className="font-semibold text-sm">Installment Schedule Ledger</h2>
-          <span className="text-xs text-muted-foreground">{filtered.length} installment records</span>
+          <h2 className="font-semibold text-sm">{t("scheduleLedger")}</h2>
+          <span className="text-xs text-muted-foreground">{t("records", { count: filtered.length })}</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Booking / Plot</TableHead>
-              <TableHead>Period Milestone</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              {canEdit ? <TableHead className="text-right">Action</TableHead> : null}
+              <TableHead>{tCommon("customer")}</TableHead>
+              <TableHead>{t("bookingPlot")}</TableHead>
+              <TableHead>{t("periodMilestone")}</TableHead>
+              <TableHead>{t("dueDate")}</TableHead>
+              <TableHead>{tCommon("amount")}</TableHead>
+              <TableHead>{tCommon("status")}</TableHead>
+              {canEdit ? <TableHead className="text-right">{tCommon("actions")}</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -172,22 +176,22 @@ export default async function InstallmentsPage({
                           {row.customer.full_name}
                         </Link>
                       ) : (
-                        "—"
+                        {tCommon("dash")}
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{row.sale?.plot_no ?? "—"}</div>
+                      <div className="font-medium">{row.sale?.plot_no ?? tCommon("dash")}</div>
                       <div className="font-mono text-xs text-muted-foreground">{row.sale?.code}</div>
                     </TableCell>
                     <TableCell>{row.period_label}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(row.due_date)}</TableCell>
-                    <TableCell className="font-semibold">{formatPkr(row.scheduled_amount)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(row.due_date, locale)}</TableCell>
+                    <TableCell className="font-semibold">{formatPkr(row.scheduled_amount, locale)}</TableCell>
                     <TableCell>
                       <Badge
                         variant={row.status === "overdue" ? "destructive" : "secondary"}
                         className="rounded-md font-normal"
                       >
-                        {INSTALLMENT_STATUS_LABELS[row.status]}
+                        {tInst(row.status)}
                       </Badge>
                     </TableCell>
                     {canEdit ? (
@@ -204,11 +208,11 @@ export default async function InstallmentsPage({
                                 />
                               }
                             >
-                              Receive
+                              {t("receive")}
                               <ArrowRight className="size-3 ml-1" />
                             </Button>
                           ) : (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Cleared</span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t("cleared")}</span>
                           )}
                           {openAmount > 0 || row.status_override ? (
                             <InstallmentActions
@@ -232,7 +236,7 @@ export default async function InstallmentsPage({
                   colSpan={canEdit ? 7 : 6}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No installments in this view.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

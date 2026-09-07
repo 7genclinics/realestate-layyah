@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   getDocumentSignedUrl,
@@ -20,6 +21,8 @@ export function DocumentActions({
   status: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("common");
+  const tToasts = useTranslations("toasts");
   const [busy, setBusy] = useState<"download" | "approved" | "rejected" | null>(
     null,
   );
@@ -30,7 +33,7 @@ export function DocumentActions({
     setBusy(null);
 
     if (result.error || !result.url) {
-      toast.error(result.error ?? "Could not open file");
+      toast.error(result.error ?? tToasts("couldNotOpenFile"));
       return;
     }
 
@@ -47,7 +50,9 @@ export function DocumentActions({
       return;
     }
 
-    toast.success(nextStatus === "approved" ? "Document approved" : "Document rejected");
+    toast.success(
+      nextStatus === "approved" ? tToasts("documentApproved") : tToasts("documentRejected"),
+    );
     router.refresh();
   }
 
@@ -57,9 +62,8 @@ export function DocumentActions({
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => void download()} disabled={busy !== null}>
         {busy === "download" ? <Loader2 className="animate-spin" /> : null}
-        Open / download
+        {t("openDownload")}
       </Button>
     </div>
   );
 }
-

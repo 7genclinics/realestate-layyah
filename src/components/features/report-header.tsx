@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { CsvDownloadButton } from "@/components/features/csv-download-button";
 import { PrintButton } from "@/components/features/print-button";
 import { Button } from "@/components/ui/button";
 
-export function ReportHeader({
+export async function ReportHeader({
   title,
   description,
   filename,
@@ -20,6 +21,8 @@ export function ReportHeader({
   rows: Array<Array<string | number | null | undefined>>;
   children?: ReactNode;
 }) {
+  const t = await getTranslations("reports");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between print:block">
@@ -29,7 +32,7 @@ export function ReportHeader({
             variant="outline"
             size="icon"
             className="mt-0.5 shrink-0 print:hidden"
-            aria-label="Back to reports"
+            aria-label={t("backAria")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -42,7 +45,7 @@ export function ReportHeader({
           <CsvDownloadButton filename={filename} headers={headers} rows={rows} />
           <PrintButton />
           <Button render={<Link href="/reports" />} variant="outline">
-            All reports
+            {t("allReports")}
           </Button>
         </div>
       </div>
@@ -50,7 +53,6 @@ export function ReportHeader({
     </div>
   );
 }
-
 
 export function ReportTotals({
   items,
