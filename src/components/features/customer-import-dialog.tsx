@@ -118,7 +118,7 @@ export function CustomerImportDialog() {
       setRows(objs);
       setFileName(file.name);
     } catch {
-      setParseError("Could not read that file. Make sure it is a plain .csv export.");
+      setParseError(t("parseRead"));
       setRows([]);
     }
   }
@@ -138,8 +138,10 @@ export function CustomerImportDialog() {
       }
       const skipped = result.failed.length + invalidCount;
       toast.success(
-        `Imported ${result.inserted} customer${result.inserted === 1 ? "" : "s"}` +
-          (skipped > 0 ? ` · ${skipped} row${skipped === 1 ? "" : "s"} skipped` : ""),
+        tToasts("customersImported", {
+          count: result.inserted,
+          skipped: skipped > 0 ? t("importedSkipped", { count: skipped }) : "",
+        }),
       );
       reset();
       setOpen(false);
@@ -157,14 +159,13 @@ export function CustomerImportDialog() {
     >
       <DialogTrigger render={<Button variant="outline" />}>
         <Upload className="size-4" />
-        Import CSV
+        {tForms("importCsv")}
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Import customers from CSV</DialogTitle>
+          <DialogTitle>{t("importTitle")}</DialogTitle>
           <DialogDescription>
-            Upload a spreadsheet exported as CSV. We&apos;ll map columns like
-            name, phone and CNIC automatically.
+            {t("importHint")}
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +177,7 @@ export function CustomerImportDialog() {
               className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >
               <Download className="size-3.5" />
-              Download template
+              {t("downloadTemplate")}
             </button>
             {fileName ? (
               <button
@@ -185,7 +186,7 @@ export function CustomerImportDialog() {
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3.5" />
-                Clear
+                {t("clear")}
               </button>
             ) : null}
           </div>
@@ -193,10 +194,10 @@ export function CustomerImportDialog() {
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed border-input bg-muted/30 px-4 py-8 text-center transition-colors hover:bg-muted/50">
             <FileUp className="size-6 text-muted-foreground" />
             <span className="text-sm font-medium">
-              {fileName || "Choose a .csv file"}
+              {fileName || t("chooseCsv")}
             </span>
             <span className="text-xs text-muted-foreground">
-              {fileName ? `${rows.length} rows detected` : "Click to browse"}
+              {fileName ? t("rowsDetected", { count: rows.length }) : t("clickBrowse")}
             </span>
             <input
               ref={inputRef}
@@ -220,11 +221,11 @@ export function CustomerImportDialog() {
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-xs">
                 <span className="font-medium text-emerald-600">
-                  {validRows.length} ready
+                  {t("ready", { count: validRows.length })}
                 </span>
                 {invalidCount > 0 ? (
                   <span className="text-amber-600">
-                    {invalidCount} skipped (missing name or phone)
+                    {t("skippedMissing", { count: invalidCount })}
                   </span>
                 ) : null}
               </div>
@@ -232,17 +233,17 @@ export function CustomerImportDialog() {
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-muted/60 text-muted-foreground">
                     <tr>
-                      <th className="px-2 py-1.5 font-medium">Name</th>
-                      <th className="px-2 py-1.5 font-medium">Phone</th>
-                      <th className="px-2 py-1.5 font-medium">Stage</th>
+                      <th className="px-2 py-1.5 font-medium">{tCommon("name")}</th>
+                      <th className="px-2 py-1.5 font-medium">{tCommon("phone")}</th>
+                      <th className="px-2 py-1.5 font-medium">{t("stage")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {rows.slice(0, 50).map((r, i) => (
                       <tr key={i} className={isValid(r) ? "" : "bg-amber-50/60"}>
-                        <td className="px-2 py-1.5">{r.full_name || "—"}</td>
-                        <td className="px-2 py-1.5">{r.phone || "—"}</td>
-                        <td className="px-2 py-1.5">{r.stage || "lead"}</td>
+                        <td className="px-2 py-1.5">{r.full_name || tCommon("dash")}</td>
+                        <td className="px-2 py-1.5">{r.phone || tCommon("dash")}</td>
+                        <td className="px-2 py-1.5">{r.stage ? tStage(r.stage) : tStage("lead")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -250,7 +251,7 @@ export function CustomerImportDialog() {
               </div>
               {rows.length > 50 ? (
                 <p className="text-[11px] text-muted-foreground">
-                  Showing first 50 of {rows.length} rows.
+                  {t("showingFirst", { count: rows.length })}
                 </p>
               ) : null}
             </div>
@@ -265,12 +266,12 @@ export function CustomerImportDialog() {
               }}
               disabled={isPending}
             >
-              Cancel
+              {tForms("cancel")}
             </Button>
             <Button onClick={handleImport} disabled={isPending || validRows.length === 0}>
               {isPending
-                ? "Importing…"
-                : `Import ${validRows.length || ""} customer${validRows.length === 1 ? "" : "s"}`.trim()}
+                ? tForms("importing")
+                : t("importCustomers", { count: validRows.length })}
             </Button>
           </div>
         </div>
