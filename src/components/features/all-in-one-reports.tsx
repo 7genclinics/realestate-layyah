@@ -46,18 +46,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  AREA_UNIT_LABELS,
-  CONTRACT_STATUS_LABELS,
-  CONTRACT_TYPE_LABELS,
-  CUSTOMER_STAGE_LABELS,
-  INSTALLMENT_STATUS_LABELS,
-  LAND_STATUS_LABELS,
-  PAYMENT_MODE_LABELS,
-  PROPERTY_STATUS_LABELS,
-  PROPERTY_TYPE_LABELS,
-  SALE_STATUS_LABELS,
-} from "@/lib/constants";
 import { deriveInstallmentStatus } from "@/lib/permissions";
 import { formatDate, formatNumber, formatPkr } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -583,7 +571,7 @@ export function AllInOneReports({
                   <BarChart3 className="size-4 text-primary" />
                   <h2 className="font-semibold text-base">{t("salesBySociety")}</h2>
                 </div>
-                <span className="text-xs text-muted-foreground">{societies.length} projects</span>
+                <span className="text-xs text-muted-foreground">{t("projectsCount", { count: societies.length })}</span>
               </div>
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -592,10 +580,10 @@ export function AllInOneReports({
                     <XAxis dataKey="name" fontSize={11} tickLine={false} />
                     <YAxis fontSize={11} tickFormatter={(val) => `${val / 1000000}M`} />
                     <Tooltip
-                      formatter={(val: any) => [formatPkr(Number(val)), "Revenue"]}
+                      formatter={(val: any) => [formatPkr(Number(val)), t("revenue")]}
                       contentStyle={{ backgroundColor: "var(--card)", borderRadius: "8px", border: "1px solid var(--border)" }}
                     />
-                    <Bar dataKey="Revenue" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="Revenue" name={t("revenue")} fill="var(--primary)" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -629,7 +617,7 @@ export function AllInOneReports({
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(val: any) => [formatPkr(Number(val)), "Amount"]} />
+                      <Tooltip formatter={(val: any) => [formatPkr(Number(val)), tCommon("amount")]} />
                     </RePieChart>
                   </ResponsiveContainer>
                 ) : (

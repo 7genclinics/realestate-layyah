@@ -90,7 +90,7 @@ export function ContractDepth({
                   </TableCell>
                   <TableCell className="font-medium">{m.description}</TableCell>
                   <TableCell className="text-xs">
-                    {tUnit(m.unit)}
+                    {tUnit.has(m.unit) ? tUnit(m.unit) : m.unit}
                   </TableCell>
                   <TableCell className="text-right">{Number(m.quantity).toLocaleString()}</TableCell>
                   <TableCell className="text-right">{formatPkr(m.rate)}</TableCell>

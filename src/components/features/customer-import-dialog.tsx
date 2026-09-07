@@ -243,7 +243,9 @@ export function CustomerImportDialog() {
                       <tr key={i} className={isValid(r) ? "" : "bg-amber-50/60"}>
                         <td className="px-2 py-1.5">{r.full_name || tCommon("dash")}</td>
                         <td className="px-2 py-1.5">{r.phone || tCommon("dash")}</td>
-                        <td className="px-2 py-1.5">{r.stage ? tStage(r.stage) : tStage("lead")}</td>
+                        <td className="px-2 py-1.5">
+                          {r.stage && tStage.has(r.stage) ? tStage(r.stage) : r.stage || tStage("lead")}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
