@@ -720,20 +720,20 @@ export function AllInOneReports({
               <Users className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("customerMaster")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{customers.length} total customer accounts</span>
+            <span className="text-xs text-muted-foreground">{t("customerAccounts", { count: customers.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer Code</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Units Booked</TableHead>
-                <TableHead>Total Booking Value</TableHead>
-                <TableHead>Total Paid</TableHead>
-                <TableHead>Outstanding Balance</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{t("colCustomerCode")}</TableHead>
+                <TableHead>{t("colFullName")}</TableHead>
+                <TableHead>{tCommon("phone")}</TableHead>
+                <TableHead>{t("colUnitsBooked")}</TableHead>
+                <TableHead>{t("colBookingValue")}</TableHead>
+                <TableHead>{t("colTotalPaid")}</TableHead>
+                <TableHead>{t("colOutstanding")}</TableHead>
+                <TableHead>{t("colStage")}</TableHead>
+                <TableHead className="text-right">{t("colAction")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -779,7 +779,7 @@ export function AllInOneReports({
                         render={<Link href={`/customers/${c.id}`} />}
                       >
                         <Eye className="size-3 mr-1" />
-                        Ledger
+                        {t("ledger")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -788,7 +788,7 @@ export function AllInOneReports({
             </TableBody>
             <TableFooter>
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={4}>Ledger Grand Totals</TableCell>
+                <TableCell colSpan={4}>{t("grandTotals")}</TableCell>
                 <TableCell>{formatPkr(sales.reduce((s, row) => s + Number(row.sale_amount || 0), 0))}</TableCell>
                 <TableCell className="text-emerald-600 dark:text-emerald-400">
                   {formatPkr(receipts.reduce((s, r) => s + Number(r.amount || 0), 0))}
@@ -811,20 +811,20 @@ export function AllInOneReports({
               <CalendarClock className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("installmentPipeline")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{filteredInstallments.length} installment records</span>
+            <span className="text-xs text-muted-foreground">{t("installmentRecords", { count: filteredInstallments.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Plot &amp; Booking</TableHead>
-                <TableHead>Milestone Description</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Scheduled Amount</TableHead>
-                <TableHead>Received to Date</TableHead>
-                <TableHead>Balance Due</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{tCommon("customer")}</TableHead>
+                <TableHead>{t("colPlotBooking")}</TableHead>
+                <TableHead>{t("colMilestone")}</TableHead>
+                <TableHead>{t("colDueDate")}</TableHead>
+                <TableHead>{t("colScheduled")}</TableHead>
+                <TableHead>{t("colReceivedToDate")}</TableHead>
+                <TableHead>{t("colBalanceDue")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
+                <TableHead className="text-right">{t("colAction")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -892,37 +892,37 @@ export function AllInOneReports({
               <Receipt className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("cashJournal")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{filteredTransactions.length} vouchers</span>
+            <span className="text-xs text-muted-foreground">{t("vouchersCount", { count: filteredTransactions.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Voucher / Category</TableHead>
-                <TableHead>Society Tag</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Inflow (Credit)</TableHead>
-                <TableHead className="text-right">Outflow (Debit)</TableHead>
+                <TableHead>{tCommon("date")}</TableHead>
+                <TableHead>{t("colVoucher")}</TableHead>
+                <TableHead>{t("colSocietyTag")}</TableHead>
+                <TableHead>{tCommon("description")}</TableHead>
+                <TableHead className="text-right">{t("colInflow")}</TableHead>
+                <TableHead className="text-right">{t("colOutflow")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTransactions.map((t) => {
-                const isInflow = t.transaction_type === "income" || t.transfer_side === "in";
-                const isOutflow = t.transaction_type === "expense" || t.transfer_side === "out";
+              {filteredTransactions.map((txn) => {
+                const isInflow = txn.transaction_type === "income" || txn.transfer_side === "in";
+                const isOutflow = txn.transaction_type === "expense" || txn.transfer_side === "out";
                 return (
-                  <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(t.transaction_date)}</TableCell>
+                  <TableRow key={txn.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(txn.transaction_date)}</TableCell>
                     <TableCell>
-                      <div className="font-medium text-xs">{t.cash_categories?.name || "General"}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{t.transaction_type}</div>
+                      <div className="font-medium text-xs">{txn.cash_categories?.name || t("general")}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground">{tTxn(txn.transaction_type)}</div>
                     </TableCell>
-                    <TableCell className="text-xs">{t.societies?.name ?? "—"}</TableCell>
-                    <TableCell className="text-xs max-w-sm truncate">{t.description || "—"}</TableCell>
+                    <TableCell className="text-xs">{txn.societies?.name ?? tCommon("dash")}</TableCell>
+                    <TableCell className="text-xs max-w-sm truncate">{txn.description || tCommon("dash")}</TableCell>
                     <TableCell className="text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                      {isInflow ? formatPkr(t.amount) : "—"}
+                      {isInflow ? formatPkr(txn.amount) : tCommon("dash")}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-amber-600 dark:text-amber-400">
-                      {isOutflow ? formatPkr(t.amount) : "—"}
+                      {isOutflow ? formatPkr(txn.amount) : tCommon("dash")}
                     </TableCell>
                   </TableRow>
                 );
@@ -930,7 +930,7 @@ export function AllInOneReports({
             </TableBody>
             <TableFooter>
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={4}>Statement Total Inflows &amp; Outflows</TableCell>
+                <TableCell colSpan={4}>{t("statementTotals")}</TableCell>
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">
                   {formatPkr(totalInflows)}
                 </TableCell>
@@ -951,19 +951,19 @@ export function AllInOneReports({
               <Building2 className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("inventoryStock")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{properties.length} plot units</span>
+            <span className="text-xs text-muted-foreground">{t("plotUnits", { count: properties.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Plot Code</TableHead>
-                <TableHead>Plot No</TableHead>
-                <TableHead>Society &amp; Block</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Area Size</TableHead>
-                <TableHead>Asking Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{t("colPlotCode")}</TableHead>
+                <TableHead>{t("colPlotNo")}</TableHead>
+                <TableHead>{t("colSocietyBlock")}</TableHead>
+                <TableHead>{tCommon("type")}</TableHead>
+                <TableHead>{t("colAreaSize")}</TableHead>
+                <TableHead>{t("colAskingPrice")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
+                <TableHead className="text-right">{t("colAction")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -979,7 +979,7 @@ export function AllInOneReports({
                     </TableCell>
                     <TableCell className="font-semibold">{p.plot_no}</TableCell>
                     <TableCell>
-                      {soc?.name ?? "—"} {blk?.name ? `· Block ${blk.name}` : ""}
+                      {soc?.name ?? tCommon("dash")} {blk?.name ? `· ${tCommon("block", { name: blk.name })}` : ""}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="rounded-md font-normal">
@@ -1006,7 +1006,7 @@ export function AllInOneReports({
                         render={<Link href={`/inventory/${p.id}`} />}
                       >
                         <Eye className="size-3 mr-1" />
-                        Details
+                        {tCommon("details")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -1025,19 +1025,19 @@ export function AllInOneReports({
               <Handshake className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("workOrders")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{contracts.length} work orders</span>
+            <span className="text-xs text-muted-foreground">{t("workOrdersCount", { count: contracts.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>WO Number</TableHead>
-                <TableHead>Contractor / Vendor</TableHead>
-                <TableHead>Project Title</TableHead>
-                <TableHead>Contract Type</TableHead>
-                <TableHead>Agreed Value</TableHead>
-                <TableHead>Paid to Date</TableHead>
-                <TableHead>Remaining Payable</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("colWo")}</TableHead>
+                <TableHead>{t("colContractor")}</TableHead>
+                <TableHead>{t("colProjectTitle")}</TableHead>
+                <TableHead>{t("colContractType")}</TableHead>
+                <TableHead>{t("colAgreedValue")}</TableHead>
+                <TableHead>{t("colPaidToDate")}</TableHead>
+                <TableHead>{t("colRemainingPayable")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1089,20 +1089,20 @@ export function AllInOneReports({
               <LandPlot className="size-4 text-muted-foreground" />
                   <h2 className="font-semibold text-sm">{t("landStatement")}</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{landParcels.length} parcels</span>
+            <span className="text-xs text-muted-foreground">{t("parcelsCount", { count: landParcels.length })}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Land Code</TableHead>
-                <TableHead>Parcel Title</TableHead>
-                <TableHead>Landlord Seller</TableHead>
-                <TableHead>Society</TableHead>
-                <TableHead>Area Size</TableHead>
-                <TableHead>Purchase Value</TableHead>
-                <TableHead>Paid to Date</TableHead>
-                <TableHead>Balance Due</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("colLandCode")}</TableHead>
+                <TableHead>{t("colParcelTitle")}</TableHead>
+                <TableHead>{t("colLandlord")}</TableHead>
+                <TableHead>{tCommon("society")}</TableHead>
+                <TableHead>{t("colAreaSize")}</TableHead>
+                <TableHead>{t("colPurchaseValue")}</TableHead>
+                <TableHead>{t("colPaidToDate")}</TableHead>
+                <TableHead>{t("colBalanceDue")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
