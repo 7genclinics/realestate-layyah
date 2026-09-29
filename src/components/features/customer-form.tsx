@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +48,7 @@ export function CustomerForm({
   const tSource = useTranslations("labels.customerSource");
   const tStage = useTranslations("labels.customerStage");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const submitLock = useRef(false);
   const {
     register,
     handleSubmit,
@@ -72,45 +73,59 @@ export function CustomerForm({
   });
 
   async function onSubmit(values: CustomerFormValues) {
-    const result = isEdit
-      ? await updateCustomer(customerId!, values)
-      : await createCustomer(values);
+    if (submitLock.current) return;
+    submitLock.current = true;
 
-    if (result.error || !result.id) {
-      toast.error(result.error ?? tToasts("couldNotSaveCustomer"));
-      return;
-    }
+    try {
+      const result = isEdit
+        ? await updateCustomer(customerId!, values)
+        : await createCustomer(values);
 
-    const entityLabel = isEdit ? tToasts("customerUpdated") : tToasts("customerCreated");
-
-    if (attachments.length) {
-      const upload = await uploadPendingAttachments(
-        "customer",
-        result.id,
-        attachments,
-      );
-      if (upload.failed) {
-        toast.warning(
-          tToasts("attachmentsFailed", {
-            entity: entityLabel,
-            count: upload.failed,
-            suffix: upload.firstError ? `: ${upload.firstError}` : ".",
-          }),
-        );
-      } else {
-        toast.success(
-          tToasts("attachmentsOk", {
-            entity: entityLabel,
-            count: upload.uploaded,
-          }),
-        );
+      if (result.error || !result.id) {
+        toast.error(result.error ?? tToasts("couldNotSaveCustomer"));
+        return;
       }
-    } else {
-      toast.success(entityLabel);
-    }
 
-    router.push(`/customers/${result.id}`);
-    router.refresh();
+      if (!isEdit && "alreadyExists" in result && result.alreadyExists) {
+        toast.success(tToasts("customerAlreadySaved"));
+        router.push(`/customers/${result.id}`);
+        router.refresh();
+        return;
+      }
+
+      const entityLabel = isEdit ? tToasts("customerUpdated") : tToasts("customerCreated");
+
+      if (attachments.length) {
+        const upload = await uploadPendingAttachments(
+          "customer",
+          result.id,
+          attachments,
+        );
+        if (upload.failed) {
+          toast.warning(
+            tToasts("attachmentsFailed", {
+              entity: entityLabel,
+              count: upload.failed,
+              suffix: upload.firstError ? `: ${upload.firstError}` : ".",
+            }),
+          );
+        } else {
+          toast.success(
+            tToasts("attachmentsOk", {
+              entity: entityLabel,
+              count: upload.uploaded,
+            }),
+          );
+        }
+      } else {
+        toast.success(entityLabel);
+      }
+
+      router.push(`/customers/${result.id}`);
+      router.refresh();
+    } finally {
+      submitLock.current = false;
+    }
   }
 
   return (

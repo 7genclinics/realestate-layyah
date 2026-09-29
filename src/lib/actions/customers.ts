@@ -7,6 +7,40 @@ import { canManageCrm } from "@/lib/permissions";
 import { createClient } from "@/lib/server";
 import { customerSchema } from "@/lib/validations/customer";
 
+type QueryError = { code?: string; message?: string } | null;
+
+/** CNICs are stored as digits so "35202-1234567-1" and "3520212345671" are the same person. */
+function normalizeIdNumber(idType: string, value?: string | null) {
+  if (!value?.trim()) return null;
+  if (idType === "cnic") {
+    const digits = value.replace(/\D/g, "");
+    return digits || null;
+  }
+  const compact = value.trim().replace(/\s+/g, "").toUpperCase();
+  return compact || null;
+}
+
+function isUniqueViolation(error: QueryError, constraint: string) {
+  return error?.code === "23505" && (error.message ?? "").includes(constraint);
+}
+
+async function findActiveCustomerId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  idType: string,
+  idNumber: string,
+) {
+  const { data } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("id_type", idType as "cnic" | "passport" | "other")
+    .eq("id_number", idNumber)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
 export async function createCustomer(input: unknown) {
   const parsed = customerSchema.safeParse(input);
 
@@ -22,34 +56,60 @@ export async function createCustomer(input: unknown) {
 
   const supabase = await createClient();
   const values = parsed.data;
+  const idNumber = normalizeIdNumber(values.id_type, values.id_number);
 
-  const { data, error } = await supabase
+  if (idNumber) {
+    const existingId = await findActiveCustomerId(supabase, values.id_type, idNumber);
+    if (existingId) {
+      return { error: null, id: existingId, alreadyExists: true as const };
+    }
+  }
+
+  const payload = {
+    full_name: values.full_name.trim(),
+    relation: values.relation,
+    guardian_name: values.guardian_name ?? null,
+    caste: values.caste ?? null,
+    id_type: values.id_type,
+    id_number: idNumber,
+    phone: values.phone.trim(),
+    phone_secondary: values.phone_secondary ?? null,
+    address: values.address ?? null,
+    source: values.source,
+    stage: values.stage,
+    notes: values.notes ?? null,
+    assigned_to: profile.id,
+    created_by: profile.id,
+  };
+
+  let { data, error } = await supabase
     .from("customers")
-    .insert({
-      full_name: values.full_name.trim(),
-      relation: values.relation,
-      guardian_name: values.guardian_name ?? null,
-      caste: values.caste ?? null,
-      id_type: values.id_type,
-      id_number: values.id_number ?? null,
-      phone: values.phone.trim(),
-      phone_secondary: values.phone_secondary ?? null,
-      address: values.address ?? null,
-      source: values.source,
-      stage: values.stage,
-      notes: values.notes ?? null,
-      assigned_to: profile.id,
-      created_by: profile.id,
-    })
+    .insert(payload)
     .select("id")
     .single();
+
+  // A lost response or a double click can land the row, then the retry hits
+  // the CNIC unique index. Open the row that was already saved.
+  if (isUniqueViolation(error, "customers_id_number_unique") && idNumber) {
+    const existingId = await findActiveCustomerId(supabase, values.id_type, idNumber);
+    if (existingId) {
+      revalidatePath("/customers");
+      return { error: null, id: existingId, alreadyExists: true as const };
+    }
+  }
+
+  if (isUniqueViolation(error, "customers_code_key")) {
+    const retry = await supabase.from("customers").insert(payload).select("id").single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error || !data) {
     return { error: error?.message ?? "Could not create customer." };
   }
 
   revalidatePath("/customers");
-  return { error: null, id: data.id };
+  return { error: null, id: data.id, alreadyExists: false as const };
 }
 
 export async function updateCustomer(id: string, input: unknown) {
@@ -76,7 +136,7 @@ export async function updateCustomer(id: string, input: unknown) {
       guardian_name: values.guardian_name ?? null,
       caste: values.caste ?? null,
       id_type: values.id_type,
-      id_number: values.id_number ?? null,
+      id_number: normalizeIdNumber(values.id_type, values.id_number),
       phone: values.phone.trim(),
       phone_secondary: values.phone_secondary ?? null,
       address: values.address ?? null,
@@ -194,7 +254,7 @@ export async function importCustomers(rows: unknown): Promise<ImportResult> {
       guardian_name: v.guardian_name ?? null,
       caste: v.caste ?? null,
       id_type: v.id_type,
-      id_number: v.id_number ?? null,
+      id_number: normalizeIdNumber(v.id_type, v.id_number),
       phone: v.phone.trim(),
       phone_secondary: v.phone_secondary ?? null,
       address: v.address ?? null,
@@ -213,10 +273,46 @@ export async function importCustomers(rows: unknown): Promise<ImportResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("customers").insert(payloads);
 
-  if (error) {
+  if (!error) {
+    revalidatePath("/customers");
+    return { error: null, inserted: payloads.length, failed };
+  }
+
+  // One duplicate CNIC used to reject the whole file, and a retry then reported
+  // every row as a duplicate. Save the new rows and skip the ones already on file.
+  if (error.code !== "23505") {
     return { error: error.message, inserted: 0, failed };
   }
 
+  let inserted = 0;
+  for (const row of payloads) {
+    const { error: rowError } = await supabase.from("customers").insert(row);
+    if (!rowError) {
+      inserted += 1;
+      continue;
+    }
+    if (isUniqueViolation(rowError, "customers_id_number_unique")) {
+      failed.push({
+        line: 0,
+        name: row.full_name,
+        reason: "Already saved",
+      });
+      continue;
+    }
+    if (isUniqueViolation(rowError, "customers_code_key")) {
+      const retry = await supabase.from("customers").insert(row);
+      if (!retry.error) {
+        inserted += 1;
+        continue;
+      }
+    }
+    failed.push({
+      line: 0,
+      name: row.full_name,
+      reason: rowError.message,
+    });
+  }
+
   revalidatePath("/customers");
-  return { error: null, inserted: payloads.length, failed };
+  return { error: null, inserted, failed };
 }

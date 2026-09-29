@@ -1108,6 +1108,8 @@
     "couldNotSaveCustomer": "Could not save customer",
     "customerUpdated": "Customer updated",
     "customerCreated": "Customer created",
+    "customerAlreadySaved": "This customer was already saved. Opened the existing record.",
+    "bookingAlreadySaved": "This booking was already saved. Opened the customer.",
     "societyCreated": "Society created",
     "couldNotSaveProperty": "Could not save property",
     "propertyUpdated": "Property updated",

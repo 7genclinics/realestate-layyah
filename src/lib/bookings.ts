@@ -7,7 +7,7 @@ export async function getBookingsList() {
     .from("sales")
     .select(`
       *,
-      customers (id, full_name, phone, cnic),
+      customers (id, full_name, phone, id_number),
       properties (id, plot_no, property_type, area, area_unit, societies (id, name)),
       installments (id, due_date, scheduled_amount, received_amount, status_override)
     `)

@@ -1108,6 +1108,8 @@
     "couldNotSaveCustomer": "کسٹمر محفوظ نہیں ہو سکا",
     "customerUpdated": "کسٹمر اپ ڈیٹ ہو گیا",
     "customerCreated": "کسٹمر بن گیا",
+    "customerAlreadySaved": "یہ کسٹمر پہلے سے محفوظ ہے۔ موجودہ ریکارڈ کھول دیا گیا۔",
+    "bookingAlreadySaved": "یہ بکنگ پہلے سے محفوظ ہے۔ کسٹمر کھول دیا گیا۔",
     "societyCreated": "سوسائٹی بن گئی",
     "couldNotSaveProperty": "پراپرٹی محفوظ نہیں ہو سکی",
     "propertyUpdated": "پراپرٹی اپ ڈیٹ ہو گئی",

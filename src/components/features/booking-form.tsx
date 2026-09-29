@@ -167,7 +167,11 @@ export function BookingForm({
       return;
     }
 
-    toast.success(tToasts("bookingCreated"));
+    toast.success(
+      "alreadyExists" in result && result.alreadyExists
+        ? tToasts("bookingAlreadySaved")
+        : tToasts("bookingCreated"),
+    );
     router.push(`/customers/${result.customerId}`);
     router.refresh();
   }

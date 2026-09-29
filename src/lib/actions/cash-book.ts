@@ -33,25 +33,38 @@ export async function createCashVoucher(input: unknown) {
   const supabase = await createClient();
   const values = parsed.data;
 
-  const { data, error } = await supabase
-    .from("cash_transactions")
-    .insert({
-      transaction_type: values.transaction_type,
-      category_id: values.category_id,
-      cash_account_id: values.cash_account_id,
-      society_id: values.society_id ?? null,
-      amount: roundMoney(values.amount),
-      transaction_date: values.transaction_date,
-      payment_mode: values.payment_mode,
-      description: values.description,
-      reference_no: values.reference_no ?? null,
-      counterparty_name: values.counterparty_name ?? null,
-      notes: values.notes ?? null,
-      entered_by: profile.id,
-      status: "posted",
-    })
-    .select("id")
-    .single();
+  const payload = {
+    transaction_type: values.transaction_type,
+    category_id: values.category_id,
+    cash_account_id: values.cash_account_id,
+    society_id: values.society_id ?? null,
+    amount: roundMoney(values.amount),
+    transaction_date: values.transaction_date,
+    payment_mode: values.payment_mode,
+    description: values.description,
+    reference_no: values.reference_no ?? null,
+    counterparty_name: values.counterparty_name ?? null,
+    notes: values.notes ?? null,
+    entered_by: profile.id,
+    status: "posted" as const,
+  };
+
+  let data: { id: string } | null = null;
+  let error: { message: string } | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const result = await supabase
+      .from("cash_transactions")
+      .insert(payload)
+      .select("id")
+      .single();
+    data = result.data;
+    error = result.error;
+    const codeClash =
+      result.error?.code === "23505" &&
+      (result.error.message ?? "").includes("cash_transactions_code_key");
+    if (!codeClash) break;
+  }
 
   if (error || !data) {
     return { error: error?.message ?? "Could not post voucher." };

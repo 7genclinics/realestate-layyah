@@ -15,6 +15,25 @@ import { createClient } from "@/lib/server";
 import type { Database } from "@/lib/database.types";
 import { bookingSchema } from "@/lib/validations/booking";
 
+async function activeSaleForSameCustomer(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  propertyId: string,
+  customerId: string,
+) {
+  const { data } = await supabase
+    .from("sales")
+    .select("id")
+    .eq("property_id", propertyId)
+    .eq("customer_id", customerId)
+    .is("deleted_at", null)
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
 export async function createBooking(input: unknown) {
   const parsed = bookingSchema.safeParse(input);
 
@@ -84,6 +103,19 @@ export async function createBooking(input: unknown) {
     }
 
     if (prop.status !== "available" && prop.status !== "hold") {
+      const existingId = await activeSaleForSameCustomer(
+        supabase,
+        prop.id,
+        values.customer_id,
+      );
+      if (existingId) {
+        return {
+          error: null,
+          id: existingId,
+          customerId: values.customer_id,
+          alreadyExists: true as const,
+        };
+      }
       return { error: "This property is not available for booking." };
     }
 
@@ -179,7 +211,23 @@ export async function createBooking(input: unknown) {
     .single();
 
   if (saleError || !sale) {
-    if (saleError?.message.includes("sales_one_active_per_property")) {
+    if (
+      saleError?.message.includes("sales_one_active_per_property") &&
+      property
+    ) {
+      const existingId = await activeSaleForSameCustomer(
+        supabase,
+        property.id,
+        values.customer_id,
+      );
+      if (existingId) {
+        return {
+          error: null,
+          id: existingId,
+          customerId: values.customer_id,
+          alreadyExists: true as const,
+        };
+      }
       return { error: "This plot already has an active booking." };
     }
 
@@ -264,6 +312,12 @@ export async function createBooking(input: unknown) {
       .select("id, installment_no");
 
     if (installmentError) {
+      // The sale row is already saved. Cancel it so a retry is a new booking
+      // instead of a duplicate-plot error.
+      await supabase
+        .from("sales")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", sale.id);
       return { error: installmentError.message };
     }
 

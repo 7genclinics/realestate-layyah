@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Noto_Sans_Arabic, Poppins, Syne } from "next/font/google";
+import { DM_Sans, Geist_Mono, Noto_Sans_Arabic, Poppins } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { AppProviders } from "@/providers/app-providers";
@@ -13,9 +13,9 @@ const poppins = Poppins({
   display: "swap",
 });
 
-const syne = Syne({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-syne",
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       dir={dir}
-      className={`${poppins.variable} ${syne.variable} ${geistMono.variable} ${notoUrdu.variable} h-full antialiased`}
+      className={`${poppins.variable} ${dmSans.variable} ${geistMono.variable} ${notoUrdu.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
