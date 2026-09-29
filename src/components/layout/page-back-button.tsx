@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { NAV_ITEMS } from "@/lib/constants";
 
-const ROOT_PATHS = new Set(NAV_ITEMS.map((item) => item.href));
+const ROOT_PATHS = new Set<string>(NAV_ITEMS.map((item) => item.href));
 
 export function PageBackButton() {
   const pathname = usePathname();
