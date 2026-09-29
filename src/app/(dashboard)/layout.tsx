@@ -5,6 +5,7 @@ import { requireProfile } from "@/lib/auth";
 import { getMyNotifications } from "@/lib/notifications";
 import { localeDir, type Locale } from "@/i18n/config";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { PageBackButton } from "@/components/layout/page-back-button";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { HeaderUser } from "@/components/layout/header-user";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -51,7 +52,10 @@ export default async function AppLayout({
             />
           </div>
         </header>
-        <div className="flex-1 overflow-auto bg-background p-6 md:p-8">{children}</div>
+        <div className="flex-1 overflow-auto bg-background p-6 md:p-8">
+          <PageBackButton />
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
